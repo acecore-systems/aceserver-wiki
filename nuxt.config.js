@@ -3,7 +3,7 @@ import { resolve } from 'path'
 export default {
   publicRuntimeConfig: {
     spaceUid: 'aceserver',
-    appUid: 'homepage',
+    appUid: 'portal',
     token: 'lLlHPd32YH3KJQI7OPXKFFOsqlxmz38AARJCpa0rq5U',
     apiType: 'cdn',
     pageModelUid: 'single-page',
