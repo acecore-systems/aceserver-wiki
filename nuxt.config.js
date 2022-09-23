@@ -2,9 +2,9 @@ import { resolve } from 'path'
 
 export default {
   publicRuntimeConfig: {
-    spaceUid: 'hatt',
+    spaceUid: 'aceserver',
     appUid: 'homepage',
-    token: 'cXUCzvWcO8gjxcRtaJksEukjmZTPDyKWXAZgBLfzBoI',
+    token: 'lLlHPd32YH3KJQI7OPXKFFOsqlxmz38AARJCpa0rq5U',
     apiType: 'cdn',
     pageModelUid: 'single-page',
     articleModelUid: 'article',
