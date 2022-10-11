@@ -1,18 +1,15 @@
 <template>
-  <section class="Feature1">
+  <section class="container mb-5">
     <h3
       v-if="data.titleCopy"
-      class="Feature1_Title"
       v-html="data.titleCopy"
+      class="text-center"
     ></h3>
-    <p v-if="data.text" class="Feature1_Text" v-html="data.text"></p>
+    <p v-if="data.text" v-html="data.text" class="text-center"></p>
     <img
       v-if="data.image && data.image.src"
       :src="data.image.src"
-      width="980"
-      height="307"
-      alt=""
-      class="Feature1_Image"
+      class="h-auto w-100"
     />
   </section>
 </template>
