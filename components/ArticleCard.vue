@@ -3,7 +3,7 @@
     <div class="row">
       <div class="col-5">
         <template v-if="article.coverImage">
-          <img :src="article.coverImage.src" alt="" width="300" height="200"/>
+          <img :src="article.coverImage.src" class="w-100 h-100" style="object-fit: cover"/>
         </template>
         <template v-else>
           <svg
