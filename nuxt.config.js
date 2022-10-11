@@ -20,7 +20,7 @@ export default {
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
-    title: 'Docs',
+    title: 'aceserver-portal',
     htmlAttrs: {
       lang: 'ja',
     },
@@ -49,7 +49,12 @@ export default {
   ],
 
   // Modules: https://go.nuxtjs.dev/config-modules
-  modules: [],
+  modules: [
+    // https://go.nuxtjs.dev/bootstrap
+    'bootstrap-vue/nuxt',
+    // https://go.nuxtjs.dev/axios
+    '@nuxtjs/axios',
+  ],
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {
