@@ -1,15 +1,18 @@
 import { resolve } from 'path'
+import { createClient } from 'newt-client-js'
+
+const config = {
+  spaceUid: 'aceserver',
+  appUid: 'portal',
+  token: 'lLlHPd32YH3KJQI7OPXKFFOsqlxmz38AARJCpa0rq5U',
+  apiType: 'cdn',
+  articleModelUid: 'article',
+  categoryModelUid: 'category',
+}
 
 export default {
   publicRuntimeConfig: {
-    spaceUid: 'aceserver',
-    appUid: 'portal',
-    token: 'lLlHPd32YH3KJQI7OPXKFFOsqlxmz38AARJCpa0rq5U',
-    apiType: 'cdn',
-    pageModelUid: 'single-page',
-    articleModelUid: 'article',
-    tagModelUid: 'tag',
-    pageLimit: 12,
+    ...config,
   },
 
   // Target: https://go.nuxtjs.dev/config-target
@@ -17,9 +20,9 @@ export default {
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
-    title: 'Blog',
+    title: 'Docs',
     htmlAttrs: {
-      lang: 'en',
+      lang: 'ja',
     },
     meta: [
       { charset: 'utf-8' },
@@ -46,10 +49,7 @@ export default {
   ],
 
   // Modules: https://go.nuxtjs.dev/config-modules
-  modules: [
-    // https://go.nuxtjs.dev/bootstrap
-    'bootstrap-vue/nuxt',
-  ],
+  modules: [],
 
   // Build Configuration: https://go.nuxtjs.dev/config-build
   build: {
@@ -63,7 +63,29 @@ export default {
   },
 
   alias: {
-    api: resolve(__dirname, './api'),
     utils: resolve(__dirname, './utils'),
+  },
+
+  router: {
+    async extendRoutes(routes, resolve) {
+      const client = createClient({
+        spaceUid: config.spaceUid,
+        token: config.token,
+        apiType: config.apiType,
+      })
+      const { items } = await client.getContents({
+        appUid: config.appUid,
+        modelUid: config.articleModelUid,
+        query: {
+          depth: 2,
+          order: ['sortOrder'],
+          select: ['title', 'slug'],
+          limit: 1000,
+        },
+      })
+      items.forEach((item) =>
+        routes.push({ name: item.title, path: `/article/${item.slug}` })
+      )
+    },
   },
 }

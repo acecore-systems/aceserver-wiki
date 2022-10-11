@@ -1,20 +1,16 @@
 <template>
-  <div v-if="page">
-    <component
-      :is="section.type"
-      v-for="section in page.sections"
-      :key="section._id"
-      :data="section.data"
-    />
-  </div>
+  <Article v-if="currentArticle" :article="currentArticle" />
 </template>
 
 <script>
 import { mapGetters } from 'vuex'
+import { htmlToText } from 'html-to-text'
 export default {
-  async asyncData({ store, $config, params }) {
+  async asyncData({ $config, params, store }) {
     await store.dispatch('fetchApp', $config)
-    await store.dispatch('fetchPage', {
+    await store.dispatch('fetchCategories', $config)
+    await store.dispatch('fetchArticles', $config)
+    await store.dispatch('fetchCurrentArticle', {
       ...$config,
       slug: params.slug,
     })
@@ -57,10 +53,10 @@ export default {
     }
   },
   computed: {
-    ...mapGetters(['app', 'page']),
+    ...mapGetters(['currentArticle', 'app']),
     meta() {
-      if (this.page && this.page.meta) {
-        return this.page.meta
+      if (this.currentArticle && this.currentArticle.meta) {
+        return this.currentArticle.meta
       }
       return null
     },
@@ -68,14 +64,24 @@ export default {
       if (this.meta && this.meta.title) {
         return this.meta.title
       }
-      if (this.page && this.page.pageName) {
-        return this.page.pageName
+      if (this.currentArticle && this.currentArticle.title) {
+        return this.currentArticle.title
       }
-      return this.app && (this.app.name || this.app.uid || 'Landing page')
+      return this.app && (this.app.name || this.app.uid || 'Docs')
     },
     description() {
       if (this.meta && this.meta.description) {
         return this.meta.description
+      }
+      if (this.currentArticle && this.currentArticle.body) {
+        return htmlToText(this.currentArticle.body, {
+          selectors: [
+            {
+              selector: 'img',
+              format: 'skip',
+            },
+          ],
+        }).slice(0, 200)
       }
       return ''
     },
