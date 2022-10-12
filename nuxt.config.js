@@ -3,7 +3,7 @@ import { createClient } from 'newt-client-js'
 
 const config = {
   spaceUid: 'aceserver',
-  appUid: 'portal',
+  appUid: 'wiki',
   token: 'lLlHPd32YH3KJQI7OPXKFFOsqlxmz38AARJCpa0rq5U',
   apiType: 'cdn',
   articleModelUid: 'article',
@@ -20,7 +20,7 @@ export default {
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
-    title: 'aceserver-portal',
+    title: 'aceserver-wiki',
     htmlAttrs: {
       lang: 'ja',
     },
