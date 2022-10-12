@@ -15,6 +15,8 @@
         </span>
         <div class="Title_Text">{{ title }}</div>
       </NuxtLink>
+      <div class="Link">
+      </div>
       <div class="MobileSearch">
         <button class="MobileSearch_Button" @click="focusInput">
           <svg width="14" height="14" xmlns="http://www.w3.org/2000/svg">
@@ -135,7 +137,7 @@ export default {
   background: #fff;
   z-index: 2;
   position: fixed;
-  width: calc(100% - 22px);
+  width: 100%;
   padding: 8px 8px 8px 14px;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
@@ -180,7 +182,6 @@ export default {
 @media (min-width: 600px) {
   .Header {
     padding: 9px 60px;
-    width: calc(100% - 120px);
   }
 }
 .MobileSearch {
