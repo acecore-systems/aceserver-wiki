@@ -9,7 +9,6 @@
       />
       <Nuxt />
     </main>
-    <Badge />
   </div>
 </template>
 
