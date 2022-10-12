@@ -1,0 +1,21 @@
+::-webkit-scrollbar {
+  width: 0.8rem;
+}
+::-webkit-scrollbar-thumb {
+  border-top: thin solid #c0c0c0;
+  border-bottom: thin solid #c0c0c0;
+  background: #d0d0d0;
+}
+::-webkit-scrollbar-thumb:hover {
+  border-top: thin solid #b0b0b0;
+  border-bottom: thin solid #b0b0b0;
+  background: #c0c0c0;
+}
+::-webkit-scrollbar-thumb:active {
+  border-top: thin solid #a0a0a0;
+  border-bottom: thin solid #a0a0a0;
+  background: #b0b0b0;
+}
+::-webkit-scrollbar-track {
+  background: #e0e0e0;
+}
