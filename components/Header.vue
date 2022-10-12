@@ -16,7 +16,7 @@
         <div class="Title_Text">{{ title }}</div>
       </NuxtLink>
       <div class="Link">
-        <a href="https://aceserver-blog.acecore.systems">エースサーバーブログへ</a>
+        <a href="https://blog.acecore.systems">エースコアブログへ</a>
       </div>
       <div class="MobileSearch">
         <button class="MobileSearch_Button" @click="focusInput">
@@ -49,7 +49,7 @@
             <a href="/" aria-current="true">{{ title }}</a>
           </li>
           <li>
-            <a href="https://aceserver-blog.acecore.systems">エースサーバーブログへ</a>
+            <a href="https://blog.acecore.systems">エースコアブログへ</a>
           </li>
         </ul>
         <HeaderMobileMenuItem
