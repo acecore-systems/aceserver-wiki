@@ -16,7 +16,7 @@
         <div class="Title_Text">{{ title }}</div>
       </NuxtLink>
       <div class="Link">
-        <a href="https://blog.acecore.systems">エースコアブログへ</a>
+        <a v-for="link in links" :key="link._id" :href="link.href">{{ link.text }}</a>
       </div>
       <div class="MobileSearch">
         <button class="MobileSearch_Button" @click="focusInput">
@@ -48,8 +48,8 @@
           <li>
             <a href="/" aria-current="true">{{ title }}</a>
           </li>
-          <li>
-            <a href="https://blog.acecore.systems">エースコアブログへ</a>
+          <li v-for="link in links" :key="link._id" >
+            <a :href="link.href">{{ link.text }}</a>
           </li>
         </ul>
         <HeaderMobileMenuItem
@@ -69,6 +69,10 @@ export default {
     app: {
       type: Object,
       default: null,
+    },
+    links: {
+      type: Array,
+      default: () => [],
     },
     articles: {
       type: Array,

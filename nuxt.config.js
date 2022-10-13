@@ -8,6 +8,7 @@ const config = {
   apiType: 'cdn',
   articleModelUid: 'article',
   categoryModelUid: 'category',
+  linkModelUid: 'link',
 }
 
 export default {

@@ -1,6 +1,6 @@
 <template>
   <div class="Wrapper">
-    <Header :app="app" :articles="articles" :categories="categories" />
+    <Header :app="app" :links="links" :articles="articles" :categories="categories" />
     <main class="Main">
       <Navigation
         :current="currentArticle"
@@ -16,7 +16,7 @@
 import { mapGetters } from 'vuex'
 export default {
   computed: {
-    ...mapGetters(['app', 'categories', 'articles', 'currentArticle']),
+    ...mapGetters(['app', 'links', 'categories', 'articles', 'currentArticle']),
   },
 }
 </script>

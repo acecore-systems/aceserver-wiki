@@ -2,6 +2,7 @@ import { createClient } from 'newt-client-js'
 
 export const state = () => ({
   app: null,
+  links: [],
   categories: [],
   articles: [],
   currentArticle: null,
@@ -9,6 +10,7 @@ export const state = () => ({
 
 export const getters = {
   app: (state) => state.app,
+  links: (state) => state.links,
   categories: (state) => state.categories,
   articles: (state) => state.articles,
   currentArticle: (state) => state.currentArticle,
@@ -28,6 +30,9 @@ export const getters = {
 export const mutations = {
   setApp(state, app) {
     state.app = app
+  },
+  setLinks(state, links) {
+    state.links = links
   },
   setCategories(state, categories) {
     state.categories = categories
@@ -52,6 +57,30 @@ export const actions = {
         appUid,
       })
       commit('setApp', app)
+    } catch (err) {
+      // console.error(err)
+    }
+  },
+  async fetchLinks(
+    { commit },
+    { spaceUid, linkModelUid, token, apiType, appUid }
+  ) {
+    try {
+      const client = createClient({
+        spaceUid,
+        token,
+        apiType,
+      })
+      const { items } = await client.getContents({
+        appUid,
+        modelUid: linkModelUid,
+        query: {
+          depth: 1,
+          select: ['_id', 'text', 'href'],
+          limit: 5,
+        },
+      })
+      commit('setLinks', items)
     } catch (err) {
       // console.error(err)
     }
