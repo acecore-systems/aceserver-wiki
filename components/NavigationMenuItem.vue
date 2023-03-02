@@ -87,7 +87,7 @@ export default {
 }
 .Nav_Contents dt svg {
   position: relative;
-  top: 0px;
+  top: -2px;
   left: 2px;
   margin: 0 4px 0 0;
 }
