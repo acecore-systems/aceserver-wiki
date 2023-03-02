@@ -82,7 +82,7 @@ export default {
 .Nav_Search svg {
   position: absolute;
   left: 12px;
-  top: 12px;
+  top: 16px;
   opacity: 0.2;
 }
 .Nav_Search input {
