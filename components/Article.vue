@@ -28,8 +28,11 @@ export default {
 }
 .Article_Title {
   margin: -6px 0 24px 0;
-  padding: 0;
+  padding: 0px 0px 0px 10px;
   font-size: 2.8rem;
+  border-top:#000 solid;
+  border-bottom:#000 solid;
+  background: #f0f0f0;
 }
 .Article_Body >>> h1,
 .Article_Body >>> h2,
@@ -43,12 +46,19 @@ export default {
 }
 .Article_Body >>> h1 {
   font-size: 2.4rem;
+  border-left: 6px double #000;
+  background: #f0f0f0;
+  padding:0px 0px 0px 10px;
 }
 .Article_Body >>> h2 {
   font-size: 2.2rem;
+  border-bottom:3px double #000;
+  background: #f0f0f0;
 }
 .Article_Body >>> h3 {
   font-size: 2rem;
+  border-bottom:#000 solid 2px;
+  background:#f0f0f0;
 }
 .Article_Body >>> h4 {
   font-size: 1.8rem;
@@ -81,7 +91,8 @@ export default {
 .Article_Body >>> img {
   max-width: 100%;
   height: auto;
-  margin: 32px auto;
+  margin: 5px auto;
+  margin-left: 0%;
   display: block;
 }
 .Article_Body >>> ul,
@@ -135,6 +146,22 @@ export default {
   padding: 0;
   margin: 0;
   color: #fff;
+}
+.Article_Body >>> table {
+  width:100%;
+  vertical-align:middle;
+  border-collapse:collapse;
+  white-space:nowrap;
+  overflow-x:scroll;
+}
+.Article_Body >>> table th {
+  border:2px solid #eee;
+  padding:4px 8px;
+  background-color: #f0f0f0;
+}
+.Article_Body >>> table td {
+  border:2px solid #eee;
+  padding:4px 8px;
 }
 @media (min-width: 600px) {
   .Article {
