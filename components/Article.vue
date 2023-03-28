@@ -61,13 +61,31 @@ export default {
   background:#f0f0f0;
 }
 .Article_Body >>> h4 {
-  font-size: 1.8rem;
+  font-size: 2.2rem;
+  counter-increment:h2list;
+  border-bottom:3px double #000;
+  background: #f0f0f0;
+  list-style: none;
+}
+.Article_Body >>> h4::before {
+  content:counter(h2list)",";
 }
 .Article_Body >>> h5 {
-  font-size: 1.6rem;
+  font-size: 2.2rem;
+  border-bottom:3px double #000;
+  background: #f0f0f0;
+  padding-left:1.3em;
+}
+.Article_Body >>> h5::before {
+  content:"・"
 }
 .Article_Body >>> h6 {
   font-size: 1.4rem;
+  font-weight:normal;
+  padding-left:3.0em;
+  line-height: 0px;
+  margin-top: 1.5em;
+  margin-bottom: 1.1em;
 }
 .Article_Body >>> h2 a {
   color: #333;
