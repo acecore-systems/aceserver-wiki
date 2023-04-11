@@ -49,16 +49,19 @@ export default {
   border-left: 6px double #000;
   background: #f0f0f0;
   padding:0px 0px 0px 10px;
+  margin-bottom:0.2em;
 }
 .Article_Body >>> h2 {
   font-size: 2.2rem;
   border-bottom:3px double #000;
   background: #f0f0f0;
+  margin-bottom:0.2em;
 }
 .Article_Body >>> h3 {
   font-size: 2rem;
   border-bottom:#000 solid 2px;
   background:#f0f0f0;
+  margin-bottom:0.2em;
 }
 .Article_Body >>> h4 {
   font-size: 2.2rem;
@@ -66,6 +69,7 @@ export default {
   border-bottom:3px double #000;
   background: #f0f0f0;
   list-style: none;
+  margin-bottom:0.2em;
 }
 .Article_Body >>> h4::before {
   content:counter(h2list)",";
@@ -75,6 +79,7 @@ export default {
   border-bottom:3px double #000;
   background: #f0f0f0;
   padding-left:1.3em;
+  margin-bottom:0.2em;
 }
 .Article_Body >>> h5::before {
   content:"・"
