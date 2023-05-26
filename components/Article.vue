@@ -116,7 +116,7 @@ export default {
 .Article_Body >>> ul,
 .Article_Body >>> ol {
   margin: 0;
-  padding: 0 0 16px 40px;
+  padding: 0 0 0 40px;
 }
 .Article_Body >>> ul li,
 .Article_Body >>> ol li {
