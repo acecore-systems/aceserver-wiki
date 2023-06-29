@@ -83,7 +83,7 @@ export default {
   font-size: 1.4rem;
   font-weight:normal;
   padding-left:3.0em;
-  line-height: 0px;
+  line-height: 1em;
   margin-top: 1.5em;
   margin-bottom: 1.1em;
 }
