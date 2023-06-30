@@ -88,7 +88,7 @@ export default {
   font-size: 1.4rem;
   font-weight:normal;
   padding-left:3.0em;
-  line-height: 0px;
+  line-height: 1em;
   margin-top: 1.5em;
   margin-bottom: 1.1em;
 }
@@ -121,7 +121,7 @@ export default {
 .Article_Body >>> ul,
 .Article_Body >>> ol {
   margin: 0;
-  padding: 0 0 16px 40px;
+  padding: 0 0 0 40px;
 }
 .Article_Body >>> ul li,
 .Article_Body >>> ol li {
