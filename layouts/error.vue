@@ -18,6 +18,23 @@ export default {
       default: null,
     },
   },
+  head() {
+    const title =
+      this.error && this.error.statusCode === 404
+        ? 'Page not found'
+        : 'An error occurred'
+
+    return {
+      title,
+      meta: [
+        {
+          hid: 'robots',
+          name: 'robots',
+          content: 'noindex, nofollow',
+        },
+      ],
+    }
+  },
 }
 </script>
 
