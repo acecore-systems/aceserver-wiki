@@ -25,7 +25,7 @@
     <dd v-if="isOpen">
       <ul>
         <li v-for="article in articles" :key="article._id">
-          <NuxtLink :to="`/article/${article.slug}`">{{
+          <NuxtLink :to="`/article/${article.slug}/`">{{
             article.title
           }}</NuxtLink>
         </li>

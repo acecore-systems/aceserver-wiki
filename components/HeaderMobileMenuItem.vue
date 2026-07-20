@@ -25,7 +25,7 @@
     <dd v-if="isOpen">
       <ul>
         <li v-for="article in articles" :key="article._id">
-          <a :href="`/article/${article.slug}`">{{ article.title }}</a>
+          <a :href="`/article/${article.slug}/`">{{ article.title }}</a>
         </li>
       </ul>
     </dd>
