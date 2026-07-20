@@ -2,11 +2,13 @@
   <article class="Article">
     <h1 class="Article_Title">{{ article.title }}</h1>
     <!-- eslint-disable-next-line vue/no-v-html -->
-    <div class="Article_Body" v-html="article.body"></div>
+    <div class="Article_Body" v-html="body"></div>
   </article>
 </template>
 
 <script>
+import { ensureImageAlts } from '~/utils/seo'
+
 export default {
   props: {
     article: {
@@ -15,6 +17,11 @@ export default {
         title: '',
         body: '',
       }),
+    },
+  },
+  computed: {
+    body() {
+      return ensureImageAlts(this.article.body)
     },
   },
 }
@@ -30,8 +37,8 @@ export default {
   margin: -6px 0 24px 0;
   padding: 0px 0px 0px 10px;
   font-size: 2.8rem;
-  border-top:#000 solid;
-  border-bottom:#000 solid;
+  border-top: #000 solid;
+  border-bottom: #000 solid;
   background: #f0f0f0;
 }
 .Article_Body >>> h1,
@@ -48,46 +55,46 @@ export default {
   font-size: 2.4rem;
   border-left: 6px double #000;
   background: #f0f0f0;
-  padding:0px 0px 0px 10px;
-  margin-bottom:0.2em;
+  padding: 0px 0px 0px 10px;
+  margin-bottom: 0.2em;
 }
 .Article_Body >>> h2 {
   font-size: 2.2rem;
-  border-bottom:3px double #000;
+  border-bottom: 3px double #000;
   background: #f0f0f0;
-  margin-bottom:0.2em;
+  margin-bottom: 0.2em;
 }
 .Article_Body >>> h3 {
   font-size: 2rem;
-  border-bottom:#000 solid 2px;
-  background:#f0f0f0;
-  margin-bottom:0.2em;
+  border-bottom: #000 solid 2px;
+  background: #f0f0f0;
+  margin-bottom: 0.2em;
 }
 .Article_Body >>> h4 {
   font-size: 2.2rem;
-  counter-increment:h2list;
-  border-bottom:3px double #000;
+  counter-increment: h2list;
+  border-bottom: 3px double #000;
   background: #f0f0f0;
   list-style: none;
-  margin-bottom:0.2em;
+  margin-bottom: 0.2em;
 }
 .Article_Body >>> h4::before {
-  content:counter(h2list)",";
+  content: counter(h2list) ',';
 }
 .Article_Body >>> h5 {
   font-size: 2.2rem;
-  border-bottom:3px double #000;
+  border-bottom: 3px double #000;
   background: #f0f0f0;
-  padding-left:1.3em;
-  margin-bottom:0.2em;
+  padding-left: 1.3em;
+  margin-bottom: 0.2em;
 }
 .Article_Body >>> h5::before {
-  content:"・"
+  content: '・';
 }
 .Article_Body >>> h6 {
   font-size: 1.4rem;
-  font-weight:normal;
-  padding-left:3.0em;
+  font-weight: normal;
+  padding-left: 3em;
   line-height: 1em;
   margin-top: 1.5em;
   margin-bottom: 1.1em;
@@ -171,20 +178,20 @@ export default {
   color: #fff;
 }
 .Article_Body >>> table {
-  width:100%;
-  vertical-align:middle;
-  border-collapse:collapse;
-  white-space:nowrap;
-  overflow-x:scroll;
+  width: 100%;
+  vertical-align: middle;
+  border-collapse: collapse;
+  white-space: nowrap;
+  overflow-x: scroll;
 }
 .Article_Body >>> table th {
-  border:2px solid #eee;
-  padding:4px 8px;
+  border: 2px solid #eee;
+  padding: 4px 8px;
   background-color: #f0f0f0;
 }
 .Article_Body >>> table td {
-  border:2px solid #eee;
-  padding:4px 8px;
+  border: 2px solid #eee;
+  padding: 4px 8px;
 }
 @media (min-width: 600px) {
   .Article {

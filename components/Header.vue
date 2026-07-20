@@ -11,12 +11,14 @@
           v-else-if="icon && icon.type === 'image' && icon.value"
           class="Title_Icon"
         >
-          <img :src="icon.value" />
+          <img :src="icon.value" alt="" />
         </span>
         <div class="Title_Text">{{ title }}</div>
       </NuxtLink>
       <div class="Link">
-        <a v-for="link in links" :key="link._id" :href="link.href">{{ link.text }}</a>
+        <a v-for="link in links" :key="link._id" :href="link.href">{{
+          link.text
+        }}</a>
       </div>
       <div class="MobileSearch">
         <button class="MobileSearch_Button" @click="focusInput">
@@ -48,7 +50,7 @@
           <li>
             <a href="/" aria-current="true">{{ title }}</a>
           </li>
-          <li v-for="link in links" :key="link._id" >
+          <li v-for="link in links" :key="link._id">
             <a :href="link.href">{{ link.text }}</a>
           </li>
         </ul>
