@@ -11,7 +11,7 @@
           v-else-if="icon && icon.type === 'image' && icon.value"
           class="Title_Icon"
         >
-          <img :src="icon.value" alt="" />
+          <img :src="icon.value" :alt="title + 'のロゴ'" />
         </span>
         <div class="Title_Text">{{ title }}</div>
       </NuxtLink>

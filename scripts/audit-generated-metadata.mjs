@@ -5,6 +5,7 @@ import {
   normalizeSeoText,
   unnaturalDescriptionReasons,
 } from '../utils/seo-metadata.mjs'
+import { inspectImageAlts } from '../utils/image-alt.mjs'
 
 const distDirectory = path.resolve('dist')
 const sitemap = await fs.readFile(
@@ -28,6 +29,9 @@ const summary = {
   unnaturalDescriptions: 0,
   canonicalErrors: 0,
   robotsErrors: 0,
+  images: 0,
+  imageAltMissing: 0,
+  imageAltEmpty: 0,
   notFoundNoindex: false,
 }
 
@@ -56,6 +60,21 @@ for (const url of urls) {
   const canonical = html.match(
     /<link\b(?=[^>]*\brel=(['"])canonical\1)[^>]*\bhref=(['"])(.*?)\2[^>]*>/i
   )?.[3]
+  const imageAudit = inspectImageAlts(html)
+
+  summary.images += imageAudit.images
+  summary.imageAltMissing += imageAudit.missing
+  summary.imageAltEmpty += imageAudit.empty
+  for (const issue of imageAudit.issues) {
+    failures.push(
+      url.toString() +
+        ': ' +
+        issue.state +
+        ' image alt (' +
+        (issue.source || 'src missing') +
+        ')'
+    )
+  }
 
   titles.set(title, [...(titles.get(title) ?? []), url.toString()])
   descriptions.set(description, [
@@ -104,9 +123,20 @@ summary.notFoundNoindex =
   )
 
 for (const [key, value] of Object.entries(summary)) {
-  if (key === 'urls' || key === 'notFoundNoindex') continue
+  if (
+    key === 'urls' ||
+    key === 'images' ||
+    key === 'imageAltMissing' ||
+    key === 'imageAltEmpty' ||
+    key === 'notFoundNoindex'
+  )
+    continue
   if (value > 0) failures.push(`${key}: ${value}`)
 }
+if (summary.imageAltMissing > 0)
+  failures.push('imageAltMissing: ' + summary.imageAltMissing)
+if (summary.imageAltEmpty > 0)
+  failures.push('imageAltEmpty: ' + summary.imageAltEmpty)
 if (!summary.notFoundNoindex)
   failures.push('404.html is missing noindex robots metadata')
 
