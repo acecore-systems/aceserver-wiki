@@ -4,8 +4,12 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { htmlToText } from 'html-to-text'
-import { articlePath, canonicalUrl } from '~/utils/seo'
+import {
+  articlePath,
+  buildArticleMetaDescription,
+  buildArticleMetaTitle,
+  canonicalUrl,
+} from '~/utils/seo'
 export default {
   async asyncData({ $config, params, store }) {
     await store.dispatch('fetchApp', $config)
@@ -35,7 +39,7 @@ export default {
         {
           hid: 'og:type',
           property: 'og:type',
-          content: 'article'
+          content: 'article',
         },
         {
           hid: 'og:title',
@@ -54,12 +58,10 @@ export default {
         },
         {
           name: 'twitter:card',
-          content: 'summary_large_image'
+          content: 'summary_large_image',
         },
       ],
-      link: [
-        { hid: 'canonical', rel: 'canonical', href: this.canonical },
-      ],
+      link: [{ hid: 'canonical', rel: 'canonical', href: this.canonical }],
     }
   },
   computed: {
@@ -77,6 +79,9 @@ export default {
       return canonicalUrl(articlePath(slug))
     },
     title() {
+      return buildArticleMetaTitle(this.articleTitle)
+    },
+    articleTitle() {
       if (this.meta && this.meta.title) {
         return this.meta.title
       }
@@ -86,20 +91,11 @@ export default {
       return this.app && (this.app.name || this.app.uid || 'Docs')
     },
     description() {
-      if (this.meta && this.meta.description) {
-        return this.meta.description
-      }
-      if (this.currentArticle && this.currentArticle.body) {
-        return htmlToText(this.currentArticle.body, {
-          selectors: [
-            {
-              selector: 'img',
-              format: 'skip',
-            },
-          ],
-        }).slice(0, 200)
-      }
-      return ''
+      return buildArticleMetaDescription({
+        title: this.articleTitle,
+        description: (this.meta && this.meta.description) || '',
+        body: (this.currentArticle && this.currentArticle.body) || '',
+      })
     },
     ogImage() {
       if (this.meta && this.meta.ogImage) {

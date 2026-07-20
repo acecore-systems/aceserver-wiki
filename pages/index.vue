@@ -35,6 +35,7 @@
 import { mapGetters } from 'vuex'
 import {
   ROOT_DESCRIPTION,
+  ROOT_META_TITLE,
   SITE_TITLE,
   SITE_URL,
   articlePath,
@@ -50,7 +51,7 @@ export default {
   },
   head() {
     return {
-      title: SITE_TITLE,
+      title: ROOT_META_TITLE,
       meta: [
         {
           hid: 'description',

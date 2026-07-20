@@ -4,8 +4,8 @@ import { createClient } from 'newt-client-js'
 import { htmlToText } from 'html-to-text'
 import {
   ROOT_DESCRIPTION,
+  ROOT_META_TITLE,
   SITE_URL,
-  SITE_TITLE,
   articlePath,
   canonicalUrl,
 } from './utils/seo'
@@ -90,6 +90,17 @@ const createSearchIndex = (articles) =>
     2
   )
 
+const addNoindexToNotFoundPage = async () => {
+  const notFoundPath = resolve(__dirname, 'dist', '404.html')
+  const html = await fs.readFile(notFoundPath, 'utf8')
+  if (/<meta\b(?=[^>]*\bname=["']robots["'])[^>]*>/i.test(html)) return
+  const updated = html.replace(
+    '</head>',
+    '<meta name="robots" content="noindex, nofollow"></head>'
+  )
+  await fs.writeFile(notFoundPath, updated, 'utf8')
+}
+
 export default {
   publicRuntimeConfig: {
     ...publicConfig,
@@ -124,13 +135,14 @@ export default {
           createSearchIndex(articles),
           'utf8'
         ),
+        addNoindexToNotFoundPage(),
       ])
     },
   },
 
   // Global page headers: https://go.nuxtjs.dev/config-head
   head: {
-    title: SITE_TITLE,
+    title: ROOT_META_TITLE,
     htmlAttrs: {
       lang: 'ja',
     },
