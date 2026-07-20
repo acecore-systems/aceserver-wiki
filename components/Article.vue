@@ -21,7 +21,7 @@ export default {
   },
   computed: {
     body() {
-      return ensureImageAlts(this.article.body)
+      return ensureImageAlts(this.article.body, this.article.title)
     },
   },
 }

@@ -2,6 +2,7 @@ import { promises as fs } from 'fs'
 import { resolve } from 'path'
 import { createClient } from 'newt-client-js'
 import { htmlToText } from 'html-to-text'
+import { inspectImageAlts } from './utils/image-alt.mjs'
 import {
   ROOT_DESCRIPTION,
   ROOT_META_TITLE,
@@ -101,6 +102,52 @@ const addNoindexToNotFoundPage = async () => {
   await fs.writeFile(notFoundPath, updated, 'utf8')
 }
 
+const auditGeneratedImageAlts = async (articles) => {
+  const routes = ['/', ...articles.map((article) => articlePath(article.slug))]
+  const summary = {
+    urls: routes.length,
+    images: 0,
+    missingAlt: 0,
+    emptyAlt: 0,
+  }
+  const failures = []
+
+  for (const route of routes) {
+    const pathname = decodeURIComponent(route)
+    const file =
+      pathname === '/'
+        ? resolve(__dirname, 'dist', 'index.html')
+        : resolve(
+            __dirname,
+            'dist',
+            pathname.replace(/^\//, '').replace(/\/$/, ''),
+            'index.html'
+          )
+    const html = await fs.readFile(file, 'utf8')
+    const audit = inspectImageAlts(html)
+    summary.images += audit.images
+    summary.missingAlt += audit.missing
+    summary.emptyAlt += audit.empty
+
+    for (const issue of audit.issues) {
+      failures.push(
+        route +
+          ': ' +
+          issue.state +
+          ' alt (' +
+          (issue.source || 'src missing') +
+          ')'
+      )
+    }
+  }
+
+  // eslint-disable-next-line no-console
+  console.log(JSON.stringify({ imageAltAudit: summary }))
+  if (failures.length > 0) {
+    throw new Error('Generated image alt audit failed:\n' + failures.join('\n'))
+  }
+}
+
 export default {
   publicRuntimeConfig: {
     ...publicConfig,
@@ -137,6 +184,7 @@ export default {
         ),
         addNoindexToNotFoundPage(),
       ])
+      await auditGeneratedImageAlts(articles)
     },
   },
 
