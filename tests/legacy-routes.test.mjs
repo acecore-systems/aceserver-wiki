@@ -23,10 +23,34 @@ for (const requestUrl of [
 }
 
 for (const requestUrl of [
+  'https://asv-wiki.acecore.net/article/SurvivalRules',
+  'https://asv-wiki.acecore.net/article/SurvivalRules/',
+  'https://asv-wiki.acecore.net/article/SurvivalRules/?utm_source=bing',
+]) {
+  test(`${requestUrl} redirects to the current rules article`, async () => {
+    const response = await onRequest({
+      request: new Request(requestUrl),
+      next: async () => new Response('not found', { status: 404 }),
+    })
+
+    assert.equal(response.status, 301)
+    assert.equal(
+      response.headers.get('location'),
+      'https://asv-wiki.acecore.net/article/rule/'
+    )
+  })
+}
+
+for (const requestUrl of [
   'https://asv-wiki.acecore.net/index.php?title=特別:ログイン&returnto=メインページ',
   'https://asv-wiki.acecore.net/index.php?title=メインページ&action=edit',
   'https://asv-wiki.acecore.net/index.php?oldid=12345',
   'https://asv-wiki.acecore.net/index.php?title=存在しない旧記事',
+  'https://asv-wiki.acecore.net/article/world/',
+  'https://asv-wiki.acecore.net/article/community/',
+  'https://asv-wiki.acecore.net/article/LoginPassword/',
+  'https://asv-wiki.acecore.net/article/Q%26A/',
+  'https://asv-wiki.acecore.net/article/Application%20method/',
 ]) {
   test(`${requestUrl} falls through to the noindex not-found page`, async () => {
     let nextCalled = false
@@ -49,7 +73,11 @@ test('Pages invokes the middleware only for the legacy MediaWiki entry', async (
   )
   assert.deepEqual(routes, {
     version: 1,
-    include: ['/index.php'],
+    include: [
+      '/index.php',
+      '/article/SurvivalRules',
+      '/article/SurvivalRules/',
+    ],
     exclude: [],
   })
 })
