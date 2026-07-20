@@ -11,10 +11,10 @@
         class="SearchResult_Item"
       >
         <div class="SearchResult_ItemUrl">
-          {{ `${origin}/article/${article.slug}` }}
+          {{ `${origin}/article/${article.slug}/` }}
         </div>
         <NuxtLink
-          :to="`/article/${article.slug}`"
+          :to="`/article/${article.slug}/`"
           class="SearchResult_ItemTitle"
         >
           {{ article.title }}
@@ -43,6 +43,14 @@ export default {
   head() {
     return {
       title: `Search | ${this.$route.query.q}`,
+      meta: [
+        {
+          hid: 'robots',
+          name: 'robots',
+          content: 'noindex, follow',
+        },
+      ],
+      link: [{ rel: 'canonical', href: 'https://asv-wiki.acecore.net/search/' }],
     }
   },
   computed: {

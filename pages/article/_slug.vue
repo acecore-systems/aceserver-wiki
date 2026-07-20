@@ -5,6 +5,7 @@
 <script>
 import { mapGetters } from 'vuex'
 import { htmlToText } from 'html-to-text'
+import { articlePath, canonicalUrl } from '~/utils/seo'
 export default {
   async asyncData({ $config, params, store }) {
     await store.dispatch('fetchApp', $config)
@@ -25,6 +26,11 @@ export default {
           hid: 'description',
           name: 'description',
           content: this.description,
+        },
+        {
+          hid: 'robots',
+          name: 'robots',
+          content: 'index, follow',
         },
         {
           hid: 'og:type',
@@ -51,6 +57,9 @@ export default {
           content: 'summary_large_image'
         },
       ],
+      link: [
+        { hid: 'canonical', rel: 'canonical', href: this.canonical },
+      ],
     }
   },
   computed: {
@@ -60,6 +69,12 @@ export default {
         return this.currentArticle.meta
       }
       return null
+    },
+    canonical() {
+      const slug =
+        (this.currentArticle && this.currentArticle.slug) ||
+        this.$route.params.slug
+      return canonicalUrl(articlePath(slug))
     },
     title() {
       if (this.meta && this.meta.title) {

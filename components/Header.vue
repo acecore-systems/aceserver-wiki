@@ -28,7 +28,7 @@
             />
           </svg>
         </button>
-        <form action="/search">
+        <form action="/search/">
           <div class="Search_Input">
             <input
               ref="target"

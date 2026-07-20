@@ -8,7 +8,7 @@
           fill-rule="nonzero"
         />
       </svg>
-      <form action="/search">
+      <form action="/search/">
         <input
           ref="target"
           v-model="searchText"
