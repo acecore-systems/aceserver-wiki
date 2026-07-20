@@ -22,6 +22,27 @@ for (const requestUrl of [
   })
 }
 
+for (const requestUrl of [
+  'https://asv-wiki.acecore.net/index.php?title=特別:ログイン&returnto=メインページ',
+  'https://asv-wiki.acecore.net/index.php?title=メインページ&action=edit',
+  'https://asv-wiki.acecore.net/index.php?oldid=12345',
+  'https://asv-wiki.acecore.net/index.php?title=存在しない旧記事',
+]) {
+  test(`${requestUrl} falls through to the noindex not-found page`, async () => {
+    let nextCalled = false
+    const response = await onRequest({
+      request: new Request(requestUrl),
+      next: async () => {
+        nextCalled = true
+        return new Response('not found', { status: 404 })
+      },
+    })
+
+    assert.equal(nextCalled, true)
+    assert.equal(response.status, 404)
+  })
+}
+
 test('Pages invokes the middleware only for the legacy MediaWiki entry', async () => {
   const routes = JSON.parse(
     await readFile(new URL('../static/_routes.json', import.meta.url), 'utf8')
