@@ -20,7 +20,7 @@
           {{ article.title }}
         </NuxtLink>
         <div class="SearchResult_ItemDescription">
-          {{ htmlToText(article.body) }}
+          {{ article.text }}
         </div>
       </div>
     </template>
@@ -30,7 +30,7 @@
 
 <script>
 import { mapGetters } from 'vuex'
-import { htmlToText } from 'html-to-text'
+import { SITE_TITLE } from '~/utils/seo'
 
 export default {
   async asyncData({ $config, store }) {
@@ -42,7 +42,7 @@ export default {
   },
   head() {
     return {
-      title: `Search | ${this.$route.query.q}`,
+      title: `サイト内検索 | ${SITE_TITLE}`,
       meta: [
         {
           hid: 'robots',
@@ -50,7 +50,9 @@ export default {
           content: 'noindex, follow',
         },
       ],
-      link: [{ rel: 'canonical', href: 'https://asv-wiki.acecore.net/search/' }],
+      link: [
+        { rel: 'canonical', href: 'https://asv-wiki.acecore.net/search/' },
+      ],
     }
   },
   computed: {
@@ -62,26 +64,23 @@ export default {
     ...mapGetters(['siteTitle']),
     origin: () => window.location.origin,
   },
-  async created() {
+  async mounted() {
+    this.$store.dispatch('search/init')
+    let articles = []
+    try {
+      const response = await fetch('/search-index.json')
+      if (!response.ok) throw new Error('Search index could not be loaded.')
+      articles = await response.json()
+    } catch (err) {
+      // Keep the page usable with an empty result set if the static asset fails.
+    }
     await this.$store.dispatch('search/searchArticles', {
-      ...this.$config,
+      articles,
       searchText: this.$route.query.q || '',
     })
   },
   beforeDestroy() {
     this.$store.dispatch('search/init')
-  },
-  methods: {
-    htmlToText(html) {
-      return htmlToText(html, {
-        selectors: [
-          {
-            selector: 'img',
-            format: 'skip',
-          },
-        ],
-      })
-    },
   },
 }
 </script>

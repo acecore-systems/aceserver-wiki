@@ -1,5 +1,3 @@
-import { createClient } from 'newt-client-js'
-
 export const state = () => ({
   searchText: '',
   isLoading: false,
@@ -36,53 +34,23 @@ export const actions = {
     commit('setSearchResults', [])
     commit('setNumberOfSearchResult', 0)
   },
-  searchArticles: async (
-    { commit },
-    { spaceUid, articleModelUid, token, apiType, appUid, searchText }
-  ) => {
-    try {
-      commit('setSearchText', searchText)
-      commit('setIsLoading', true)
-      commit('setSearchResults', [])
-      commit('setNumberOfSearchResult', 0)
+  searchArticles({ commit }, { articles = [], searchText }) {
+    commit('setSearchText', searchText)
+    commit('setIsLoading', true)
+    commit('setSearchResults', [])
+    commit('setNumberOfSearchResult', 0)
 
-      const query = {
-        or: [
-          {
-            title: {
-              match: searchText,
-            },
-          },
-          {
-            body: {
-              match: searchText,
-            },
-          },
-        ],
-      }
+    const query = String(searchText || '')
+      .trim()
+      .toLocaleLowerCase()
+    const items = query
+      ? articles.filter((article) =>
+          `${article.title} ${article.text}`.toLocaleLowerCase().includes(query)
+        )
+      : []
 
-      const client = createClient({
-        spaceUid,
-        token,
-        apiType,
-      })
-      const { items, total } = await client.getContents({
-        appUid,
-        modelUid: articleModelUid,
-        query: {
-          depth: 2,
-          order: ['sortOrder'],
-          select: ['title', 'category', 'slug', 'body'],
-          limit: 1000,
-          ...query,
-        },
-      })
-
-      commit('setSearchResults', items)
-      commit('setNumberOfSearchResult', total)
-      commit('setIsLoading', false)
-    } catch (err) {
-      commit('setIsLoading', false)
-    }
+    commit('setSearchResults', items)
+    commit('setNumberOfSearchResult', items.length)
+    commit('setIsLoading', false)
   },
 }
