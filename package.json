@@ -7,7 +7,7 @@
     "build": "nuxt build",
     "start": "nuxt start",
     "generate": "nuxt generate && node scripts/audit-generated-metadata.mjs",
-    "test:seo": "node --test tests/seo.test.mjs",
+    "test:seo": "node --test tests/seo.test.mjs tests/legacy-routes.test.mjs",
     "audit:metadata": "node scripts/audit-generated-metadata.mjs",
     "lint:js": "eslint --ext \".js,.vue\" --ignore-path .gitignore .",
     "lint:prettier": "prettier --check .",

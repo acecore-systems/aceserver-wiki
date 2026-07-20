@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  CURATED_ARTICLE_DESCRIPTIONS,
   SEO_LIMITS,
   ROOT_DESCRIPTION,
   ROOT_META_TITLE,
   buildArticleMetaDescription,
   buildArticleMetaTitle,
+  unnaturalDescriptionReasons,
 } from '../utils/seo-metadata.mjs'
 
 const within = (value, minimum, maximum) =>
@@ -24,6 +26,7 @@ test('root metadata stays in the Bing-recommended ranges', () => {
     ),
     true
   )
+  assert.deepEqual(unnaturalDescriptionReasons(ROOT_DESCRIPTION), [])
 })
 
 test('article title retains the article topic and adds the official Wiki context', () => {
@@ -35,7 +38,7 @@ test('article title retains the article topic and adds the official Wiki context
 
 test('article description uses the article body instead of generic filler', () => {
   const description = buildArticleMetaDescription({
-    title: 'コマンドについて',
+    title: 'ワールド移動コマンド',
     description: '利用できるコマンドの案内です。',
     body: '<p>/helpでヘルプを表示し、/msgでほかの参加者へ個別メッセージを送信できます。</p><p>権限によって利用できるコマンドが異なるため、実行前に条件を確認してください。</p><p>サバイバルワールドで便利な移動・保護・コミュニケーション用コマンドも一覧で紹介します。</p>',
   })
@@ -45,6 +48,21 @@ test('article description uses the article body instead of generic filler', () =
     within(description, SEO_LIMITS.descriptionMin, SEO_LIMITS.descriptionMax),
     true
   )
+  assert.match(description, /[。！？!?.]$/)
+  assert.doesNotMatch(description, /…$/)
+})
+
+test('all current Wiki articles have unique, natural curated descriptions', () => {
+  const descriptions = Object.values(CURATED_ARTICLE_DESCRIPTIONS)
+  assert.equal(descriptions.length, 15)
+  assert.equal(new Set(descriptions).size, descriptions.length)
+  for (const description of descriptions) {
+    assert.equal(
+      within(description, SEO_LIMITS.descriptionMin, SEO_LIMITS.descriptionMax),
+      true
+    )
+    assert.deepEqual(unnaturalDescriptionReasons(description), [])
+  }
 })
 
 test('short articles get a topic-specific natural completion', () => {
@@ -57,4 +75,6 @@ test('short articles get a topic-specific natural completion', () => {
     within(description, SEO_LIMITS.descriptionMin, SEO_LIMITS.descriptionMax),
     true
   )
+  assert.match(description, /[。！？!?.]$/)
+  assert.doesNotMatch(description, /…$/)
 })

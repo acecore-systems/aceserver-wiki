@@ -1,6 +1,10 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { SEO_LIMITS, normalizeSeoText } from '../utils/seo-metadata.mjs'
+import {
+  SEO_LIMITS,
+  normalizeSeoText,
+  unnaturalDescriptionReasons,
+} from '../utils/seo-metadata.mjs'
 
 const distDirectory = path.resolve('dist')
 const sitemap = await fs.readFile(
@@ -21,6 +25,7 @@ const summary = {
   descriptionLong: 0,
   duplicateTitles: 0,
   duplicateDescriptions: 0,
+  unnaturalDescriptions: 0,
   canonicalErrors: 0,
   robotsErrors: 0,
   notFoundNoindex: false,
@@ -64,6 +69,15 @@ for (const url of urls) {
   }
   if (description.length > SEO_LIMITS.descriptionMax) {
     summary.descriptionLong += 1
+  }
+  const unnaturalReasons = unnaturalDescriptionReasons(description)
+  if (unnaturalReasons.length > 0) {
+    summary.unnaturalDescriptions += 1
+    failures.push(
+      `${url.toString()}: description is unnatural (${unnaturalReasons.join(
+        ', '
+      )})`
+    )
   }
   if (canonical !== url.toString()) summary.canonicalErrors += 1
   if (/noindex/i.test(robots)) summary.robotsErrors += 1
