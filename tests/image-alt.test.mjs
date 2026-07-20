@@ -69,6 +69,7 @@ test('header and article components supply useful alt context', async () => {
     readFile(new URL('../components/Article.vue', import.meta.url), 'utf8'),
   ])
   assert.match(header, /:alt="title \+ 'のロゴ'"/)
+  assert.match(header, /aria-hidden="true"/)
   assert.match(
     article,
     /ensureImageAlts\(this\.article\.body, this\.article\.title\)/
