@@ -13,10 +13,7 @@ export const onRequest = async ({ request, next }) => {
       LEGACY_ROOT_TITLES.has(queryEntries[0][1]))
 
   if (url.pathname === '/index.php' && isLegacyRoot) {
-    url.pathname = '/'
-    url.search = ''
-    url.hash = ''
-    return Response.redirect(url.toString(), 301)
+    return Response.redirect(`${url.origin}/`, 301)
   }
 
   return next()
