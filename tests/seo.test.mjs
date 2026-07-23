@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import {
   CURATED_ARTICLE_DESCRIPTIONS,
@@ -27,6 +28,19 @@ test('root metadata stays in the Bing-recommended ranges', () => {
     true,
   )
   assert.deepEqual(unnaturalDescriptionReasons(ROOT_DESCRIPTION), [])
+})
+
+test('static not-found page stays out of search indexes', async () => {
+  const html = await readFile(
+    new URL('../public/404.html', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(
+    html,
+    /<meta\b(?=[^>]*\bname=(['"])robots\1)[^>]*\bcontent=(['"])[^'"]*noindex[^'"]*\2/i,
+  )
+  assert.match(html, /<a href="\/">/)
 })
 
 test('article title retains the article topic and adds the official Wiki context', () => {
