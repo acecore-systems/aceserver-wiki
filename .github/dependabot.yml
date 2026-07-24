@@ -8,6 +8,22 @@ updates:
       time: '09:00'
       timezone: Asia/Tokyo
     open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Keep declarations aligned with the Node 24 runtime.
+      - dependency-name: '@types/node'
+        update-types:
+          - version-update:semver-major
+      # typescript-eslint does not support TypeScript 7 yet.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: github-actions
     directory: /
