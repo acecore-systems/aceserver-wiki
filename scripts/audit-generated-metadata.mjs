@@ -4,13 +4,13 @@ import {
   SEO_LIMITS,
   normalizeSeoText,
   unnaturalDescriptionReasons,
-} from '../utils/seo-metadata.mjs'
-import { inspectImageAlts } from '../utils/image-alt.mjs'
+} from '../shared/lib/seo-metadata.js'
+import { inspectImageAlts } from '../shared/lib/image-alt.js'
 
 const distDirectory = path.resolve('dist')
 const sitemap = await fs.readFile(
   path.join(distDirectory, 'sitemap.xml'),
-  'utf8'
+  'utf8',
 )
 const urls = [
   ...sitemap.matchAll(/<loc>(https:\/\/asv-wiki\.acecore\.net[^<]*)<\/loc>/g),
@@ -53,12 +53,12 @@ for (const url of urls) {
       : path.join(distDirectory, pathname.replace(/^\//, ''), 'index.html')
   const html = await fs.readFile(file, 'utf8')
   const title = normalizeSeoText(
-    html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? ''
+    html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] ?? '',
   )
   const description = metaContent(html, 'description')
   const robots = metaContent(html, 'robots')
   const canonical = html.match(
-    /<link\b(?=[^>]*\brel=(['"])canonical\1)[^>]*\bhref=(['"])(.*?)\2[^>]*>/i
+    /<link\b(?=[^>]*\brel=(['"])canonical\1)[^>]*\bhref=(['"])(.*?)\2[^>]*>/i,
   )?.[3]
   const imageAudit = inspectImageAlts(html)
 
@@ -72,7 +72,7 @@ for (const url of urls) {
         issue.state +
         ' image alt (' +
         (issue.source || 'src missing') +
-        ')'
+        ')',
     )
   }
 
@@ -94,8 +94,8 @@ for (const url of urls) {
     summary.unnaturalDescriptions += 1
     failures.push(
       `${url.toString()}: description is unnatural (${unnaturalReasons.join(
-        ', '
-      )})`
+        ', ',
+      )})`,
     )
   }
   if (canonical !== url.toString()) summary.canonicalErrors += 1
@@ -115,11 +115,11 @@ for (const [description, matchingUrls] of descriptions) {
 
 const notFoundHtml = await fs.readFile(
   path.join(distDirectory, '404.html'),
-  'utf8'
+  'utf8',
 )
 summary.notFoundNoindex =
   /<meta\b(?=[^>]*\bname=(['"])robots\1)[^>]*\bcontent=(['"])[^'"]*noindex[^'"]*\2/i.test(
-    notFoundHtml
+    notFoundHtml,
   )
 
 for (const [key, value] of Object.entries(summary)) {

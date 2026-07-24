@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import {
   CURATED_ARTICLE_DESCRIPTIONS,
@@ -8,7 +9,7 @@ import {
   buildArticleMetaDescription,
   buildArticleMetaTitle,
   unnaturalDescriptionReasons,
-} from '../utils/seo-metadata.mjs'
+} from '../shared/lib/seo-metadata.js'
 
 const within = (value, minimum, maximum) =>
   value.length >= minimum && value.length <= maximum
@@ -16,17 +17,30 @@ const within = (value, minimum, maximum) =>
 test('root metadata stays in the Bing-recommended ranges', () => {
   assert.equal(
     within(ROOT_META_TITLE, SEO_LIMITS.titleMin, SEO_LIMITS.titleMax),
-    true
+    true,
   )
   assert.equal(
     within(
       ROOT_DESCRIPTION,
       SEO_LIMITS.descriptionMin,
-      SEO_LIMITS.descriptionMax
+      SEO_LIMITS.descriptionMax,
     ),
-    true
+    true,
   )
   assert.deepEqual(unnaturalDescriptionReasons(ROOT_DESCRIPTION), [])
+})
+
+test('static not-found page stays out of search indexes', async () => {
+  const html = await readFile(
+    new URL('../public/404.html', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(
+    html,
+    /<meta\b(?=[^>]*\bname=(['"])robots\1)[^>]*\bcontent=(['"])[^'"]*noindex[^'"]*\2/i,
+  )
+  assert.match(html, /<a href="\/">/)
 })
 
 test('article title retains the article topic and adds the official Wiki context', () => {
@@ -46,7 +60,7 @@ test('article description uses the article body instead of generic filler', () =
   assert.match(description, /権限/)
   assert.equal(
     within(description, SEO_LIMITS.descriptionMin, SEO_LIMITS.descriptionMax),
-    true
+    true,
   )
   assert.match(description, /[。！？!?.]$/)
   assert.doesNotMatch(description, /…$/)
@@ -59,7 +73,7 @@ test('all current Wiki articles have unique, natural curated descriptions', () =
   for (const description of descriptions) {
     assert.equal(
       within(description, SEO_LIMITS.descriptionMin, SEO_LIMITS.descriptionMax),
-      true
+      true,
     )
     assert.deepEqual(unnaturalDescriptionReasons(description), [])
   }
@@ -73,7 +87,7 @@ test('short articles get a topic-specific natural completion', () => {
   assert.match(description, /くわ王国/)
   assert.equal(
     within(description, SEO_LIMITS.descriptionMin, SEO_LIMITS.descriptionMax),
-    true
+    true,
   )
   assert.match(description, /[。！？!?.]$/)
   assert.doesNotMatch(description, /…$/)

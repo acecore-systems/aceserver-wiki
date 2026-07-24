@@ -17,7 +17,7 @@ for (const requestUrl of [
     assert.equal(response.status, 301)
     assert.equal(
       response.headers.get('location'),
-      'https://asv-wiki.acecore.net/'
+      'https://asv-wiki.acecore.net/',
     )
   })
 }
@@ -36,7 +36,7 @@ for (const requestUrl of [
     assert.equal(response.status, 301)
     assert.equal(
       response.headers.get('location'),
-      'https://asv-wiki.acecore.net/article/rule/'
+      'https://asv-wiki.acecore.net/article/rule/',
     )
   })
 }
@@ -69,7 +69,7 @@ for (const requestUrl of [
 
 test('Pages invokes the middleware only for the legacy MediaWiki entry', async () => {
   const routes = JSON.parse(
-    await readFile(new URL('../static/_routes.json', import.meta.url), 'utf8')
+    await readFile(new URL('../public/_routes.json', import.meta.url), 'utf8'),
   )
   assert.deepEqual(routes, {
     version: 1,
