@@ -1,0 +1,64 @@
+---
+import Header from '../components/Header.astro'
+import Navigation from '../components/Navigation.astro'
+import {
+  SITE_ORIGIN,
+  SITE_TITLE,
+  type WikiCategoryGroup,
+} from '../lib/wiki'
+import '../styles/global.css'
+
+interface Props {
+  title: string
+  description: string
+  canonicalPath: string
+  categories: WikiCategoryGroup[]
+  currentId?: string
+  type?: 'website' | 'article'
+}
+
+const {
+  title,
+  description,
+  canonicalPath,
+  categories,
+  currentId,
+  type = 'website',
+} = Astro.props
+
+const canonical = new URL(canonicalPath, Astro.site ?? SITE_ORIGIN).toString()
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={SITE_TITLE} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">本文へ移動</a>
+    <div class="wrapper">
+      <Header categories={categories} currentId={currentId} />
+      <main id="main-content" class="main">
+        <Navigation categories={categories} currentId={currentId} />
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

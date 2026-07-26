@@ -1,15 +1,20 @@
 import withNuxt from './.nuxt/eslint.config.mjs'
 
-export default withNuxt({
-  rules: {
-    'vue/html-self-closing': [
-      'error',
-      {
-        html: {
-          void: 'always',
-        },
-      },
-    ],
-    'vue/multi-word-component-names': 'off',
+export default withNuxt(
+  {
+    ignores: ['poc/astro-sveltia/worker-configuration.d.ts'],
   },
-})
+  {
+    rules: {
+      'vue/html-self-closing': [
+        'error',
+        {
+          html: {
+            void: 'always',
+          },
+        },
+      ],
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+)

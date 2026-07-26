@@ -1,0 +1,141 @@
+:root {
+  color-scheme: light;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  font-synthesis: none;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+  background: #f5f6f8;
+  color: #18202b;
+}
+
+body,
+#nc-root {
+  min-height: 100vh;
+}
+
+#nc-root {
+  height: 100vh;
+}
+
+.cms-status {
+  box-sizing: border-box;
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 2rem;
+}
+
+.cms-status__card {
+  box-sizing: border-box;
+  width: min(100%, 34rem);
+  border: 1px solid #d8dde5;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  box-shadow: 0 1rem 3rem rgb(19 32 51 / 8%);
+  padding: clamp(1.5rem, 5vw, 2.5rem);
+}
+
+.cms-status__eyebrow {
+  margin: 0 0 0.75rem;
+  color: #596579;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.cms-status h1 {
+  margin: 0;
+  color: #18202b;
+  font-size: clamp(1.25rem, 4vw, 1.65rem);
+  line-height: 1.45;
+}
+
+.cms-status__message {
+  margin: 1rem 0 0;
+  color: #4d596b;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.cms-status--error .cms-status__card {
+  border-color: #e7a87e;
+  box-shadow: 0 1rem 3rem rgb(126 50 14 / 10%);
+}
+
+.cms-status--error .cms-status__eyebrow {
+  color: #a14213;
+}
+
+.cms-status__retry {
+  margin-top: 1.5rem;
+  border: 1px solid #26374e;
+  border-radius: 0.5rem;
+  background: #26374e;
+  padding: 0.7rem 1rem;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cms-status__retry:hover {
+  background: #172438;
+}
+
+.cms-status__retry:focus-visible {
+  outline: 3px solid #8bb9ff;
+  outline-offset: 3px;
+}
+
+.cms-status__progress {
+  display: block;
+  width: 2rem;
+  height: 0.2rem;
+  margin-top: 1.5rem;
+  border-radius: 999px;
+  background: #26374e;
+  animation: cms-progress 1.2s ease-in-out infinite alternate;
+}
+
+.cms-noscript {
+  box-sizing: border-box;
+  width: min(calc(100% - 2rem), 34rem);
+  margin: 2rem auto;
+  border: 1px solid #e7a87e;
+  border-radius: 0.5rem;
+  background: #fff7ed;
+  padding: 1rem;
+  color: #7c2d12;
+  line-height: 1.7;
+}
+
+@keyframes cms-progress {
+  from {
+    transform: translateX(0);
+    opacity: 0.35;
+  }
+
+  to {
+    transform: translateX(4rem);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cms-status__progress {
+    animation: none;
+  }
+}

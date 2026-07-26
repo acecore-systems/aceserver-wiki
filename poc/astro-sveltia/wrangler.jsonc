@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "aceserver-wiki-astro-sveltia-poc",
+  "pages_build_output_dir": "./dist",
+  "compatibility_date": "2026-07-26",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "CMS_REPOSITORY_OWNER": "acecore-systems",
+    "CMS_REPOSITORY_NAME": "aceserver-wiki",
+    "CMS_REPOSITORY_BRANCH": "main",
+    "CMS_CONTENT_ROOT": "poc/astro-sveltia/src/content/wiki",
+    "CMS_MEDIA_ROOT": "poc/astro-sveltia/public/uploads/wiki",
+    "CMS_PUBLICATION_MODE": "direct",
+    "CMS_DISCORD_AUTHORIZATION_MODE": "guild",
+    "CMS_DISCORD_ALLOWED_ROLE_IDS": "",
+  },
+  "secrets": {
+    "required": [
+      "CMS_ACCESS_AUD",
+      "CMS_ACCESS_TEAM_DOMAIN",
+      "CMS_ACCESS_HOSTNAMES",
+      "CMS_DISCORD_GUILD_ID",
+      "CMS_GITHUB_APP_CLIENT_ID",
+      "CMS_GITHUB_APP_INSTALLATION_ID",
+      "CMS_GITHUB_APP_PRIVATE_KEY",
+    ],
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+  },
+}

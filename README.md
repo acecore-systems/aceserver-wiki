@@ -26,3 +26,10 @@ yarn build
 現行の公開コンテンツはビルド時に Newt から取得しています。Newt を廃止する際は、
 記事・カテゴリ・リンクをリポジトリ管理のコンテンツへ移行してから
 `server/utils/newt.ts` と `NEWT_CDN_API_TOKEN` を削除します。
+
+## Astro・Markdown編集PoC
+
+Astro、repository内Markdown、stock Sveltia CMS、Discord属性を検証する
+content gatewayを
+[`poc/astro-sveltia`](./poc/astro-sveltia/README.md)
+で並行開発しています。このPoCは現行Nuxt/Newtや公開Pages設定を切り替えません。

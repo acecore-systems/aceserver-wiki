@@ -1,0 +1,76 @@
+# yaml-language-server: $schema=https://unpkg.com/@sveltia/cms@0.172.4/schema/sveltia-cms.json
+
+backend:
+  name: github
+  repo: acecore-systems/aceserver-wiki
+  branch: main
+  api_root: /admin/api/github
+  graphql_api_root: /admin/api/graphql
+  auth_methods:
+    - token
+  include_credentials: true
+
+slug:
+  encoding: unicode
+  clean_accents: false
+  sanitize_replacement: '-'
+  trim: true
+  lowercase: true
+  maxlength: 100
+
+media_folder: poc/astro-sveltia/public/uploads/wiki
+public_folder: /uploads/wiki
+media_libraries:
+  all:
+    max_file_size: 8388608
+    slugify_filename: true
+  default:
+    config:
+      transformations:
+        raster_image:
+          format: webp
+          quality: 85
+          width: 2048
+          height: 2048
+
+collections:
+  - name: wiki
+    label: Wiki
+    label_singular: Wiki記事
+    description: ASV Wiki の Markdown 記事を編集します。
+    icon: article
+    folder: poc/astro-sveltia/src/content/wiki
+    format: yaml-frontmatter
+    extension: md
+    identifier_field: title
+    slug: '{{slug}}'
+    preview_path: article/{{slug}}/
+    summary: '{{title}} — {{category}}'
+    sortable_fields: [order, title, category, draft]
+    fields:
+      - name: title
+        label: タイトル
+        widget: string
+        hint: 新規作成時は、タイトルから記事URL用のファイル名が生成されます。
+      - name: description
+        label: 概要
+        widget: text
+        hint: 検索結果や記事一覧に表示する短い説明です。
+      - name: category
+        label: カテゴリ
+        widget: string
+      - name: order
+        label: 表示順
+        widget: number
+        value_type: int
+        min: 0
+        default: 100
+      - name: draft
+        label: 下書き
+        widget: boolean
+        default: false
+        hint: 有効にすると公開サイトの記事一覧から除外されます。
+      - name: body
+        label: 本文
+        widget: markdown
+        hint: Markdownで記述します。見出しはh2から使用し、HTMLやスクリプトは使用できません。

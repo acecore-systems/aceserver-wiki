@@ -1,0 +1,61 @@
+---
+import { SITE_TITLE, articlePath, type WikiCategoryGroup } from '../lib/wiki'
+
+interface Props {
+  categories: WikiCategoryGroup[]
+  currentId?: string
+}
+
+const { categories, currentId } = Astro.props
+---
+
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="site-title" href="/" aria-label={`${SITE_TITLE} トップ`}>
+      <span class="site-title__icon" aria-hidden="true">
+        <img src="/logo.svg" alt="" width="24" height="24" />
+      </span>
+      <span class="site-title__text">{SITE_TITLE}</span>
+    </a>
+
+    <nav class="site-links" aria-label="サイトメニュー">
+      <a href="/admin/" rel="nofollow">編集</a>
+    </nav>
+
+    <details class="mobile-menu">
+      <summary aria-label="記事メニューを開く">
+        <span aria-hidden="true"></span>
+      </summary>
+      <div class="mobile-menu__panel">
+        <nav aria-label="モバイル記事メニュー">
+          <ul class="mobile-menu__primary">
+            <li><a href="/" aria-current={!currentId ? 'page' : undefined}>トップ</a></li>
+            <li><a href="/admin/" rel="nofollow">編集</a></li>
+          </ul>
+
+          {
+            categories.map((category) => (
+              <section class="mobile-menu__category">
+                <h2>{category.name}</h2>
+                <ul>
+                  {category.articles.map((article) => (
+                    <li>
+                      <a
+                        href={articlePath(article.id)}
+                        aria-current={
+                          currentId === article.id ? 'page' : undefined
+                        }
+                      >
+                        {article.data.title}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))
+          }
+        </nav>
+      </div>
+    </details>
+  </div>
+</header>
