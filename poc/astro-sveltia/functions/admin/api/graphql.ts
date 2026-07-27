@@ -1539,10 +1539,7 @@ async function ensurePublicationCommit({
         created.ref !== expectedRef ||
         getGitRefSha(created) !== reservation.expectedHeadOid
       ) {
-        throw new GitHubApiError(
-          'GitHub branch作成結果を確認できません。',
-          502,
-        )
+        throw new GitHubApiError('GitHub branch作成結果を確認できません。', 502)
       }
 
       state = { kind: 'base' }

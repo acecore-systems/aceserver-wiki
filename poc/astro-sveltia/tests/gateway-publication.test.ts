@@ -244,10 +244,7 @@ describe('CMS publication modes', () => {
         const value = body as { ref: string; sha: string }
 
         publicationBranch = value.ref.replace('refs/heads/', '')
-        return jsonResponse(
-          { ref: value.ref, object: { sha: value.sha } },
-          201,
-        )
+        return jsonResponse({ ref: value.ref, object: { sha: value.sha } }, 201)
       }
 
       if (url.endsWith('/graphql')) {
@@ -404,10 +401,7 @@ describe('CMS publication modes', () => {
         const value = body as { ref: string }
 
         branchSha = MAIN_SHA
-        return jsonResponse(
-          { ref: value.ref, object: { sha: MAIN_SHA } },
-          201,
-        )
+        return jsonResponse({ ref: value.ref, object: { sha: MAIN_SHA } }, 201)
       }
 
       if (url.endsWith('/graphql')) {
