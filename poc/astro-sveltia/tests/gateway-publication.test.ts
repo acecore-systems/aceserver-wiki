@@ -1509,13 +1509,280 @@ describe('CMS read controls', () => {
 })
 
 describe('stock Sveltia read queries', () => {
+  it('allows stock aliased file-content queries and redacts commit authors', async () => {
+    const blobSha = 'd'.repeat(40)
+
+    mockFetch(async (url) => {
+      if (url.includes('/git/trees/main?recursive=1')) {
+        return projectionTreeResponse([
+          {
+            mode: '100644',
+            path: 'poc/astro-sveltia/src/content/wiki/test.md',
+            sha: blobSha,
+            size: 100,
+            type: 'blob',
+          },
+        ])
+      }
+
+      if (url.endsWith('/graphql')) {
+        return jsonResponse({
+          data: {
+            repository: {
+              content_0: {
+                text: '# Public Wiki content',
+              },
+              commit_0: {
+                target: {
+                  history: {
+                    nodes: [
+                      {
+                        author: {
+                          name: 'Private repository author',
+                          email: 'private-author@example.test',
+                          user: {
+                            id: 987654321,
+                            login: 'private-login',
+                          },
+                        },
+                        committedDate: '2026-07-27T00:00:00Z',
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        })
+      }
+
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const response = await onRequestPost({
+      request: graphqlQueryRequest(
+        `
+        query($owner: String!, $repo: String!, $branch: String!) {
+          repository(owner: $owner, name: $repo) {
+            content_0: object(oid: "${blobSha}") {
+              ... on Blob { text }
+            }
+            commit_0: ref(qualifiedName: $branch) {
+              target {
+                ... on Commit {
+                  history(
+                    first: 1
+                    path: "poc/astro-sveltia/src/content/wiki/test.md"
+                  ) {
+                    nodes {
+                      author {
+                        name
+                        email
+                        user {
+                          id: databaseId
+                          login
+                        }
+                      }
+                      committedDate
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      `,
+        {
+          owner: 'acecore-systems',
+          repo: 'aceserver-wiki',
+          branch: 'main',
+        },
+      ),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+    const body = (await response.json()) as {
+      data: {
+        repository: {
+          content_0: { text: string }
+          commit_0: {
+            target: {
+              history: {
+                nodes: Array<{
+                  author: {
+                    name: string
+                    email: string
+                    user: unknown
+                  }
+                  committedDate: string
+                }>
+              }
+            }
+          }
+        }
+      }
+    }
+    const serialized = JSON.stringify(body)
+
+    expect(response.status).toBe(200)
+    expect(body.data.repository.content_0.text).toBe('# Public Wiki content')
+    expect(body.data.repository.commit_0.target.history.nodes[0]).toEqual({
+      author: {
+        name: 'Anonymous',
+        email: '',
+        user: null,
+      },
+      committedDate: '2026-07-27T00:00:00Z',
+    })
+    expect(serialized).not.toContain('Private repository author')
+    expect(serialized).not.toContain('private-author@example.test')
+    expect(serialized).not.toContain('private-login')
+    expect(serialized).not.toContain('987654321')
+  })
+
+  it('allows distinct CMS paths that share the same Git blob SHA', async () => {
+    const blobSha = 'e'.repeat(40)
+    const paths = [
+      'poc/astro-sveltia/src/content/wiki/duplicate-a.md',
+      'poc/astro-sveltia/src/content/wiki/duplicate-b.md',
+    ]
+
+    mockFetch(async (url) => {
+      if (url.includes('/git/trees/main?recursive=1')) {
+        return projectionTreeResponse(
+          paths.map((path) => ({
+            mode: '100644',
+            path,
+            sha: blobSha,
+            size: 20,
+            type: 'blob',
+          })),
+        )
+      }
+
+      if (url.endsWith('/graphql')) {
+        return jsonResponse({ data: { repository: {} } })
+      }
+
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const fields = paths
+      .map(
+        (path, index) => `
+          content_${index}: object(oid: "${blobSha}") {
+            ... on Blob { text }
+          }
+          commit_${index}: ref(qualifiedName: "main") {
+            target {
+              ... on Commit {
+                history(first: 1, path: "${path}") {
+                  nodes {
+                    author {
+                      name
+                      email
+                      user {
+                        id: databaseId
+                        login
+                      }
+                    }
+                    committedDate
+                  }
+                }
+              }
+            }
+          }
+        `,
+      )
+      .join('')
+    const response = await onRequestPost({
+      request: graphqlQueryRequest(`
+        query {
+          repository(owner: "acecore-systems", name: "aceserver-wiki") {
+            ${fields}
+          }
+        }
+      `),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(200)
+  })
+
+  it('binds each content alias to the matching CMS path and blob SHA', async () => {
+    const firstSha = 'e'.repeat(40)
+    const secondSha = 'f'.repeat(40)
+    const firstPath = 'poc/astro-sveltia/src/content/wiki/first.md'
+    const secondPath = 'poc/astro-sveltia/src/content/wiki/second.md'
+    const calls: string[] = []
+
+    mockFetch(async (url) => {
+      calls.push(url)
+
+      if (url.includes('/git/trees/main?recursive=1')) {
+        return projectionTreeResponse([
+          {
+            mode: '100644',
+            path: firstPath,
+            sha: firstSha,
+            size: 20,
+            type: 'blob',
+          },
+          {
+            mode: '100644',
+            path: secondPath,
+            sha: secondSha,
+            size: 20,
+            type: 'blob',
+          },
+        ])
+      }
+
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const response = await onRequestPost({
+      request: graphqlQueryRequest(`
+        query {
+          repository(owner: "acecore-systems", name: "aceserver-wiki") {
+            content_0: object(oid: "${secondSha}") {
+              ... on Blob { text }
+            }
+            commit_0: ref(qualifiedName: "main") {
+              target {
+                ... on Commit {
+                  history(first: 1, path: "${firstPath}") {
+                    nodes {
+                      author {
+                        name
+                        email
+                        user {
+                          id: databaseId
+                          login
+                        }
+                      }
+                      committedDate
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      `),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(403)
+    expect(calls.some((url) => url.endsWith('/graphql'))).toBe(false)
+  })
+
   it('allows file history up to 100 entries only for an allowed CMS path', async () => {
     mockFetch(async (url) => {
       if (url.endsWith('/graphql')) {
         return jsonResponse({
           data: {
             repository: {
-              ref: {
+              history_0: {
                 target: {
                   history: {
                     nodes: [
@@ -1551,7 +1818,7 @@ describe('stock Sveltia read queries', () => {
       request: graphqlQueryRequest(`
         query {
           repository(owner: "acecore-systems", name: "aceserver-wiki") {
-            ref(qualifiedName: "main") {
+            history_0: ref(qualifiedName: "main") {
               target {
                 ... on Commit {
                   history(
@@ -1564,7 +1831,7 @@ describe('stock Sveltia read queries', () => {
                         name
                         email
                         avatarUrl
-                        user { databaseId login }
+                        user { login }
                       }
                       committedDate
                     }
@@ -1580,7 +1847,7 @@ describe('stock Sveltia read queries', () => {
     const body = (await response.json()) as {
       data: {
         repository: {
-          ref: {
+          history_0: {
             target: {
               history: {
                 nodes: unknown[]
@@ -1593,7 +1860,7 @@ describe('stock Sveltia read queries', () => {
     const serialized = JSON.stringify(body)
 
     expect(response.status).toBe(200)
-    expect(body.data.repository.ref.target.history.nodes).toEqual([
+    expect(body.data.repository.history_0.target.history.nodes).toEqual([
       {
         oid: 'b'.repeat(40),
         committedDate: '2026-07-27T00:00:00Z',
@@ -1666,7 +1933,7 @@ describe('stock Sveltia read queries', () => {
     expect(JSON.stringify(body)).not.toContain('Private release plan')
   })
 
-  it('rejects a ref alias that could bypass response sanitization', async () => {
+  it('rejects a non-Sveltia ref alias that could bypass response sanitization', async () => {
     mockFetch(async (url) => {
       throw new Error(`Unexpected request: ${url}`)
     })
@@ -1680,6 +1947,40 @@ describe('stock Sveltia read queries', () => {
                 ... on Commit {
                   history(first: 1) {
                     nodes { oid message }
+                  }
+                }
+              }
+            }
+          }
+        }
+      `),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(403)
+  })
+
+  it('rejects duplicate node fields that omit a required stock field', async () => {
+    mockFetch(async (url) => {
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const response = await onRequestPost({
+      request: graphqlQueryRequest(`
+        query {
+          repository(owner: "acecore-systems", name: "aceserver-wiki") {
+            history_0: ref(qualifiedName: "main") {
+              target {
+                ... on Commit {
+                  history(
+                    first: 100
+                    path: "poc/astro-sveltia/src/content/wiki/test.md"
+                  ) {
+                    nodes {
+                      oid
+                      oid
+                      committedDate
+                    }
                   }
                 }
               }

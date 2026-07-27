@@ -27,8 +27,9 @@ async function initCms() {
     await getGatewayJson('/admin/api/session', 'session')
     await getGatewayJson('/admin/api/github/user', 'github')
 
-    window.location.hash =
-      '#access_token=cloudflare-access&token_type=bearer&provider=github'
+    window.location.hash = `#/signin/${btoa(
+      JSON.stringify({ token: 'cloudflare-access' }),
+    )}`
     window.CMS.init()
   } catch (error) {
     const status = describeError(error)

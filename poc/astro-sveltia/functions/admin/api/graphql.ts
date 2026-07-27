@@ -26,7 +26,6 @@ import {
   GitHubApiError,
   type CmsGitTree,
   fetchCmsTree,
-  getAllowedCmsBlobShas,
   getGitHubToken,
   githubJson,
   githubRequest,
@@ -61,6 +60,16 @@ type CmsCommitInput = {
 
 type AuthenticatedIdentity = Extract<AccessIdentity, { ok: true }>
 type PublicationMode = 'direct' | 'review'
+type ReadQueryMode =
+  'default-branch' | 'head' | 'file-contents' | 'file-history'
+type ReadAuthorization = {
+  contentBlobs: Map<number, string>
+  contentPaths: Map<number, string>
+  contentPathSet: Set<string>
+  fileHistoryPaths: Map<number, string>
+  fileHistoryPathSet: Set<string>
+  modes: Set<ReadQueryMode>
+}
 
 class CmsDefinitivePublicationError extends CmsStateError {}
 
@@ -68,10 +77,15 @@ const SHA_PATTERN = /^[a-f0-9]{40}$/iu
 const MAX_GRAPHQL_QUERY_CHARS = 128 * 1024
 const MAX_READ_VARIABLE_BYTES = 64 * 1024
 const MAX_READ_VARIABLE_DEPTH = 64
+const MAX_GRAPHQL_REPOSITORY_FIELDS = 500
+const MAX_GRAPHQL_FILE_CONTENT_FIELDS = 250
+const MAX_GRAPHQL_FILE_HISTORY_FIELDS = 40
 const MAX_REQUEST_BYTES = 16 * 1024 * 1024
 const MAX_CHANGE_COUNT = 40
 const MAX_TOTAL_CONTENT_BYTES = 10 * 1024 * 1024
 const MAX_GRAPHQL_BLOB_SIZE = 10 * 1024 * 1024
+const SVELTIA_READ_ALIAS_PATTERN =
+  /^(?<kind>content|commit|history)_(?<index>0|[1-9]\d{0,2})$/u
 export const CMS_PROJECTED_TREE_LIMITS = {
   maxFiles: 1000,
   maxContentBytes: 64 * 1024 * 1024,
@@ -177,14 +191,41 @@ async function handleReadQuery({
 
   const token = await getGitHubToken(env)
 
-  if (authorization.blobShas.size > 0) {
+  if (authorization.contentBlobs.size > 0) {
     const tree = await fetchCmsTree(token)
-    const allowedShas = getAllowedCmsBlobShas(tree)
+    const blobsByPath = new Map(
+      tree.tree
+        .filter((item) => item.type === 'blob')
+        .map((item) => [item.path, item]),
+    )
+    let requestedBytes = 0
 
-    if (
-      Array.from(authorization.blobShas).some((sha) => !allowedShas.has(sha))
-    ) {
-      return json({ message: 'CMS管理対象外のGit blobです。' }, 403)
+    for (const [index, sha] of authorization.contentBlobs) {
+      const path = authorization.contentPaths.get(index)
+      const blob = path ? blobsByPath.get(path) : undefined
+
+      if (!path || !isCmsMarkdownPath(path) || !blob || blob.sha !== sha) {
+        return json({ message: 'CMS管理対象外のGit blobです。' }, 403)
+      }
+
+      if (!Number.isSafeInteger(blob.size) || (blob.size as number) < 0) {
+        return json(
+          { message: 'GitHub treeのfile sizeを安全に確認できません。' },
+          502,
+        )
+      }
+
+      requestedBytes += blob.size as number
+
+      if (
+        !Number.isSafeInteger(requestedBytes) ||
+        requestedBytes > CMS_PROJECTED_TREE_LIMITS.maxContentBytes
+      ) {
+        return json(
+          { message: 'CMS GraphQL本文の読み取り量が大きすぎます。' },
+          413,
+        )
+      }
     }
   }
 
@@ -554,13 +595,20 @@ function validateReadOperation(
     return null
   }
 
-  const authorization = { blobShas: new Set<string>() }
+  const authorization: ReadAuthorization = {
+    contentBlobs: new Map(),
+    contentPaths: new Map(),
+    contentPathSet: new Set(),
+    fileHistoryPaths: new Map(),
+    fileHistoryPathSet: new Set(),
+    modes: new Set(),
+  }
 
   return validateRepositorySelection(
     root.selectionSet,
     variables,
     authorization,
-  )
+  ) && validateReadAuthorization(authorization)
     ? authorization
     : null
 }
@@ -572,30 +620,34 @@ function sanitizeGraphqlReadResponse(value: unknown) {
 
   if (!isRecord(repository)) return value
 
-  const ref = repository.ref
+  return {
+    ...value,
+    data: {
+      ...value.data,
+      repository: Object.fromEntries(
+        Object.entries(repository).map(([key, field]) => [
+          key,
+          sanitizeRepositoryReadField(field),
+        ]),
+      ),
+    },
+  }
+}
 
-  if (!isRecord(ref) || !isRecord(ref.target)) return value
+function sanitizeRepositoryReadField(value: unknown) {
+  if (!isRecord(value) || !isRecord(value.target)) return value
 
-  const history = ref.target.history
+  const history = value.target.history
 
   if (!isRecord(history) || !Array.isArray(history.nodes)) return value
 
   return {
     ...value,
-    data: {
-      ...value.data,
-      repository: {
-        ...repository,
-        ref: {
-          ...ref,
-          target: {
-            ...ref.target,
-            history: {
-              ...history,
-              nodes: history.nodes.map(sanitizeHistoryNode),
-            },
-          },
-        },
+    target: {
+      ...value.target,
+      history: {
+        ...history,
+        nodes: history.nodes.map(sanitizeHistoryNode),
       },
     },
   }
@@ -785,32 +837,45 @@ function getJsonEncodedSize(value: unknown, limit: number, depth: number) {
 function validateRepositorySelection(
   selectionSet: SelectionSetNode,
   variables: Record<string, unknown>,
-  authorization: { blobShas: Set<string> },
+  authorization: ReadAuthorization,
 ) {
   if (
     selectionSet.selections.length === 0 ||
-    selectionSet.selections.length > 100
+    selectionSet.selections.length > MAX_GRAPHQL_REPOSITORY_FIELDS
   ) {
     return false
   }
+
+  const responseNames = new Set<string>()
 
   return selectionSet.selections.every((selection) => {
     if (selection.kind !== Kind.FIELD || selection.directives?.length) {
       return false
     }
 
+    const responseName = selection.alias?.value || selection.name.value
+
+    if (responseNames.has(responseName)) return false
+    responseNames.add(responseName)
+
     if (selection.name.value === 'defaultBranchRef') {
-      return (
+      const valid =
         !selection.alias &&
         !selection.arguments?.length &&
         !!selection.selectionSet &&
         validateLeafSelection(selection.selectionSet, ['name'])
-      )
+
+      if (valid) authorization.modes.add('default-branch')
+
+      return valid
     }
 
     if (selection.name.value === 'ref') {
-      return (
-        !selection.alias &&
+      const readKind = getSveltiaRefReadKind(selection)
+      const alias = getSveltiaReadAlias(selection)
+
+      const valid =
+        !!readKind &&
         !!selection.selectionSet &&
         hasExactArguments(selection, ['qualifiedName']) &&
         argumentMatches(
@@ -819,17 +884,55 @@ function validateRepositorySelection(
           CMS_REPOSITORY.branch,
           variables,
         ) &&
-        validateRefSelection(selection.selectionSet)
-      )
+        validateRefSelection(selection.selectionSet, readKind)
+
+      if (!valid || !readKind) return false
+
+      if (readKind === 'head') {
+        authorization.modes.add('head')
+        return true
+      }
+
+      const path = getRefHistoryPath(selection.selectionSet)
+
+      if (!alias || !path) return false
+
+      if (readKind === 'content-metadata') {
+        if (
+          authorization.contentPaths.has(alias.index) ||
+          authorization.contentPathSet.has(path)
+        ) {
+          return false
+        }
+
+        authorization.modes.add('file-contents')
+        authorization.contentPaths.set(alias.index, path)
+        authorization.contentPathSet.add(path)
+        return true
+      }
+
+      if (
+        authorization.fileHistoryPaths.has(alias.index) ||
+        authorization.fileHistoryPathSet.has(path)
+      ) {
+        return false
+      }
+
+      authorization.modes.add('file-history')
+      authorization.fileHistoryPaths.set(alias.index, path)
+      authorization.fileHistoryPathSet.add(path)
+      return true
     }
 
     if (selection.name.value === 'object') {
       const oid = getArgumentString(selection, 'oid', variables)
+      const alias = getSveltiaReadAlias(selection)
 
       if (
         !oid ||
         !SHA_PATTERN.test(oid) ||
-        authorization.blobShas.has(oid) ||
+        alias?.kind !== 'content' ||
+        authorization.contentBlobs.has(alias.index) ||
         !selection.selectionSet ||
         !hasExactArguments(selection, ['oid']) ||
         !validateBlobObjectSelection(selection.selectionSet)
@@ -837,7 +940,8 @@ function validateRepositorySelection(
         return false
       }
 
-      authorization.blobShas.add(oid)
+      authorization.modes.add('file-contents')
+      authorization.contentBlobs.set(alias.index, oid)
       return true
     }
 
@@ -845,7 +949,94 @@ function validateRepositorySelection(
   })
 }
 
-function validateRefSelection(selectionSet: SelectionSetNode) {
+function validateReadAuthorization(authorization: ReadAuthorization) {
+  if (authorization.modes.size !== 1) return false
+
+  const mode = authorization.modes.values().next().value
+
+  if (mode === 'file-contents') {
+    const contentIndices = Array.from(authorization.contentPaths.keys()).sort(
+      (left, right) => left - right,
+    )
+
+    return (
+      authorization.contentPaths.size > 0 &&
+      authorization.contentPaths.size <= MAX_GRAPHQL_FILE_CONTENT_FIELDS &&
+      hasContiguousIndices(contentIndices, contentIndices[0], 250) &&
+      Array.from(authorization.contentBlobs.keys()).every((index) =>
+        authorization.contentPaths.has(index),
+      ) &&
+      Array.from(authorization.contentPaths).every(
+        ([index, path]) =>
+          authorization.contentBlobs.has(index) === isCmsMarkdownPath(path),
+      ) &&
+      authorization.fileHistoryPaths.size === 0
+    )
+  }
+
+  if (mode === 'file-history') {
+    const historyIndices = Array.from(
+      authorization.fileHistoryPaths.keys(),
+    ).sort((left, right) => left - right)
+
+    return (
+      authorization.fileHistoryPaths.size > 0 &&
+      authorization.fileHistoryPaths.size <= MAX_GRAPHQL_FILE_HISTORY_FIELDS &&
+      hasContiguousIndices(historyIndices, 0) &&
+      authorization.contentPaths.size === 0 &&
+      authorization.contentBlobs.size === 0
+    )
+  }
+
+  return (
+    authorization.contentPaths.size === 0 &&
+    authorization.contentBlobs.size === 0 &&
+    authorization.fileHistoryPaths.size === 0
+  )
+}
+
+function hasContiguousIndices(
+  indices: number[],
+  expectedStart: number | undefined,
+  startMultiple = 1,
+) {
+  return (
+    expectedStart !== undefined &&
+    expectedStart % startMultiple === 0 &&
+    indices.every((index, position) => index === expectedStart + position)
+  )
+}
+
+type SveltiaRefReadKind = 'head' | 'content-metadata' | 'file-history'
+
+function getSveltiaRefReadKind(
+  selection: FieldNode,
+): SveltiaRefReadKind | null {
+  if (!selection.alias) return 'head'
+
+  const alias = getSveltiaReadAlias(selection)
+
+  if (alias?.kind === 'commit') return 'content-metadata'
+  if (alias?.kind === 'history') return 'file-history'
+
+  return null
+}
+
+function getSveltiaReadAlias(selection: FieldNode) {
+  const match = selection.alias?.value.match(SVELTIA_READ_ALIAS_PATTERN)
+
+  if (!match?.groups) return null
+
+  return {
+    kind: match.groups.kind as 'commit' | 'content' | 'history',
+    index: Number(match.groups.index),
+  }
+}
+
+function validateRefSelection(
+  selectionSet: SelectionSetNode,
+  readKind: SveltiaRefReadKind,
+) {
   if (selectionSet.selections.length !== 1) return false
 
   const target = selectionSet.selections[0]
@@ -857,12 +1048,39 @@ function validateRefSelection(selectionSet: SelectionSetNode) {
     !target.arguments?.length &&
     !target.directives?.length &&
     !!target.selectionSet &&
-    validateTypedSelection(
-      target.selectionSet,
-      'Commit',
-      validateCommitSelection,
+    validateTypedSelection(target.selectionSet, 'Commit', (commitSelection) =>
+      validateCommitSelection(commitSelection, readKind),
     )
   )
+}
+
+function getRefHistoryPath(selectionSet: SelectionSetNode) {
+  const target = selectionSet.selections[0]
+
+  if (
+    target?.kind !== Kind.FIELD ||
+    !target.selectionSet ||
+    target.selectionSet.selections.length !== 1
+  ) {
+    return null
+  }
+
+  const fragment = target.selectionSet.selections[0]
+
+  if (
+    fragment.kind !== Kind.INLINE_FRAGMENT ||
+    fragment.selectionSet.selections.length !== 1
+  ) {
+    return null
+  }
+
+  const history = fragment.selectionSet.selections[0]
+
+  if (history.kind !== Kind.FIELD) return null
+
+  const path = getArgument(history, 'path')?.value
+
+  return path?.kind === Kind.STRING ? path.value : null
 }
 
 function validateBlobObjectSelection(selectionSet: SelectionSetNode) {
@@ -888,77 +1106,60 @@ function validateTypedSelection(
   )
 }
 
-function validateCommitSelection(selectionSet: SelectionSetNode) {
+function validateCommitSelection(
+  selectionSet: SelectionSetNode,
+  readKind: SveltiaRefReadKind,
+) {
+  if (selectionSet.selections.length !== 1) return false
+
+  const history = selectionSet.selections[0]
+
   if (
-    selectionSet.selections.length === 0 ||
-    selectionSet.selections.length > 100
+    history.kind !== Kind.FIELD ||
+    history.alias ||
+    history.name.value !== 'history' ||
+    history.directives?.length ||
+    !history.selectionSet
   ) {
     return false
   }
 
-  return selectionSet.selections.every((selection) => {
-    if (
-      selection.kind !== Kind.FIELD ||
-      selection.alias ||
-      selection.name.value !== 'history' ||
-      selection.directives?.length ||
-      !selection.selectionSet
-    ) {
-      return false
-    }
+  const first = getArgument(history, 'first')?.value
 
-    const argumentNames = (selection.arguments || []).map(
-      ({ name }) => name.value,
+  if (first?.kind !== Kind.INT) return false
+
+  const firstValue = Number(first.value)
+  const pathArgument = getArgument(history, 'path')
+
+  if (readKind === 'head') {
+    return (
+      hasExactArguments(history, ['first']) &&
+      firstValue === 1 &&
+      validateHistorySelection(history.selectionSet, readKind)
     )
+  }
 
-    if (
-      !argumentNames.includes('first') ||
-      argumentNames.some((name) => name !== 'first' && name !== 'path') ||
-      new Set(argumentNames).size !== argumentNames.length
-    ) {
-      return false
-    }
+  if (
+    !hasExactArguments(history, ['first', 'path']) ||
+    pathArgument?.value.kind !== Kind.STRING ||
+    firstValue !== (readKind === 'content-metadata' ? 1 : 100)
+  ) {
+    return false
+  }
 
-    const first = getArgument(selection, 'first')?.value
+  const path = normalizeCmsPath(pathArgument.value.value)
 
-    if (first?.kind !== Kind.INT) return false
-
-    const firstValue = Number(first.value)
-    const pathArgument = getArgument(selection, 'path')
-
-    if (!pathArgument) {
-      return (
-        firstValue === 1 &&
-        validateHistorySelection(selection.selectionSet, 'head')
-      )
-    }
-
-    if (
-      !Number.isInteger(firstValue) ||
-      firstValue < 1 ||
-      firstValue > 100 ||
-      pathArgument.value.kind !== Kind.STRING
-    ) {
-      return false
-    }
-
-    const path = normalizeCmsPath(pathArgument.value.value)
-
-    if (
-      !path ||
-      path !== pathArgument.value.value ||
-      !isAllowedCmsWritePath(path)
-    ) {
-      return false
-    }
-
-    return validateHistorySelection(selection.selectionSet, 'file')
-  })
+  return (
+    !!path &&
+    path === pathArgument.value.value &&
+    isAllowedCmsWritePath(path) &&
+    validateHistorySelection(history.selectionSet, readKind)
+  )
 }
 
 function validateHistorySelection(
   selectionSet: SelectionSetNode,
-  historyKind: 'file' | 'head',
+  readKind: SveltiaRefReadKind,
 ) {
   if (selectionSet.selections.length !== 1) return false
 
@@ -971,20 +1172,24 @@ function validateHistorySelection(
     !nodes.arguments?.length &&
     !nodes.directives?.length &&
     !!nodes.selectionSet &&
-    validateCommitNodeSelection(nodes.selectionSet, historyKind)
+    validateCommitNodeSelection(nodes.selectionSet, readKind)
   )
 }
 
 function validateCommitNodeSelection(
   selectionSet: SelectionSetNode,
-  historyKind: 'file' | 'head',
+  readKind: SveltiaRefReadKind,
 ) {
-  const leafFields =
-    historyKind === 'head'
+  const expectedFields =
+    readKind === 'head'
       ? new Set(['oid', 'message'])
-      : new Set(['oid', 'committedDate'])
+      : readKind === 'content-metadata'
+        ? new Set(['author', 'committedDate'])
+        : new Set(['oid', 'author', 'committedDate'])
 
-  if (selectionSet.selections.length === 0) return false
+  if (selectionSet.selections.length !== expectedFields.size) return false
+
+  const selectedFields = new Set<string>()
 
   return selectionSet.selections.every((selection) => {
     if (
@@ -995,26 +1200,44 @@ function validateCommitNodeSelection(
       return false
     }
 
-    if (leafFields.has(selection.name.value)) {
+    if (selectedFields.has(selection.name.value)) return false
+    selectedFields.add(selection.name.value)
+
+    if (
+      selection.name.value !== 'author' &&
+      expectedFields.has(selection.name.value)
+    ) {
       return !selection.arguments?.length && !selection.selectionSet
     }
 
-    if (historyKind === 'head' || selection.name.value !== 'author') {
+    if (
+      readKind === 'head' ||
+      selection.name.value !== 'author' ||
+      !expectedFields.has('author')
+    ) {
       return false
     }
 
     return (
       !selection.arguments?.length &&
       !!selection.selectionSet &&
-      validateAuthorSelection(selection.selectionSet)
+      validateAuthorSelection(selection.selectionSet, readKind)
     )
   })
 }
 
-function validateAuthorSelection(selectionSet: SelectionSetNode) {
-  const leafFields = new Set(['name', 'email', 'avatarUrl'])
+function validateAuthorSelection(
+  selectionSet: SelectionSetNode,
+  readKind: Exclude<SveltiaRefReadKind, 'head'>,
+) {
+  const expectedFields =
+    readKind === 'content-metadata'
+      ? new Set(['name', 'email', 'user'])
+      : new Set(['name', 'email', 'avatarUrl', 'user'])
 
-  if (selectionSet.selections.length === 0) return false
+  if (selectionSet.selections.length !== expectedFields.size) return false
+
+  const selectedFields = new Set<string>()
 
   return selectionSet.selections.every((selection) => {
     if (
@@ -1025,16 +1248,66 @@ function validateAuthorSelection(selectionSet: SelectionSetNode) {
       return false
     }
 
-    if (leafFields.has(selection.name.value)) {
+    if (selectedFields.has(selection.name.value)) return false
+    selectedFields.add(selection.name.value)
+
+    if (
+      selection.name.value !== 'user' &&
+      expectedFields.has(selection.name.value)
+    ) {
       return !selection.arguments?.length && !selection.selectionSet
     }
 
-    if (selection.name.value !== 'user') return false
+    if (
+      selection.name.value !== 'user' ||
+      !expectedFields.has('user') ||
+      selection.alias
+    ) {
+      return false
+    }
 
     return (
       !selection.arguments?.length &&
       !!selection.selectionSet &&
-      validateLeafSelection(selection.selectionSet, ['databaseId', 'login'])
+      validateAuthorUserSelection(selection.selectionSet, readKind)
+    )
+  })
+}
+
+function validateAuthorUserSelection(
+  selectionSet: SelectionSetNode,
+  readKind: Exclude<SveltiaRefReadKind, 'head'>,
+) {
+  if (readKind === 'file-history') {
+    return (
+      selectionSet.selections.length === 1 &&
+      validateLeafSelection(selectionSet, ['login'])
+    )
+  }
+
+  if (selectionSet.selections.length !== 2) return false
+
+  const responseNames = new Set<string>()
+
+  return selectionSet.selections.every((selection) => {
+    if (
+      selection.kind !== Kind.FIELD ||
+      selection.arguments?.length ||
+      selection.directives?.length ||
+      selection.selectionSet
+    ) {
+      return false
+    }
+
+    const responseName = selection.alias?.value || selection.name.value
+
+    if (responseNames.has(responseName)) return false
+    responseNames.add(responseName)
+
+    return (
+      (selection.name.value === 'databaseId' &&
+        selection.alias?.value === 'id') ||
+      (selection.name.value === 'login' && !selection.alias)
     )
   })
 }
@@ -1051,6 +1324,7 @@ function validateLeafSelection(
       return (
         selection.kind === Kind.FIELD &&
         allowed.has(selection.name.value) &&
+        !selection.alias &&
         !selection.arguments?.length &&
         !selection.directives?.length &&
         !selection.selectionSet
