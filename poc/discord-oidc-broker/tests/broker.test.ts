@@ -61,6 +61,7 @@ async function beginAuthorization(
 
 function installDiscordFetchMock(options?: {
   emailVerified?: boolean
+  failureAt?: 'identity' | 'revoke' | 'token'
   revokeStatus?: number
   tokenScope?: string
 }): ReturnType<typeof vi.fn> {
@@ -72,6 +73,9 @@ function installDiscordFetchMock(options?: {
           ? input.toString()
           : input
     if (url === 'https://discord.com/api/v10/oauth2/token') {
+      if (options?.failureAt === 'token') {
+        throw new Error('sensitive-provider-failure')
+      }
       return Response.json({
         access_token: 'discord-access-token-for-tests',
         expires_in: 3600,
@@ -80,6 +84,9 @@ function installDiscordFetchMock(options?: {
       })
     }
     if (url === 'https://discord.com/api/v10/users/@me') {
+      if (options?.failureAt === 'identity') {
+        throw new Error('sensitive-provider-failure')
+      }
       return Response.json({
         avatar: 'avatar_hash',
         email: 'editor@example.test',
@@ -90,6 +97,9 @@ function installDiscordFetchMock(options?: {
       })
     }
     if (url === 'https://discord.com/api/v10/oauth2/token/revoke') {
+      if (options?.failureAt === 'revoke') {
+        throw new Error('sensitive-provider-failure')
+      }
       return new Response(null, { status: options?.revokeStatus ?? 200 })
     }
     throw new Error('unexpected provider URL')
@@ -610,6 +620,37 @@ describe('Discord callback and token endpoint', () => {
       }),
     )
   })
+
+  it.each([
+    ['token', 'discord_token_exchange_failed'],
+    ['identity', 'discord_identity_invalid'],
+    ['revoke', 'discord_token_revocation_failed'],
+  ] as const)(
+    'normalizes a %s provider failure before logging it',
+    async (failureAt, expected) => {
+      const errorLog = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined)
+      const { discordState } = await beginAuthorization()
+      installDiscordFetchMock({ failureAt })
+      const response = await SELF.fetch(
+        `${ISSUER}/callback?code=discord-code&state=${discordState}`,
+        { redirect: 'manual' },
+      )
+      const location = new URL(response.headers.get('Location') ?? '')
+
+      expect(location.searchParams.get('error')).toBe('server_error')
+      expect(errorLog).toHaveBeenCalledWith(
+        JSON.stringify({
+          error: expected,
+          event: 'oidc_callback_failed',
+        }),
+      )
+      expect(errorLog.mock.calls.flat().join(' ')).not.toContain(
+        'sensitive-provider-failure',
+      )
+    },
+  )
 
   it('requires form encoding and does not expose CORS', async () => {
     const response = await SELF.fetch(`${ISSUER}/token`, {
