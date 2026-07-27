@@ -8,6 +8,9 @@ import { isExternalHttpUrl } from '../src/lib/external-link-policy.ts'
 const root = new URL('../', import.meta.url)
 const dist = new URL('dist/', root)
 const contentDirectory = new URL('src/content/wiki/', root)
+const cmsConfig = parseYaml(
+  await readFile(new URL('public/admin/config.yml', root), 'utf8'),
+)
 const site = process.env.ASTRO_SITE_URL ?? 'https://asv-wiki.acecore.net'
 const rootDescription =
   'エースサーバーの公式Wikiです。Minecraftサーバーへの参加方法、基本ルール、Discord連携、コマンドやプラグイン、Hubと各ワールドの遊び方、運営方針、コミュニティ情報をまとめています。初めて参加する方も、プレイ中に仕様や注意点を確認したい方も、必要な記事をカテゴリから探せます。'
@@ -19,6 +22,11 @@ const expectedHeaderLinks = [
   'https://asv.acecore.net',
 ]
 const articles = await readPublishedArticles()
+
+assert(
+  cmsConfig.output?.omit_empty_optional_fields === true,
+  'Sveltia CMS must omit empty optional fields before strict Astro validation.',
+)
 
 const rootDocument = await readHtml('index.html')
 
