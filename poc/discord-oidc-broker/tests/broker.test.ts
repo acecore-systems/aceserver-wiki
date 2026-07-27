@@ -97,8 +97,10 @@ function installDiscordFetchMock(options?: {
   return fetchMock
 }
 
-async function completeAuthorization(): Promise<string> {
-  const { discordState } = await beginAuthorization()
+async function completeAuthorization(
+  overrides: Record<string, string> = {},
+): Promise<string> {
+  const { discordState } = await beginAuthorization(overrides)
   installDiscordFetchMock()
   const response = await SELF.fetch(
     `${ISSUER}/callback?code=discord-code&state=${discordState}`,
@@ -202,6 +204,7 @@ describe('OIDC metadata', () => {
       issuer: ISSUER,
       response_modes_supported: ['query'],
       response_types_supported: ['code'],
+      scopes_supported: ['openid', 'email', 'profile'],
       token_endpoint_auth_methods_supported: [
         'client_secret_basic',
         'client_secret_post',
@@ -256,6 +259,35 @@ describe('authorization endpoint', () => {
     expect(response.headers.get('Location')).toMatch(
       /^https:\/\/discord\.com\/oauth2\/authorize\?/u,
     )
+  })
+
+  it('accepts Cloudflare profile scope without widening Discord permissions', async () => {
+    const { response } = await beginAuthorization({
+      scope: 'openid email profile',
+    })
+    const location = new URL(response.headers.get('Location') ?? '')
+
+    expect(response.status).toBe(303)
+    expect(location.origin + location.pathname).toBe(
+      'https://discord.com/oauth2/authorize',
+    )
+    expect(location.searchParams.get('scope')).toBe('identify email')
+  })
+
+  it('rejects unknown scopes and requests missing email', async () => {
+    for (const scope of ['openid email groups', 'openid profile']) {
+      const { response } = await beginAuthorization({ scope })
+      const location = new URL(response.headers.get('Location') ?? '')
+
+      expect(response.status).toBe(303)
+      expect(location.origin + location.pathname).toBe(ACCESS_CALLBACK)
+      expect(location.searchParams.get('error')).toBe('invalid_scope')
+    }
+
+    const stateRows = await env.OIDC_STATE_DB.prepare(
+      'SELECT COUNT(*) AS count FROM oidc_authorization_requests',
+    ).first<{ count: number }>()
+    expect(stateRows?.count).toBe(0)
   })
 
   it('rejects an alternate origin even when the path is valid', async () => {
@@ -335,6 +367,28 @@ describe('Discord callback and token endpoint', () => {
     await expect(replay.json()).resolves.toMatchObject({
       error: 'invalid_grant',
     })
+  })
+
+  it('echoes profile scope without minting additional profile claims', async () => {
+    const code = await completeAuthorization({
+      scope: 'openid email profile',
+    })
+    vi.unstubAllGlobals()
+
+    const response = await SELF.fetch(tokenRequest(code))
+    const body = await response.json<{ id_token: string; scope: string }>()
+    const claims = decodeJwtPayload(body.id_token)
+
+    expect(response.status).toBe(200)
+    expect(body.scope).toBe('openid email profile')
+    for (const profileClaim of [
+      'name',
+      'preferred_username',
+      'picture',
+      'profile',
+    ]) {
+      expect(claims).not.toHaveProperty(profileClaim)
+    }
   })
 
   it('allows exactly one concurrent exchange of a broker code', async () => {

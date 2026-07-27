@@ -33,6 +33,7 @@ const TOKEN_RATE_LIMIT = 3000
 const OPAQUE_VALUE = /^[\x21-\x7e]+$/u
 const PKCE_CHALLENGE = /^[A-Za-z0-9_-]{43}$/u
 const PKCE_VERIFIER = /^[A-Za-z0-9._~-]{43,128}$/u
+const SUPPORTED_OIDC_SCOPES = ['openid', 'email', 'profile']
 const KNOWN_ROUTES = new Set([
   '/.well-known/openid-configuration',
   '/authorize',
@@ -92,11 +93,13 @@ function validateScopes(raw: string | null): string {
     new Set(scopes).size !== scopes.length ||
     !scopes.includes('openid') ||
     !scopes.includes('email') ||
-    scopes.some((scope) => !['openid', 'email'].includes(scope))
+    scopes.some((scope) => !SUPPORTED_OIDC_SCOPES.includes(scope))
   ) {
     throw new ProtocolError('invalid_scope', 'scope is not supported')
   }
-  return ['openid', 'email'].filter((scope) => scopes.includes(scope)).join(' ')
+  return SUPPORTED_OIDC_SCOPES.filter((scope) => scopes.includes(scope)).join(
+    ' ',
+  )
 }
 
 async function validateAccessClient(
@@ -608,7 +611,7 @@ function discovery(config: BrokerConfig): Response {
       jwks_uri: `${config.issuer}/jwks.json`,
       response_modes_supported: ['query'],
       response_types_supported: ['code'],
-      scopes_supported: ['openid', 'email'],
+      scopes_supported: SUPPORTED_OIDC_SCOPES,
       subject_types_supported: ['public'],
       token_endpoint: `${config.issuer}/token`,
       token_endpoint_auth_methods_supported: [
