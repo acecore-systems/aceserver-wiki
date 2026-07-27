@@ -38,6 +38,25 @@ async function withDiscordFailure<T>(
   }
 }
 
+function discordTokenHttpFailure(status: number): Error {
+  if (status === 400) {
+    return new Error('discord_token_http_400')
+  }
+  if (status === 401) {
+    return new Error('discord_token_http_401')
+  }
+  if (status === 403) {
+    return new Error('discord_token_http_403')
+  }
+  if (status === 429) {
+    return new Error('discord_token_http_429')
+  }
+  if (status >= 500 && status <= 599) {
+    return new Error('discord_token_http_5xx')
+  }
+  return new Error('discord_token_http_unexpected')
+}
+
 export function createDiscordAuthorizationUrl(
   config: BrokerConfig,
   state: string,
@@ -59,13 +78,14 @@ async function exchangeDiscordCode(
   config: BrokerConfig,
   code: string,
 ): Promise<DiscordToken> {
-  return withDiscordFailure('discord_token_exchange_failed', async () => {
-    const body = new URLSearchParams({
-      code,
-      grant_type: 'authorization_code',
-      redirect_uri: config.discordRedirectUri,
-    })
-    const response = await fetch(DISCORD_TOKEN_URL, {
+  const body = new URLSearchParams({
+    code,
+    grant_type: 'authorization_code',
+    redirect_uri: config.discordRedirectUri,
+  })
+  let response: Response
+  try {
+    response = await fetch(DISCORD_TOKEN_URL, {
       body,
       headers: {
         Accept: 'application/json',
@@ -77,35 +97,49 @@ async function exchangeDiscordCode(
       redirect: 'error',
       signal: AbortSignal.timeout(8000),
     })
-    const payload = await readProviderJson(response)
-
-    if (
-      !response.ok ||
-      !isRecord(payload) ||
-      typeof payload.access_token !== 'string' ||
-      payload.access_token.length < 20 ||
-      payload.access_token.length > 4096
-    ) {
-      throw new Error('discord_token_exchange_failed')
+  } catch {
+    throw new Error('discord_token_request_failed')
+  }
+  if (!response.ok) {
+    try {
+      await response.body?.cancel()
+    } catch {
+      // Preserve the provider HTTP classification if body disposal fails.
     }
+    throw discordTokenHttpFailure(response.status)
+  }
 
-    const scopes =
-      typeof payload.scope === 'string'
-        ? new Set(payload.scope.split(/\s+/u))
-        : new Set<string>()
-    return {
-      accessToken: payload.access_token,
-      metadataValid:
-        typeof payload.token_type === 'string' &&
-        payload.token_type.toLowerCase() === 'bearer' &&
-        typeof payload.expires_in === 'number' &&
-        Number.isInteger(payload.expires_in) &&
-        payload.expires_in >= 1 &&
-        payload.expires_in <= 604_800 &&
-        scopes.has('identify') &&
-        scopes.has('email'),
-    }
-  })
+  let payload: unknown
+  try {
+    payload = await readProviderJson(response)
+  } catch {
+    throw new Error('discord_token_response_invalid')
+  }
+  if (
+    !isRecord(payload) ||
+    typeof payload.access_token !== 'string' ||
+    payload.access_token.length < 20 ||
+    payload.access_token.length > 4096
+  ) {
+    throw new Error('discord_token_response_invalid')
+  }
+
+  const scopes =
+    typeof payload.scope === 'string'
+      ? new Set(payload.scope.split(/\s+/u))
+      : new Set<string>()
+  return {
+    accessToken: payload.access_token,
+    metadataValid:
+      typeof payload.token_type === 'string' &&
+      payload.token_type.toLowerCase() === 'bearer' &&
+      typeof payload.expires_in === 'number' &&
+      Number.isInteger(payload.expires_in) &&
+      payload.expires_in >= 1 &&
+      payload.expires_in <= 604_800 &&
+      scopes.has('identify') &&
+      scopes.has('email'),
+  }
 }
 
 async function fetchDiscordIdentity(
