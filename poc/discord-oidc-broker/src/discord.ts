@@ -27,6 +27,17 @@ function discordBasicAuthorization(config: BrokerConfig): string {
   )}`
 }
 
+async function withDiscordFailure<T>(
+  logCode: string,
+  operation: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await operation()
+  } catch {
+    throw new Error(logCode)
+  }
+}
+
 export function createDiscordAuthorizationUrl(
   config: BrokerConfig,
   state: string,
@@ -48,109 +59,115 @@ async function exchangeDiscordCode(
   config: BrokerConfig,
   code: string,
 ): Promise<DiscordToken> {
-  const body = new URLSearchParams({
-    code,
-    grant_type: 'authorization_code',
-    redirect_uri: config.discordRedirectUri,
-  })
-  const response = await fetch(DISCORD_TOKEN_URL, {
-    body,
-    headers: {
-      Accept: 'application/json',
-      Authorization: discordBasicAuthorization(config),
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': USER_AGENT,
-    },
-    method: 'POST',
-    redirect: 'error',
-    signal: AbortSignal.timeout(8000),
-  })
-  const payload = await readProviderJson(response)
+  return withDiscordFailure('discord_token_exchange_failed', async () => {
+    const body = new URLSearchParams({
+      code,
+      grant_type: 'authorization_code',
+      redirect_uri: config.discordRedirectUri,
+    })
+    const response = await fetch(DISCORD_TOKEN_URL, {
+      body,
+      headers: {
+        Accept: 'application/json',
+        Authorization: discordBasicAuthorization(config),
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': USER_AGENT,
+      },
+      method: 'POST',
+      redirect: 'error',
+      signal: AbortSignal.timeout(8000),
+    })
+    const payload = await readProviderJson(response)
 
-  if (
-    !response.ok ||
-    !isRecord(payload) ||
-    typeof payload.access_token !== 'string' ||
-    payload.access_token.length < 20 ||
-    payload.access_token.length > 4096
-  ) {
-    throw new Error('discord_token_exchange_failed')
-  }
+    if (
+      !response.ok ||
+      !isRecord(payload) ||
+      typeof payload.access_token !== 'string' ||
+      payload.access_token.length < 20 ||
+      payload.access_token.length > 4096
+    ) {
+      throw new Error('discord_token_exchange_failed')
+    }
 
-  const scopes =
-    typeof payload.scope === 'string'
-      ? new Set(payload.scope.split(/\s+/u))
-      : new Set<string>()
-  return {
-    accessToken: payload.access_token,
-    metadataValid:
-      typeof payload.token_type === 'string' &&
-      payload.token_type.toLowerCase() === 'bearer' &&
-      typeof payload.expires_in === 'number' &&
-      Number.isInteger(payload.expires_in) &&
-      payload.expires_in >= 1 &&
-      payload.expires_in <= 604_800 &&
-      scopes.has('identify') &&
-      scopes.has('email'),
-  }
+    const scopes =
+      typeof payload.scope === 'string'
+        ? new Set(payload.scope.split(/\s+/u))
+        : new Set<string>()
+    return {
+      accessToken: payload.access_token,
+      metadataValid:
+        typeof payload.token_type === 'string' &&
+        payload.token_type.toLowerCase() === 'bearer' &&
+        typeof payload.expires_in === 'number' &&
+        Number.isInteger(payload.expires_in) &&
+        payload.expires_in >= 1 &&
+        payload.expires_in <= 604_800 &&
+        scopes.has('identify') &&
+        scopes.has('email'),
+    }
+  })
 }
 
 async function fetchDiscordIdentity(
   accessToken: string,
 ): Promise<DiscordIdentity> {
-  const response = await fetch(DISCORD_USER_URL, {
-    headers: {
-      Accept: 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-      'User-Agent': USER_AGENT,
-    },
-    redirect: 'error',
-    signal: AbortSignal.timeout(8000),
+  return withDiscordFailure('discord_identity_invalid', async () => {
+    const response = await fetch(DISCORD_USER_URL, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        'User-Agent': USER_AGENT,
+      },
+      redirect: 'error',
+      signal: AbortSignal.timeout(8000),
+    })
+    const payload = await readProviderJson(response)
+
+    if (
+      !response.ok ||
+      !isRecord(payload) ||
+      typeof payload.id !== 'string' ||
+      !/^\d{17,20}$/u.test(payload.id) ||
+      typeof payload.email !== 'string' ||
+      payload.email.length > 254 ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(payload.email) ||
+      payload.verified !== true
+    ) {
+      throw new Error('discord_identity_invalid')
+    }
+
+    return {
+      email: payload.email,
+      id: payload.id,
+    }
   })
-  const payload = await readProviderJson(response)
-
-  if (
-    !response.ok ||
-    !isRecord(payload) ||
-    typeof payload.id !== 'string' ||
-    !/^\d{17,20}$/u.test(payload.id) ||
-    typeof payload.email !== 'string' ||
-    payload.email.length > 254 ||
-    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(payload.email) ||
-    payload.verified !== true
-  ) {
-    throw new Error('discord_identity_invalid')
-  }
-
-  return {
-    email: payload.email,
-    id: payload.id,
-  }
 }
 
 async function revokeDiscordToken(
   config: BrokerConfig,
   accessToken: string,
 ): Promise<void> {
-  const response = await fetch(DISCORD_REVOKE_URL, {
-    body: new URLSearchParams({
-      token: accessToken,
-      token_type_hint: 'access_token',
-    }),
-    headers: {
-      Authorization: discordBasicAuthorization(config),
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': USER_AGENT,
-    },
-    method: 'POST',
-    redirect: 'error',
-    signal: AbortSignal.timeout(8000),
-  })
-  if (!response.ok) {
+  await withDiscordFailure('discord_token_revocation_failed', async () => {
+    const response = await fetch(DISCORD_REVOKE_URL, {
+      body: new URLSearchParams({
+        token: accessToken,
+        token_type_hint: 'access_token',
+      }),
+      headers: {
+        Authorization: discordBasicAuthorization(config),
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': USER_AGENT,
+      },
+      method: 'POST',
+      redirect: 'error',
+      signal: AbortSignal.timeout(8000),
+    })
+    if (!response.ok) {
+      await response.body?.cancel()
+      throw new Error('discord_token_revocation_failed')
+    }
     await response.body?.cancel()
-    throw new Error('discord_token_revocation_failed')
-  }
-  await response.body?.cancel()
+  })
 }
 
 export async function resolveDiscordIdentity(

@@ -123,27 +123,31 @@ export async function createAuthorizationCode(
   value: AuthorizationCode,
   now: number,
 ): Promise<void> {
-  const result = await env.OIDC_STATE_DB.prepare(
-    `INSERT INTO oidc_authorization_codes
-       (code_hash, access_redirect_uri, nonce, scope, pkce_challenge,
-        discord_id, email, authenticated_at, created_at, expires_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`,
-  )
-    .bind(
-      await sha256Hex(code),
-      value.access_redirect_uri,
-      value.nonce,
-      value.scope,
-      value.pkce_challenge,
-      value.discord_id,
-      value.email,
-      value.authenticated_at,
-      now,
-      now + 60,
+  try {
+    const result = await env.OIDC_STATE_DB.prepare(
+      `INSERT INTO oidc_authorization_codes
+         (code_hash, access_redirect_uri, nonce, scope, pkce_challenge,
+          discord_id, email, authenticated_at, created_at, expires_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`,
     )
-    .run()
+      .bind(
+        await sha256Hex(code),
+        value.access_redirect_uri,
+        value.nonce,
+        value.scope,
+        value.pkce_challenge,
+        value.discord_id,
+        value.email,
+        value.authenticated_at,
+        now,
+        now + 60,
+      )
+      .run()
 
-  if (!result.success || result.meta.changes !== 1) {
+    if (!result.success || result.meta.changes !== 1) {
+      throw new Error('authorization_code_write_failed')
+    }
+  } catch {
     throw new Error('authorization_code_write_failed')
   }
 }
