@@ -90,8 +90,10 @@ gatewayは次をすべて検証します。
 として検証します。Discordの通常OAuth2はOIDC ID token/JWKSを提供しないため
 直接接続せず、Wiki専用OIDC brokerを使用します。
 
-Access側はscopeを`openid email`、email claimを`email`、OIDC Claimsを
-`discord_id`、PKCEを有効にします。Provider Testと実ログインで
+Access側はscopeを`openid email profile`、email claimを`email`、OIDC Claimsを
+`discord_id`、PKCEを有効にします。`profile`は現行Cloudflare AccessのGeneric
+OIDCが要求する互換scopeであり、brokerは名前・username・avatarなどのprofile
+claimを保存・発行しません。Provider Testと実ログインで
 `custom.discord_id`がDiscord snowflakeになることを確認します。Access JWT自身の
 top-level `sub`をDiscord IDとして使用しません。
 

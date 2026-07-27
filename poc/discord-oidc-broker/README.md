@@ -127,7 +127,11 @@ key と一致しなければ、Worker は自己検証に失敗して token を�
 - Certificate URL: `<OIDC_ISSUER>/jwks.json`
 - Client ID / secret: broker 専用値
 - PKCE: enabled
-- Scopes: `openid`, `email`（`profile` は保存・発行しません）
+- Scopes: `openid`, `email`, `profile`
+  - 現行 Cloudflare Access の Generic OIDC が `profile` まで要求するため互換
+    目的で受理します。Discord へ要求する scope は従来どおり
+    `identify email` のままで、名前・username・avatar などの profile claim は
+    保存・発行しません。
 - Email claim: `email`
 - OIDC Claims: `discord_id`
 

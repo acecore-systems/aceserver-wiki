@@ -39,10 +39,12 @@ guildまたはroleで制限する場合は、OIDC brokerがDiscord membershipを
 Discordの通常OAuth2はOIDC ID tokenとJWKSを提供しないため、Cloudflare Accessの
 Generic OIDCへ直接接続しません。専用brokerがDiscordの`identify email` scopeで
 本人情報を取得し、OIDC ID tokenへ`discord_id`を発行します。Access側はscopeを
-`openid email`、OIDC Claimsを`discord_id`、email claimを`email`として設定し、
-Access JWTの`custom.discord_id`へ渡します。claimsが欠落・不正の場合、gatewayは
-fail closedで拒否します。Access JWT自身のtop-level `sub`はCloudflare側の
-subjectなので、Discord IDとして使用しません。
+`openid email profile`、OIDC Claimsを`discord_id`、email claimを`email`として
+設定し、Access JWTの`custom.discord_id`へ渡します。`profile`はCloudflare
+Access互換目的で受理しますが、brokerは名前・username・avatarなどのprofile
+claimを保存・発行しません。claimsが欠落・不正の場合、gatewayはfail closedで
+拒否します。Access JWT自身のtop-level `sub`はCloudflare側のsubjectなので、
+Discord IDとして使用しません。
 
 `CMS_DISCORD_AUTHORIZATION_MODE=guild` では、brokerがguild membershipを
 確認したうえで発行した `discord_guild_id` が一致すれば、そのguildの全員を
