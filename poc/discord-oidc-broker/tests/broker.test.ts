@@ -506,6 +506,10 @@ describe('Discord callback and token endpoint', () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
     const cases = [
       {
+        code: '',
+        expected: 'token_code_empty',
+      },
+      {
         code: 'short-sensitive-code',
         expected: 'token_code_too_short',
       },

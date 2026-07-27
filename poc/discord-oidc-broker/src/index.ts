@@ -556,6 +556,14 @@ async function handleToken(
       'token_code_missing',
     )
   }
+  if (code.length === 0) {
+    return rejectTokenRequest(
+      400,
+      'invalid_request',
+      'grant parameters are invalid',
+      'token_code_empty',
+    )
+  }
   if (code.length < 32) {
     return rejectTokenRequest(
       400,
