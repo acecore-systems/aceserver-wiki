@@ -113,6 +113,11 @@ async function exchangeDiscordCode(
   try {
     payload = await readProviderJson(response)
   } catch {
+    try {
+      await response.body?.cancel()
+    } catch {
+      // The response is already consumed or closed; keep the fixed error.
+    }
     throw new Error('discord_token_response_invalid')
   }
   if (

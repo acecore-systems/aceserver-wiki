@@ -693,6 +693,42 @@ describe('Discord callback and token endpoint', () => {
     },
   )
 
+  it('cancels an oversized successful Discord token response', async () => {
+    const errorLog = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+    const { discordState } = await beginAuthorization()
+    const cancel = vi.fn()
+    const body = new ReadableStream<Uint8Array>({ cancel })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(body, {
+            headers: {
+              'Content-Length': '32769',
+              'Content-Type': 'application/json',
+            },
+          }),
+      ),
+    )
+
+    const response = await SELF.fetch(
+      `${ISSUER}/callback?code=discord-code&state=${discordState}`,
+      { redirect: 'manual' },
+    )
+    const location = new URL(response.headers.get('Location') ?? '')
+
+    expect(location.searchParams.get('error')).toBe('server_error')
+    expect(cancel).toHaveBeenCalledOnce()
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({
+        error: 'discord_token_response_invalid',
+        event: 'oidc_callback_failed',
+      }),
+    )
+  })
+
   it('requires form encoding and does not expose CORS', async () => {
     const response = await SELF.fetch(`${ISSUER}/token`, {
       body: '{}',
