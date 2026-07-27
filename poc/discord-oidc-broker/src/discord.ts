@@ -2,8 +2,8 @@ import type { BrokerConfig } from './config.ts'
 import { readProviderJson } from './http.ts'
 
 const DISCORD_AUTHORIZE_URL = 'https://discord.com/oauth2/authorize'
-const DISCORD_TOKEN_URL = 'https://discord.com/api/v10/oauth2/token'
-const DISCORD_REVOKE_URL = 'https://discord.com/api/v10/oauth2/token/revoke'
+const DISCORD_TOKEN_URL = 'https://discord.com/api/oauth2/token'
+const DISCORD_REVOKE_URL = 'https://discord.com/api/oauth2/token/revoke'
 const DISCORD_USER_URL = 'https://discord.com/api/v10/users/@me'
 const USER_AGENT = 'aceserver-wiki-discord-oidc-broker/1.0'
 
