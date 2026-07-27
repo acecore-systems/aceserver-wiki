@@ -1,0 +1,38 @@
+---
+import {
+  SEARCH_DESCRIPTION,
+  SEARCH_META_TITLE,
+} from '../config/wiki'
+import WikiLayout from '../layouts/WikiLayout.astro'
+import { getWikiArticles, groupWikiArticles } from '../lib/wiki'
+
+const categories = groupWikiArticles(await getWikiArticles())
+---
+
+<WikiLayout
+  title={SEARCH_META_TITLE}
+  description={SEARCH_DESCRIPTION}
+  canonicalPath="/search/"
+  categories={categories}
+  robots="noindex, follow"
+>
+  <section class="search-page">
+    <h1>サイト内検索</h1>
+    <form class="search-page__form" action="/search/" method="get" role="search">
+      <label class="visually-hidden" for="search-query">検索語</label>
+      <input
+        id="search-query"
+        name="q"
+        type="search"
+        placeholder="記事を検索"
+        autocomplete="off"
+      />
+      <button type="submit">検索</button>
+    </form>
+    <p class="search-status" aria-live="polite">
+      検索語を入力してください。
+    </p>
+    <ol class="search-results"></ol>
+  </section>
+  <script is:inline nonce="__CSP_NONCE__" src="/search.js" defer></script>
+</WikiLayout>

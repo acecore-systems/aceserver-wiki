@@ -1,0 +1,52 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "aceserver-wiki-discord-oidc-broker",
+  "main": "src/index.ts",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    {
+      "pattern": "wiki-auth.acecore.net",
+      "custom_domain": true,
+    },
+  ],
+  "compatibility_date": "2026-07-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "OIDC_STATE_DB",
+      "database_name": "aceserver-wiki-oidc",
+      "database_id": "9769c337-2164-46ef-953e-630361413170",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "triggers": {
+    "crons": ["*/5 * * * *"],
+  },
+  "secrets": {
+    "required": [
+      "OIDC_ACCESS_CLIENT_SECRET",
+      "OIDC_SIGNING_PRIVATE_KEY_PEM",
+      "DISCORD_CLIENT_SECRET",
+    ],
+  },
+  "vars": {
+    "OIDC_ISSUER": "https://wiki-auth.acecore.net",
+    "OIDC_ACCESS_CLIENT_ID": "aceserver-wiki-849c881162001f8b167b58659a04adde",
+    "OIDC_ACCESS_REDIRECT_URIS": "https://acecore.cloudflareaccess.com/cdn-cgi/access/callback",
+    "OIDC_SIGNING_PUBLIC_JWK_JSON": "{\"alg\":\"RS256\",\"e\":\"AQAB\",\"ext\":true,\"key_ops\":[\"verify\"],\"kid\":\"0IU922mPH0P-TXnXA5dH9l\",\"kty\":\"RSA\",\"n\":\"wuJevhyNVFKC0yD1xkBAQ0BGQvq7B8g6aeOmCypYKLO0VvjT2RyNgyL5hEPpbupjSZUGubEiyW8Il09Pa5WxNLNPCDPIETwoHo_OALCDVjV3nNS8kuvP54Ffjoh5gkAYXXaqQ6lKncgjMmM1v1UGBD9wRAGEGt3TAbZopcN9BiJLKmXpXNPnTIB2RRxrTdC6RBOtLZ0-UVDXKe6pSu6mR6nrpQ64fw-1Nd6lOGM2UrByeMaYF_--uVTNhBBz_lnyFoy_fu-k1-lMkc2JEXRqCxRXF6J-atOHQRa_vS-Kde9USiPkLSMlFbnOdyMB7yLgcknLHYU5fUthop7jhfdJjwx4MJMfRx5XpRrBuBhxEWD4laI0iZb55iLjNLDPpF523rM3SX0zJIdNhuD3sPtGmmey9pDXJYVPOmrwHmrK-JY3JR0392Dl9P-F8KD1LMgq8D69NyxXJBpZq8EX_pPMa4G_WXmhHocfKBIxqNwXGCAz2MaossqgjFJJDKQP3Sel\",\"use\":\"sig\"}",
+    "OIDC_SIGNING_PREVIOUS_PUBLIC_JWKS_JSON": "[]",
+    "DISCORD_CLIENT_ID": "1531137491640258650",
+  },
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": false,
+    },
+    "traces": {
+      "enabled": false,
+    },
+  },
+}

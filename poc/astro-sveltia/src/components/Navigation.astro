@@ -1,0 +1,38 @@
+---
+import { articlePath, type WikiCategoryGroup } from '../lib/wiki'
+
+interface Props {
+  categories: WikiCategoryGroup[]
+  currentId?: string
+}
+
+const { categories, currentId } = Astro.props
+---
+
+<nav class="side-navigation" aria-label="記事一覧">
+  {
+    categories.map((category) => {
+      const containsCurrentArticle = category.articles.some(
+        (article) => article.id === currentId,
+      )
+
+      return (
+        <details class="side-navigation__category" open={containsCurrentArticle}>
+          <summary>{category.name}</summary>
+          <ul>
+            {category.articles.map((article) => (
+              <li>
+                <a
+                  href={articlePath(article.id)}
+                  aria-current={currentId === article.id ? 'page' : undefined}
+                >
+                  {article.data.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )
+    })
+  }
+</nav>

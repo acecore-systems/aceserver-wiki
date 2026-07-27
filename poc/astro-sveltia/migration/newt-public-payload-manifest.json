@@ -1,0 +1,430 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "origin": "https://asv-wiki.acecore.net",
+    "rootPayloadUrl": "https://asv-wiki.acecore.net/_payload.json",
+    "rootPayloadSha256": "bd1ac68b5fd5ceeeb9c3ff3d50eb1ce1896302deb32a4dc23bc8d701a40a3cf9",
+    "prerenderedAt": 1785113371307,
+    "articleCount": 15,
+    "categoryCount": 6,
+    "headerLinkCount": 3,
+    "totalSourceBodyBytes": 53234
+  },
+  "categories": [
+    {
+      "id": "61e92e9f616290001858f8a4",
+      "name": "イントロダクション"
+    },
+    {
+      "id": "635d007306cfd5386b36f752",
+      "name": "生活鯖について"
+    },
+    {
+      "id": "67c94e6c395b530d64ff9669",
+      "name": "その他サーバーについて"
+    },
+    {
+      "id": "67c9514e33281c1d6502bd9e",
+      "name": "ディスコードについて"
+    },
+    {
+      "id": "635cac9d06cfd5386b36b3dc",
+      "name": "コミュニティ紹介"
+    },
+    {
+      "id": "61e936ac8b1cc500187ad308",
+      "name": "その他"
+    }
+  ],
+  "links": [
+    {
+      "id": "641696afb836a015edcad52a",
+      "text": "ワールドマップ",
+      "href": "https://asv.acecore.net/world-map/"
+    },
+    {
+      "id": "6347cd906892c6a352914f05",
+      "text": "Acecore",
+      "href": "https://acecore.net"
+    },
+    {
+      "id": "6347cd5f6892c6a352914185",
+      "text": "エースサーバーポータル",
+      "href": "https://asv.acecore.net"
+    }
+  ],
+  "articles": [
+    {
+      "id": "6a585343d2c46e306ca40722",
+      "sourceSlug": "other-server",
+      "targetSlug": "other-server",
+      "title": "その他サーバーについて",
+      "category": "生活鯖について",
+      "order": 10,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/other-server/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/other-server/_payload.json",
+      "sourcePayloadSha256": "a5a06c0cc00af2ec80c2a12e9554f28a6b23ae86ec9c502624a073da30dd6398",
+      "sourceBodyBytes": 1747,
+      "sourceBodySha256": "f9ae4214db0f7b4795b6a7718db49613395dac926eb4f68a4c13d91c7291e843",
+      "markdownPath": "src/content/wiki/other-server.md",
+      "markdownBytes": 1832,
+      "markdownSha256": "84260c060fb33df7638522d4b7b2287eab6a6c10ff6d8792b94c3039e96ea2ba"
+    },
+    {
+      "id": "6a578bb7d2c46e306ca21a78",
+      "sourceSlug": "hub-intro",
+      "targetSlug": "hub-intro",
+      "title": "hub紹介",
+      "category": "生活鯖について",
+      "order": 20,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/hub-intro/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/hub-intro/_payload.json",
+      "sourcePayloadSha256": "01d7842b092d0fd1b0a16e27fd866c3dd665fdfa19f196f5b474dd39469c4f39",
+      "sourceBodyBytes": 1768,
+      "sourceBodySha256": "7d6a2011cf9971798882a3747aea19eef0ecd8fadb1e1171ec7e467d5383db29",
+      "markdownPath": "src/content/wiki/hub-intro.md",
+      "markdownBytes": 1239,
+      "markdownSha256": "d2fcafbfe00ab90ed9a497637ad39ac90ab6064a5bae91f0ca2d956bd0a24105"
+    },
+    {
+      "id": "67d56eb21c808a95b6824af7",
+      "sourceSlug": "discord-rule",
+      "targetSlug": "discord-rule",
+      "title": "ルール",
+      "category": "ディスコードについて",
+      "order": 30,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/discord-rule/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/discord-rule/_payload.json",
+      "sourcePayloadSha256": "b36d5e403cac70242359f18914b3699321b16a71742a178964b9c5168d25e23b",
+      "sourceBodyBytes": 845,
+      "sourceBodySha256": "d531fa6db16ccd6835dfba3713b53100c4c7e81cc637d8ad00bd340929591474",
+      "markdownPath": "src/content/wiki/discord-rule.md",
+      "markdownBytes": 1163,
+      "markdownSha256": "268a6290729554bc1206f40b7bc94837f9b34a861d758362f48f3ff8b5eebee6"
+    },
+    {
+      "id": "63453173d2720e3d2d563c0a",
+      "sourceSlug": "rule",
+      "targetSlug": "rule",
+      "title": "ルール・BAN条件",
+      "category": "生活鯖について",
+      "order": 40,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/rule/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/rule/_payload.json",
+      "sourcePayloadSha256": "c6ed7bcb306c08f436da42f20e7d1a945fedaeda9167a07811b69e6edf9e15a6",
+      "sourceBodyBytes": 14930,
+      "sourceBodySha256": "c4558b942ed6aa0e4e2f58b35c75f73953d32d1d73bf24a783b013701dfe58ad",
+      "markdownPath": "src/content/wiki/rule.md",
+      "markdownBytes": 13060,
+      "markdownSha256": "f9d0b9752ebbbfe6100eee839f2bf71d9d0d871186a043806c885bbdd3d57d61"
+    },
+    {
+      "id": "67d56f2d1c808a95b68259e1",
+      "sourceSlug": "discord-roles",
+      "targetSlug": "discord-roles",
+      "title": "各ロールの説明",
+      "category": "ディスコードについて",
+      "order": 50,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/discord-roles/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/discord-roles/_payload.json",
+      "sourcePayloadSha256": "011005ef4b794700b6b900ae247799c13d70b46eccc866c2949972d4dc49529b",
+      "sourceBodyBytes": 2011,
+      "sourceBodySha256": "d8b7937fabfb2cbf77d957edaf45ebf909dfcd0d366806b06f6eb8f12e2d3986",
+      "markdownPath": "src/content/wiki/discord-roles.md",
+      "markdownBytes": 2278,
+      "markdownSha256": "0124cad675b1d8607222a0a9098fe1f08c91dc429b647db7217dc96e6eccb1d6"
+    },
+    {
+      "id": "6406fcb64279ec68fbbc4bf2",
+      "sourceSlug": "how to discordsrv link",
+      "targetSlug": "how-to-discordsrv-link",
+      "title": "ディスコード連携のやり方",
+      "category": "生活鯖について",
+      "order": 60,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/how%20to%20discordsrv%20link/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/how%20to%20discordsrv%20link/_payload.json",
+      "sourcePayloadSha256": "e18db7500ab4066d3d90af455a151d87c362d0f4f81c07e0c56a44d37286a79e",
+      "sourceBodyBytes": 1426,
+      "sourceBodySha256": "145b2bbd64cb73b472a25875a6cafd5557124d10e4957fb57fcb1d9e6fdc2632",
+      "markdownPath": "src/content/wiki/how-to-discordsrv-link.md",
+      "markdownBytes": 1528,
+      "markdownSha256": "8e70570d45824e68d221be9a670d428752ce4b87c9f58c6a72bbc0be8975991e"
+    },
+    {
+      "id": "61e93243616290001858fe14",
+      "sourceSlug": "rinen",
+      "targetSlug": "rinen",
+      "title": "サーバー理念",
+      "category": "イントロダクション",
+      "order": 70,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/rinen/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/rinen/_payload.json",
+      "sourcePayloadSha256": "24bdda46824a252c9a8b6b16db8f965d59c5bd7cad9d20b5192c5cae1755a64e",
+      "sourceBodyBytes": 1691,
+      "sourceBodySha256": "e21805227529214ade6763fdf63ea77d730a3863a473d7eeec1c8477282fe033",
+      "markdownPath": "src/content/wiki/rinen.md",
+      "markdownBytes": 1915,
+      "markdownSha256": "d598362022829b98e0ec9facfd050c09122abfce4f5ee863fb1140e8cca20d67"
+    },
+    {
+      "id": "635e74f0e069d0741c37c397",
+      "sourceSlug": "SurvivalCommand",
+      "targetSlug": "SurvivalCommand",
+      "title": "コマンドについて",
+      "category": "生活鯖について",
+      "order": 80,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/SurvivalCommand/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/SurvivalCommand/_payload.json",
+      "sourcePayloadSha256": "64fa06692357d674f94163a511e41127acf9e29cf20789e9c147dfb4fb749b99",
+      "sourceBodyBytes": 7014,
+      "sourceBodySha256": "4d5ab7778e076e1e310068fef6c6979196b91542d603f956df56a05e26e83296",
+      "markdownPath": "src/content/wiki/SurvivalCommand.md",
+      "markdownBytes": 7767,
+      "markdownSha256": "038871e3e7a143dec26107e448dc478eb43f741e49d74a21a3fd69bd196da392"
+    },
+    {
+      "id": "634531c7d2720e3d2d56ef9c",
+      "sourceSlug": "in",
+      "targetSlug": "in",
+      "title": "参加方法",
+      "category": "イントロダクション",
+      "order": 90,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/in/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/in/_payload.json",
+      "sourcePayloadSha256": "cb7d3956ce584496c178f0efc544a8efea19250dfd856d97cf47e9ede3574dd9",
+      "sourceBodyBytes": 4292,
+      "sourceBodySha256": "a7377c41348b31d04743f29d0b269ac1ff46e16a8f48f3c68cbf440a6f6092bd",
+      "markdownPath": "src/content/wiki/in.md",
+      "markdownBytes": 1316,
+      "markdownSha256": "0eac37a75a781c46d1c39ca2d98b594571fbe09afcdf2d8f2082de2624c77e2d"
+    },
+    {
+      "id": "635966e2f8dd31b69e7a6ccb",
+      "sourceSlug": "SurvivalPluginsList",
+      "targetSlug": "SurvivalPluginsList",
+      "title": "プラグイン一覧",
+      "category": "生活鯖について",
+      "order": 100,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/SurvivalPluginsList/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/SurvivalPluginsList/_payload.json",
+      "sourcePayloadSha256": "6de9d5783d7066294a2c03643d96367caf7c19b8f076ea35d017ac5c72bc637c",
+      "sourceBodyBytes": 2258,
+      "sourceBodySha256": "ea4fde03085cba360232bbbf3f1315e5caec83ee8723528c221741405794e206",
+      "markdownPath": "src/content/wiki/SurvivalPluginsList.md",
+      "markdownBytes": 2147,
+      "markdownSha256": "c0d383dc09ff24d76afcf1a7a60b13ebd78e9a2cca72bc461865e5bf8d5e0d7a"
+    },
+    {
+      "id": "634530dfd2720e3d2d54e7ec",
+      "sourceSlug": "howto",
+      "targetSlug": "howto",
+      "title": "遊び方",
+      "category": "イントロダクション",
+      "order": 110,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/howto/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/howto/_payload.json",
+      "sourcePayloadSha256": "8d5b46961543f0cd7824910c3ad55d2e2704c2c4a97b9a30736a308c591cedfa",
+      "sourceBodyBytes": 4302,
+      "sourceBodySha256": "1d902bb720ac266b3a637179da85223f68b3412734ab72e40a21eff830464222",
+      "markdownPath": "src/content/wiki/howto.md",
+      "markdownBytes": 3722,
+      "markdownSha256": "61c9a0e730f880005145e2c702bb98feefd7efc09558838fbb068e74711ce3d0"
+    },
+    {
+      "id": "641a68535297515063afd957",
+      "sourceSlug": "About management team",
+      "targetSlug": "about-management-team",
+      "title": "運営陣について",
+      "category": "その他",
+      "order": 120,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/About%20management%20team/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/About%20management%20team/_payload.json",
+      "sourcePayloadSha256": "ee3b4a355c062e8eb3099bc2fc0ca642429edd0e3768015e5b08e528d7cf2db2",
+      "sourceBodyBytes": 1675,
+      "sourceBodySha256": "fbe0c5a3d55f2b99b932bc0e26f8b8e9efef6874efcb1642a7ffc7761423553d",
+      "markdownPath": "src/content/wiki/about-management-team.md",
+      "markdownBytes": 1911,
+      "markdownSha256": "3d49c02bc0e8384179a109da1addab67e51df46a88eafeb03abf382e34086310"
+    },
+    {
+      "id": "63628c7db48748bdc77e6f61",
+      "sourceSlug": "Hoe Kingdom",
+      "targetSlug": "hoe-kingdom",
+      "title": "くわ王国",
+      "category": "コミュニティ紹介",
+      "order": 130,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/Hoe%20Kingdom/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/Hoe%20Kingdom/_payload.json",
+      "sourcePayloadSha256": "a3da88c9dd9d88585d9f7c9e130a418cedd2ecd52152df932788f18099bc3c95",
+      "sourceBodyBytes": 402,
+      "sourceBodySha256": "f1f16de7f3e3d8bdcde111324d7f873d641f5ff88a3632c4c68396f1a2656233",
+      "markdownPath": "src/content/wiki/hoe-kingdom.md",
+      "markdownBytes": 691,
+      "markdownSha256": "145fd69c9d7ad88f316bfc7df465759a7a1541463875383529d81166cfd9219a"
+    },
+    {
+      "id": "63c6641ef6bd29a2e7b03c03",
+      "sourceSlug": "Asutan　Kingdom",
+      "targetSlug": "asutan-kingdom",
+      "title": "あすたん王国",
+      "category": "コミュニティ紹介",
+      "order": 140,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/Asutan%E3%80%80Kingdom/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/Asutan%E3%80%80Kingdom/_payload.json",
+      "sourcePayloadSha256": "1617bd21136806e6f2c9318aaa002d18bcdfb9403606cc5b3c5a248b49556dff",
+      "sourceBodyBytes": 5649,
+      "sourceBodySha256": "42d2b4c837e972029fb8bcc49b3519c5a0d24cd7dd87f86c39af7c54cb1d1b73",
+      "markdownPath": "src/content/wiki/asutan-kingdom.md",
+      "markdownBytes": 4267,
+      "markdownSha256": "c97f1cb38168dd82231d5265dccad0763f61482a13cc57e85c1b5d8b2ea3a756"
+    },
+    {
+      "id": "634532c6d2720e3d2d5801f3",
+      "sourceSlug": "promotion",
+      "targetSlug": "promotion",
+      "title": "宣伝に利用させていただいているサービス",
+      "category": "その他",
+      "order": 150,
+      "sourceUrl": "https://asv-wiki.acecore.net/article/promotion/",
+      "sourcePayloadUrl": "https://asv-wiki.acecore.net/article/promotion/_payload.json",
+      "sourcePayloadSha256": "83e0583171d8f5eea6db00630b1784a0533315bd92eeb66214277a67f89cf5f5",
+      "sourceBodyBytes": 3224,
+      "sourceBodySha256": "77d1a051de02f6218a86a380fc4d7164f581e7585c43e1b039ca831ee1731382",
+      "markdownPath": "src/content/wiki/promotion.md",
+      "markdownBytes": 3064,
+      "markdownSha256": "c10865f0baeeffd10be7f4453e0a53a6bed1d0ea1ec100c301bb6aabe625bb8a"
+    }
+  ],
+  "assets": [
+    {
+      "sourceUrl": "https://cdn.pixabay.com/photo/2018/03/07/08/13/shaking-hands-3205463_960_720.jpg",
+      "localPath": "public/uploads/wiki/rule-handshake.jpg",
+      "mediaType": "image/jpeg",
+      "bytes": 140587,
+      "width": 960,
+      "height": 640,
+      "sha256": "1a5fcfc9be301d1ca188e3825bb92b8eddf6945d22e55d73c73ce3e96382edbb"
+    },
+    {
+      "sourceUrl": "https://cdn.pixabay.com/photo/2014/09/20/13/52/board-453758_960_720.jpg",
+      "localPath": "public/uploads/wiki/rule-circuit-board.jpg",
+      "mediaType": "image/jpeg",
+      "bytes": 171335,
+      "width": 960,
+      "height": 652,
+      "sha256": "468f4ff041be113891747455cd4bf672de91aac4a362ca816e0127cfdcda361b"
+    },
+    {
+      "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/e1507a8e-4ed9-41fa-b5e7-2d8c53ef1f9c/image_2026-07-15_095728508.png",
+      "localPath": "public/uploads/wiki/discord-link-step-a.png",
+      "mediaType": "image/png",
+      "bytes": 21515,
+      "width": 475,
+      "height": 284,
+      "sha256": "04db4260eaac671e273d2e24f38d488e14c2772c4fe24b7deb544da1800197a0"
+    },
+    {
+      "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/89922600-767f-4d8d-9318-e92f2879511a/E3FA5126-3C9F-48A9-A08E-6DBFFC93E8BF.png",
+      "localPath": "public/uploads/wiki/discord-link-server.png",
+      "mediaType": "image/png",
+      "bytes": 1346932,
+      "width": 1920,
+      "height": 1080,
+      "sha256": "d938207f74af8e1d759cb3e755e2fb3ebd74df8d4ad78866cc09d0b96ed7a129"
+    },
+    {
+      "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/48946ae8-4496-4e8f-8bcc-4349318ca026%2Ficon2.png",
+      "localPath": "public/uploads/wiki/server-philosophy-icon.png",
+      "mediaType": "image/png",
+      "bytes": 139548,
+      "width": 512,
+      "height": 512,
+      "sha256": "c83056b983c1420ede6de165a6fd607cb90a1e3e3aa9d323a34fef571e501216"
+    },
+    {
+      "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/cf33b9fd-4dd0-4662-b4d2-db3194b2a7fa%2Facico.png",
+      "localPath": "public/uploads/wiki/server-philosophy-og.png",
+      "mediaType": "image/png",
+      "bytes": 136025,
+      "width": 512,
+      "height": 512,
+      "sha256": "c060fc2ccb72a3d20df856f0468052cc813862c2a935c0c2d61430d7baf9305c"
+    },
+    {
+      "sourceUrl": "https://cdn.pixabay.com/photo/2018/02/07/18/30/people-3137672_960_720.jpg",
+      "localPath": "public/uploads/wiki/join-header.jpg",
+      "mediaType": "image/jpeg",
+      "bytes": 145805,
+      "width": 960,
+      "height": 640,
+      "sha256": "7a36b772ee876ccb68bca3dfebb35d1c0f72144e695f5fecfd9848e8ebb5fdb9"
+    },
+    {
+      "sourceUrl": "https://cdn.pixabay.com/photo/2020/10/05/20/03/boys-5630669_960_720.jpg",
+      "localPath": "public/uploads/wiki/play-header.jpg",
+      "mediaType": "image/jpeg",
+      "bytes": 195798,
+      "width": 960,
+      "height": 640,
+      "sha256": "99f1887163763747672c3a5efd77be72fee4603cdbfe190adfddfd1a73b595d5"
+    },
+    {
+      "sourceUrl": "https://cdn.pixabay.com/photo/2020/03/22/15/25/fetch-4957501_1280.jpg",
+      "localPath": "public/uploads/wiki/promotion-header.jpg",
+      "mediaType": "image/jpeg",
+      "bytes": 250829,
+      "width": 1280,
+      "height": 853,
+      "sha256": "7cf9c0f5cc716235079abf3ff03c515c1858a342756ba9c7e506b7295942005f"
+    },
+    {
+      "sourceUrl": "https://storage.googleapis.com/newt-images/631ae0ff4b26e8e308048763/1665754188707/icons/1665754188708/icon3.png",
+      "localPath": "public/uploads/wiki/wiki-icon.png",
+      "mediaType": "image/png",
+      "bytes": 155424,
+      "width": 500,
+      "height": 500,
+      "sha256": "651915783c3c94ce513e38ac971c0336173b4dff68cddd65f88fc3611f35fd6b"
+    },
+    {
+      "sourceUrl": "https://storage.googleapis.com/newt-images/631ae0ff4b26e8e308048763/6345278ad2720e3d2d4b2453/covers/1665478447427/SCC.png",
+      "localPath": "public/uploads/wiki/wiki-cover.png",
+      "mediaType": "image/png",
+      "bytes": 2968610,
+      "width": 1658,
+      "height": 843,
+      "sha256": "fb6fac81285c1d12e1b8ef90bc4d51a4a4c33cde7fa0584f8ffb20c58459c1e4"
+    }
+  ],
+  "removedAssets": [
+    {
+      "articleId": "634531c7d2720e3d2d56ef9c",
+      "articleSlug": "in",
+      "source": "/img/リスト.png",
+      "alt": "手順リスト",
+      "reason": "The public URL returns 404 and no verified source asset exists; the reference is removed without replacement."
+    }
+  ],
+  "redirects": [
+    {
+      "from": "/article/how%20to%20discordsrv%20link/",
+      "to": "/article/how-to-discordsrv-link/",
+      "status": 301
+    },
+    {
+      "from": "/article/About%20management%20team/",
+      "to": "/article/about-management-team/",
+      "status": 301
+    },
+    {
+      "from": "/article/Hoe%20Kingdom/",
+      "to": "/article/hoe-kingdom/",
+      "status": 301
+    },
+    {
+      "from": "/article/Asutan%E3%80%80Kingdom/",
+      "to": "/article/asutan-kingdom/",
+      "status": 301
+    }
+  ]
+}

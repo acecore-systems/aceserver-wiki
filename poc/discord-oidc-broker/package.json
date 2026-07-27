@@ -1,0 +1,24 @@
+{
+  "name": "@acecore/discord-oidc-broker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.18.0"
+  },
+  "scripts": {
+    "cf:typegen": "wrangler types && node scripts/normalize-generated-types.mjs",
+    "check": "tsc --noEmit",
+    "test": "npm run test:unit && npm run test:keygen",
+    "test:keygen": "node --test tests/generate-signing-key.test.mjs",
+    "test:unit": "vitest run",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.18.8",
+    "@types/node": "26.1.1",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10",
+    "wrangler": "4.114.0"
+  }
+}

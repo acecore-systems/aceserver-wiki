@@ -1,0 +1,97 @@
+---
+import Header from '../components/Header.astro'
+import Navigation from '../components/Navigation.astro'
+import {
+  ADSENSE_CLIENT,
+  BING_SITE_VERIFICATION,
+  SITE_NAME,
+  SITE_ORIGIN,
+  WIKI_ICON_PATH,
+} from '../config/wiki'
+import type { WikiCategoryGroup } from '../lib/wiki'
+import '../styles/global.css'
+
+interface Props {
+  title: string
+  description: string
+  canonicalPath: string
+  categories: WikiCategoryGroup[]
+  currentId?: string
+  type?: 'website' | 'article'
+  robots?: 'index, follow' | 'noindex, follow' | 'noindex, nofollow'
+  ogImage?: string
+  showAds?: boolean
+}
+
+const {
+  title,
+  description,
+  canonicalPath,
+  categories,
+  currentId,
+  type = 'website',
+  robots = 'index, follow',
+  ogImage,
+  showAds = false,
+} = Astro.props
+
+const canonical = new URL(canonicalPath, Astro.site ?? SITE_ORIGIN).toString()
+const absoluteOgImage = ogImage
+  ? new URL(ogImage, Astro.site ?? SITE_ORIGIN).toString()
+  : undefined
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="description" content={description} />
+    <meta name="robots" content={robots} />
+    <meta name="msvalidate.01" content={BING_SITE_VERIFICATION} />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href={WIKI_ICON_PATH} type="image/png" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    {absoluteOgImage && <meta property="og:image" content={absoluteOgImage} />}
+    <meta
+      name="twitter:card"
+      content={type === 'article' ? 'summary_large_image' : 'summary'}
+    />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {
+      absoluteOgImage && (
+        <meta name="twitter:image" content={absoluteOgImage} />
+      )
+    }
+    {
+      showAds && (
+        <script
+          is:inline
+          nonce="__CSP_NONCE__"
+          async
+          crossorigin="anonymous"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+        />
+      )
+    }
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">本文へ移動</a>
+    <div class="wrapper">
+      <Header categories={categories} currentId={currentId} />
+      <main id="main-content" class="main">
+        <Navigation categories={categories} currentId={currentId} />
+        <slot />
+      </main>
+    </div>
+  </body>
+</html>

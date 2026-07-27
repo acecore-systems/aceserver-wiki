@@ -1,0 +1,43 @@
+---
+import WikiLayout from '../layouts/WikiLayout.astro'
+import {
+  HEADER_TITLE,
+  ROOT_DESCRIPTION,
+  ROOT_META_TITLE,
+} from '../config/wiki'
+import {
+  getWikiArticles,
+  groupWikiArticles,
+  articlePath,
+} from '../lib/wiki'
+
+const articles = await getWikiArticles()
+const categories = groupWikiArticles(articles)
+---
+
+<WikiLayout
+  title={ROOT_META_TITLE}
+  description={ROOT_DESCRIPTION}
+  canonicalPath="/"
+  categories={categories}
+>
+  <section class="home">
+    <h1>{HEADER_TITLE}</h1>
+    <p class="home__description">{ROOT_DESCRIPTION}</p>
+
+    {
+      categories.map((category) => (
+        <section class="home__category">
+          <h2>{category.name}</h2>
+          <ul>
+            {category.articles.map((article) => (
+              <li>
+                <a href={articlePath(article.id)}>{article.data.title}</a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))
+    }
+  </section>
+</WikiLayout>

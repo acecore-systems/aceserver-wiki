@@ -1,0 +1,1943 @@
+import {
+  Kind,
+  parse,
+  type ArgumentNode,
+  type FieldNode,
+  type OperationDefinitionNode,
+  type SelectionSetNode,
+  type ValueNode,
+} from 'graphql'
+
+import {
+  CMS_REPOSITORY,
+  hasExpectedCmsRepositoryConfig,
+  isAllowedCmsWritePath,
+  isCmsMarkdownPath,
+  isCmsMediaPath,
+  normalizeCmsPath,
+  type CmsRuntimeEnv,
+} from './_cms-policy.ts'
+import { getAccessIdentity, type AccessIdentity } from './_access-auth.ts'
+import {
+  validateCmsAddition,
+  type ValidatedCmsAddition,
+} from './_content-validation.ts'
+import {
+  GitHubApiError,
+  type CmsGitTree,
+  fetchCmsTree,
+  getAllowedCmsBlobShas,
+  getGitHubToken,
+  githubJson,
+  githubRequest,
+  isRecord,
+  readGitHubResponseJson,
+} from './_github-api.ts'
+import {
+  CmsStateError,
+  authorizeCmsApiAttempt,
+  beginCmsMutation,
+  completeCmsMutation,
+  failCmsMutation,
+  markCmsMutationUnknown,
+  resumeCmsMutation,
+  type CmsMutationReservation,
+} from './_cms-state.ts'
+
+type GraphqlPayload = {
+  query: string
+  variables: Record<string, unknown>
+}
+
+type CmsDeletion = {
+  path: string
+}
+
+type CmsCommitInput = {
+  expectedHeadOid: string
+  additions: ValidatedCmsAddition[]
+  deletions: CmsDeletion[]
+}
+
+type AuthenticatedIdentity = Extract<AccessIdentity, { ok: true }>
+type PublicationMode = 'direct' | 'review'
+
+class CmsDefinitivePublicationError extends CmsStateError {}
+
+const SHA_PATTERN = /^[a-f0-9]{40}$/iu
+const MAX_GRAPHQL_QUERY_CHARS = 128 * 1024
+const MAX_READ_VARIABLE_BYTES = 64 * 1024
+const MAX_READ_VARIABLE_DEPTH = 64
+const MAX_REQUEST_BYTES = 16 * 1024 * 1024
+const MAX_CHANGE_COUNT = 40
+const MAX_TOTAL_CONTENT_BYTES = 10 * 1024 * 1024
+const MAX_GRAPHQL_BLOB_SIZE = 10 * 1024 * 1024
+export const CMS_PROJECTED_TREE_LIMITS = {
+  maxFiles: 1000,
+  maxContentBytes: 64 * 1024 * 1024,
+  maxMediaBytes: 512 * 1024 * 1024,
+  maxTotalBytes: 512 * 1024 * 1024,
+} as const
+
+export const onRequestPost: PagesFunction<CmsRuntimeEnv> = async ({
+  request,
+  env,
+}) => {
+  const requestBoundaryError = validateBrowserRequestBoundary(request)
+
+  if (requestBoundaryError) return requestBoundaryError
+
+  const auth = await getAccessIdentity(request, env)
+
+  if (!auth.ok) {
+    return json({ message: auth.message }, auth.status)
+  }
+
+  if (!hasExpectedCmsRepositoryConfig(env)) {
+    return json(
+      { message: 'CMS repository設定がallowlistと一致しません。' },
+      503,
+    )
+  }
+
+  try {
+    await authorizeCmsApiAttempt({
+      discordId: auth.discordId,
+      env,
+      request,
+    })
+
+    const bodyText = await readRequestText(request)
+
+    if (bodyText === null) {
+      return json({ message: 'CMS保存データが大きすぎます。' }, 413)
+    }
+
+    const payload = parseGraphqlPayload(bodyText)
+
+    if (!payload || payload.query.length > MAX_GRAPHQL_QUERY_CHARS) {
+      return json({ message: 'CMS GraphQL requestが不正です。' }, 400)
+    }
+
+    const operation = parseOperation(payload.query)
+
+    if (!operation) {
+      return json({ message: 'CMS GraphQL operationが不正です。' }, 400)
+    }
+
+    if (operation.operation === 'query') {
+      return await handleReadQuery({ env, operation, payload })
+    }
+
+    if (operation.operation === 'mutation') {
+      const publicationMode = getPublicationMode(env.CMS_PUBLICATION_MODE)
+
+      if (!publicationMode) {
+        return json({ message: 'CMS publication modeの設定が不正です。' }, 503)
+      }
+
+      return await handleCommitMutation({
+        auth,
+        bodyText,
+        env,
+        operation,
+        payload,
+        publicationMode,
+        request,
+      })
+    }
+
+    return json({ message: 'CMS GraphQL operationは許可されていません。' }, 403)
+  } catch (error) {
+    return toErrorResponse(error)
+  }
+}
+
+async function handleReadQuery({
+  env,
+  operation,
+  payload,
+}: {
+  env: CmsRuntimeEnv
+  operation: OperationDefinitionNode
+  payload: GraphqlPayload
+}) {
+  if (
+    getJsonEncodedSize(payload.variables, MAX_READ_VARIABLE_BYTES, 0) >
+    MAX_READ_VARIABLE_BYTES
+  ) {
+    return json({ message: 'CMS GraphQL query変数が大きすぎます。' }, 413)
+  }
+
+  const authorization = validateReadOperation(operation, payload.variables)
+
+  if (!authorization) {
+    return json({ message: 'CMSで許可されていないGraphQL queryです。' }, 403)
+  }
+
+  const token = await getGitHubToken(env)
+
+  if (authorization.blobShas.size > 0) {
+    const tree = await fetchCmsTree(token)
+    const allowedShas = getAllowedCmsBlobShas(tree)
+
+    if (
+      Array.from(authorization.blobShas).some((sha) => !allowedShas.has(sha))
+    ) {
+      return json({ message: 'CMS管理対象外のGit blobです。' }, 403)
+    }
+  }
+
+  const response = await githubRequest({
+    body: {
+      query: payload.query,
+      variables: payload.variables,
+    },
+    method: 'POST',
+    path: '/graphql',
+    token,
+  })
+  const responseJson = await readGitHubResponseJson(response)
+
+  return json(sanitizeGraphqlReadResponse(responseJson), response.status)
+}
+
+async function handleCommitMutation({
+  auth,
+  bodyText,
+  env,
+  operation,
+  payload,
+  publicationMode,
+  request,
+}: {
+  auth: AuthenticatedIdentity
+  bodyText: string
+  env: CmsRuntimeEnv
+  operation: OperationDefinitionNode
+  payload: GraphqlPayload
+  publicationMode: PublicationMode
+  request: Request
+}) {
+  if (!isCmsCommitOperation(operation, payload.variables)) {
+    return json({ message: 'CMSで許可されていないGraphQL mutationです。' }, 403)
+  }
+
+  const parsed = parseCmsCommitInput(payload.variables.input)
+
+  if (!parsed.ok) {
+    return json({ message: parsed.message }, 403)
+  }
+
+  const commitInput = parsed.value
+  const changedPaths = [
+    ...commitInput.additions.map(({ path }) => path),
+    ...commitInput.deletions.map(({ path }) => path),
+  ]
+  const mutation = await beginCmsMutation({
+    bodyText,
+    discordId: auth.discordId,
+    discordRoleIds: auth.discordRoleIds,
+    env,
+    expectedHeadOid: commitInput.expectedHeadOid,
+    mutationBytes: commitInput.additions.reduce(
+      (total, addition) => total + addition.byteSize,
+      0,
+    ),
+    paths: changedPaths,
+    request,
+  })
+
+  if (mutation.kind === 'replay') {
+    return json(mutation.response, mutation.status, {
+      'X-CMS-Idempotent-Replay': 'true',
+      'X-Request-ID': mutation.requestId,
+    })
+  }
+
+  const { reservation } = mutation
+  let token: string
+
+  try {
+    token = await getGitHubToken(env)
+  } catch (error) {
+    if (mutation.kind === 'reconcile') {
+      await markCmsMutationUnknown({
+        env,
+        message: describeMutationFailure(error).message,
+        reservation,
+      })
+    } else {
+      const failure = describeMutationFailure(error)
+
+      await failCmsMutation({
+        env,
+        message: failure.message,
+        reservation,
+        status: failure.status,
+      })
+    }
+
+    throw error
+  }
+
+  if (mutation.kind === 'reconcile') {
+    try {
+      const recovered = await reconcilePublication({
+        changedPaths,
+        publicationMode,
+        reservation,
+        token,
+      })
+
+      if (recovered.kind === 'published') {
+        await completeCmsMutation({
+          branch: recovered.branch,
+          commitOid: recovered.commitOid,
+          env,
+          reservation,
+          response: recovered.response,
+          status: 200,
+        })
+
+        if (publicationMode === 'direct') {
+          await deleteCmsBranch(reservation.publicationBranch, token)
+        }
+
+        return json(recovered.response, 200, {
+          'X-CMS-Audit-Status': 'recorded',
+          'X-CMS-Reconciled': 'true',
+          'X-Request-ID': reservation.requestId,
+        })
+      }
+
+      await resumeCmsMutation({ env, reservation })
+    } catch (error) {
+      if (error instanceof CmsDefinitivePublicationError) {
+        await deleteCmsBranch(reservation.publicationBranch, token)
+        await failCmsMutation({
+          env,
+          message: error.message,
+          reservation,
+          status: error.status,
+        })
+      } else {
+        await markCmsMutationUnknown({
+          env,
+          message: describeMutationFailure(error).message,
+          reservation,
+        })
+      }
+
+      throw error
+    }
+  }
+
+  let mainSha: string
+
+  try {
+    const mainRef = await githubJson<unknown>({
+      path: branchRefPath(CMS_REPOSITORY.branch),
+      token,
+    })
+    const parsedMainSha = getGitRefSha(mainRef)
+
+    if (!parsedMainSha) {
+      throw new GitHubApiError('GitHub branch responseが不正です。', 502)
+    }
+
+    mainSha = parsedMainSha
+  } catch (error) {
+    const failure = describeMutationFailure(error)
+
+    await failCmsMutation({
+      env,
+      message: failure.message,
+      reservation,
+      status: failure.status,
+    })
+
+    throw error
+  }
+
+  if (mainSha !== commitInput.expectedHeadOid) {
+    const message =
+      'mainが更新されています。CMSを再読み込みしてから、もう一度保存してください。'
+
+    await failCmsMutation({
+      env,
+      message,
+      reservation,
+      status: 409,
+    })
+    await deleteCmsBranch(reservation.publicationBranch, token)
+
+    return json({ message }, 409, {
+      'X-Request-ID': reservation.requestId,
+    })
+  }
+
+  try {
+    const tree = await fetchCmsTree(token, mainSha)
+
+    assertProjectedCmsTreeWithinLimits(tree, commitInput)
+  } catch (error) {
+    const failure = describeMutationFailure(error)
+
+    await failCmsMutation({
+      env,
+      message: failure.message,
+      reservation,
+      status: failure.status,
+    })
+
+    throw error
+  }
+
+  try {
+    const staged = await ensurePublicationCommit({
+      commitInput,
+      reservation,
+      token,
+    })
+    const commitOid = getCommitOid(staged)
+
+    if (publicationMode === 'direct') {
+      await publishDirectCommit({
+        commitOid,
+        expectedHeadOid: mainSha,
+        token,
+      })
+
+      const response = withCmsExtension(staged, {
+        branch: CMS_REPOSITORY.branch,
+        mode: 'direct',
+      })
+
+      await completeCmsMutation({
+        branch: CMS_REPOSITORY.branch,
+        commitOid,
+        env,
+        reservation,
+        response,
+        status: 200,
+      })
+      await deleteCmsBranch(reservation.publicationBranch, token)
+
+      return json(response, 200, mutationResponseHeaders(reservation))
+    }
+
+    const pullRequest = await ensurePullRequest({
+      branch: reservation.publicationBranch,
+      changedPaths,
+      reservation,
+      token,
+    })
+    const response = withCmsExtension(staged, {
+      branch: reservation.publicationBranch,
+      mode: 'review',
+      pull_request: {
+        number: pullRequest.number,
+        html_url: pullRequest.html_url,
+      },
+    })
+
+    await completeCmsMutation({
+      branch: reservation.publicationBranch,
+      commitOid,
+      env,
+      reservation,
+      response,
+      status: 200,
+    })
+
+    return json(response, 200, mutationResponseHeaders(reservation))
+  } catch (error) {
+    if (error instanceof CmsDefinitivePublicationError) {
+      await deleteCmsBranch(reservation.publicationBranch, token)
+      await failCmsMutation({
+        env,
+        message: error.message,
+        reservation,
+        status: error.status,
+      })
+    } else {
+      await markCmsMutationUnknown({
+        env,
+        message: describeMutationFailure(error).message,
+        reservation,
+      })
+    }
+
+    throw error
+  }
+}
+
+async function commitChanges({
+  branch,
+  commitInput,
+  expectedHeadOid,
+  reservation,
+  token,
+}: {
+  branch: string
+  commitInput: CmsCommitInput
+  expectedHeadOid: string
+  reservation: CmsMutationReservation
+  token: string
+}) {
+  const changedPaths = [
+    ...commitInput.additions.map(({ path }) => path),
+    ...commitInput.deletions.map(({ path }) => path),
+  ]
+  const mutation = buildCmsCommitMutation(commitInput.additions)
+  const result = await githubJson<Record<string, unknown>>({
+    body: {
+      query: mutation,
+      variables: {
+        input: {
+          branch: {
+            repositoryNameWithOwner: `${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}`,
+            branchName: branch,
+          },
+          expectedHeadOid,
+          fileChanges: {
+            additions: commitInput.additions.map(({ path, contents }) => ({
+              path,
+              contents,
+            })),
+            deletions: commitInput.deletions,
+          },
+          message: {
+            body: [
+              `Request ID: ${reservation.requestId}`,
+              reservation.commitMarker,
+            ].join('\n'),
+            headline: buildCommitHeadline(changedPaths),
+          },
+        },
+      },
+    },
+    method: 'POST',
+    path: '/graphql',
+    token,
+  })
+
+  ensureCommitSucceeded(result)
+  return result
+}
+
+function validateReadOperation(
+  operation: OperationDefinitionNode,
+  variables: Record<string, unknown>,
+) {
+  if (
+    operation.operation !== 'query' ||
+    operation.directives?.length ||
+    !variablesMatchDefinitions(operation, variables) ||
+    operation.selectionSet.selections.length !== 1
+  ) {
+    return null
+  }
+
+  const root = operation.selectionSet.selections[0]
+
+  if (
+    root.kind !== Kind.FIELD ||
+    root.name.value !== 'repository' ||
+    root.alias ||
+    !root.selectionSet ||
+    !hasExactArguments(root, ['owner', 'name']) ||
+    !argumentMatches(root, 'owner', CMS_REPOSITORY.owner, variables) ||
+    !argumentMatches(root, 'name', CMS_REPOSITORY.name, variables)
+  ) {
+    return null
+  }
+
+  const authorization = { blobShas: new Set<string>() }
+
+  return validateRepositorySelection(
+    root.selectionSet,
+    variables,
+    authorization,
+  )
+    ? authorization
+    : null
+}
+
+function sanitizeGraphqlReadResponse(value: unknown) {
+  if (!isRecord(value) || !isRecord(value.data)) return value
+
+  const repository = value.data.repository
+
+  if (!isRecord(repository)) return value
+
+  const ref = repository.ref
+
+  if (!isRecord(ref) || !isRecord(ref.target)) return value
+
+  const history = ref.target.history
+
+  if (!isRecord(history) || !Array.isArray(history.nodes)) return value
+
+  return {
+    ...value,
+    data: {
+      ...value.data,
+      repository: {
+        ...repository,
+        ref: {
+          ...ref,
+          target: {
+            ...ref.target,
+            history: {
+              ...history,
+              nodes: history.nodes.map(sanitizeHistoryNode),
+            },
+          },
+        },
+      },
+    },
+  }
+}
+
+function sanitizeHistoryNode(value: unknown) {
+  if (value === null) return null
+  if (!isRecord(value)) return {}
+
+  const sanitized: Record<string, unknown> = {}
+
+  if (typeof value.oid === 'string' && SHA_PATTERN.test(value.oid)) {
+    sanitized.oid = value.oid
+  }
+
+  if (typeof value.committedDate === 'string' || value.committedDate === null) {
+    sanitized.committedDate = value.committedDate
+  }
+
+  if (Object.hasOwn(value, 'message')) {
+    sanitized.message = ''
+  }
+
+  if (Object.hasOwn(value, 'author')) {
+    sanitized.author = sanitizeHistoryAuthor(value.author)
+  }
+
+  return sanitized
+}
+
+function sanitizeHistoryAuthor(value: unknown) {
+  if (value === null) return null
+  if (!isRecord(value)) return null
+
+  const sanitized: Record<string, unknown> = {}
+
+  if (Object.hasOwn(value, 'name')) sanitized.name = 'Anonymous'
+  if (Object.hasOwn(value, 'email')) sanitized.email = ''
+  if (Object.hasOwn(value, 'avatarUrl')) sanitized.avatarUrl = ''
+  if (Object.hasOwn(value, 'user')) sanitized.user = null
+
+  return sanitized
+}
+
+function assertProjectedCmsTreeWithinLimits(
+  tree: CmsGitTree,
+  commitInput: CmsCommitInput,
+) {
+  const files = new Map<string, number>()
+
+  for (const item of tree.tree) {
+    if (item.type !== 'blob') continue
+
+    if (
+      files.has(item.path) ||
+      !Number.isSafeInteger(item.size) ||
+      (item.size as number) < 0
+    ) {
+      throw new GitHubApiError(
+        'GitHub treeのfile sizeを安全に確認できません。',
+        502,
+      )
+    }
+
+    files.set(item.path, item.size as number)
+  }
+
+  for (const { path } of commitInput.deletions) {
+    files.delete(path)
+  }
+
+  for (const { byteSize, path } of commitInput.additions) {
+    files.set(path, byteSize)
+  }
+
+  if (files.size > CMS_PROJECTED_TREE_LIMITS.maxFiles) {
+    throw new CmsStateError(
+      `CMS管理対象fileは${CMS_PROJECTED_TREE_LIMITS.maxFiles}件までです。削除してから再試行してください。`,
+      413,
+    )
+  }
+
+  let contentBytes = 0
+  let mediaBytes = 0
+  let totalBytes = 0
+
+  for (const [path, size] of files) {
+    totalBytes += size
+
+    if (
+      !Number.isSafeInteger(totalBytes) ||
+      totalBytes > CMS_PROJECTED_TREE_LIMITS.maxTotalBytes
+    ) {
+      throw new CmsStateError(
+        'CMS管理対象fileの合計は512 MiBまでです。fileを削除してから再試行してください。',
+        413,
+      )
+    }
+
+    if (isCmsMarkdownPath(path)) {
+      contentBytes += size
+
+      if (
+        !Number.isSafeInteger(contentBytes) ||
+        contentBytes > CMS_PROJECTED_TREE_LIMITS.maxContentBytes
+      ) {
+        throw new CmsStateError(
+          'CMS Markdownの合計は64 MiBまでです。記事を削除してから再試行してください。',
+          413,
+        )
+      }
+
+      continue
+    }
+
+    if (!isCmsMediaPath(path)) {
+      throw new GitHubApiError(
+        'GitHub treeにCMS管理対象外のfileが含まれています。',
+        502,
+      )
+    }
+
+    mediaBytes += size
+
+    if (
+      !Number.isSafeInteger(mediaBytes) ||
+      mediaBytes > CMS_PROJECTED_TREE_LIMITS.maxMediaBytes
+    ) {
+      throw new CmsStateError(
+        'CMS画像の合計は512 MiBまでです。画像を削除してから再試行してください。',
+        413,
+      )
+    }
+  }
+}
+
+function getJsonEncodedSize(value: unknown, limit: number, depth: number) {
+  if (depth > MAX_READ_VARIABLE_DEPTH) return limit + 1
+
+  if (value === null) return 4
+  if (value === true) return 4
+  if (value === false) return 5
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? String(value).length : limit + 1
+  }
+
+  if (typeof value === 'string') {
+    if (value.length > limit) return limit + 1
+
+    return new TextEncoder().encode(JSON.stringify(value)).byteLength
+  }
+
+  if (Array.isArray(value)) {
+    let size = 2
+
+    for (const item of value) {
+      if (size > 2) size += 1
+      size += getJsonEncodedSize(item, limit - size, depth + 1)
+
+      if (size > limit) return limit + 1
+    }
+
+    return size
+  }
+
+  if (isRecord(value)) {
+    let size = 2
+
+    for (const [key, item] of Object.entries(value)) {
+      if (size > 2) size += 1
+      size += getJsonEncodedSize(key, limit - size, depth + 1) + 1
+
+      if (size > limit) return limit + 1
+
+      size += getJsonEncodedSize(item, limit - size, depth + 1)
+
+      if (size > limit) return limit + 1
+    }
+
+    return size
+  }
+
+  return limit + 1
+}
+
+function validateRepositorySelection(
+  selectionSet: SelectionSetNode,
+  variables: Record<string, unknown>,
+  authorization: { blobShas: Set<string> },
+) {
+  if (
+    selectionSet.selections.length === 0 ||
+    selectionSet.selections.length > 100
+  ) {
+    return false
+  }
+
+  return selectionSet.selections.every((selection) => {
+    if (selection.kind !== Kind.FIELD || selection.directives?.length) {
+      return false
+    }
+
+    if (selection.name.value === 'defaultBranchRef') {
+      return (
+        !selection.alias &&
+        !selection.arguments?.length &&
+        !!selection.selectionSet &&
+        validateLeafSelection(selection.selectionSet, ['name'])
+      )
+    }
+
+    if (selection.name.value === 'ref') {
+      return (
+        !selection.alias &&
+        !!selection.selectionSet &&
+        hasExactArguments(selection, ['qualifiedName']) &&
+        argumentMatches(
+          selection,
+          'qualifiedName',
+          CMS_REPOSITORY.branch,
+          variables,
+        ) &&
+        validateRefSelection(selection.selectionSet)
+      )
+    }
+
+    if (selection.name.value === 'object') {
+      const oid = getArgumentString(selection, 'oid', variables)
+
+      if (
+        !oid ||
+        !SHA_PATTERN.test(oid) ||
+        authorization.blobShas.has(oid) ||
+        !selection.selectionSet ||
+        !hasExactArguments(selection, ['oid']) ||
+        !validateBlobObjectSelection(selection.selectionSet)
+      ) {
+        return false
+      }
+
+      authorization.blobShas.add(oid)
+      return true
+    }
+
+    return false
+  })
+}
+
+function validateRefSelection(selectionSet: SelectionSetNode) {
+  if (selectionSet.selections.length !== 1) return false
+
+  const target = selectionSet.selections[0]
+
+  return (
+    target.kind === Kind.FIELD &&
+    target.name.value === 'target' &&
+    !target.alias &&
+    !target.arguments?.length &&
+    !target.directives?.length &&
+    !!target.selectionSet &&
+    validateTypedSelection(
+      target.selectionSet,
+      'Commit',
+      validateCommitSelection,
+    )
+  )
+}
+
+function validateBlobObjectSelection(selectionSet: SelectionSetNode) {
+  return validateTypedSelection(selectionSet, 'Blob', (blobSelection) => {
+    return validateLeafSelection(blobSelection, ['text'])
+  })
+}
+
+function validateTypedSelection(
+  selectionSet: SelectionSetNode,
+  typeName: string,
+  validator: (selectionSet: SelectionSetNode) => boolean,
+) {
+  if (selectionSet.selections.length !== 1) return false
+
+  const fragment = selectionSet.selections[0]
+
+  return (
+    fragment.kind === Kind.INLINE_FRAGMENT &&
+    fragment.typeCondition?.name.value === typeName &&
+    !fragment.directives?.length &&
+    validator(fragment.selectionSet)
+  )
+}
+
+function validateCommitSelection(selectionSet: SelectionSetNode) {
+  if (
+    selectionSet.selections.length === 0 ||
+    selectionSet.selections.length > 100
+  ) {
+    return false
+  }
+
+  return selectionSet.selections.every((selection) => {
+    if (
+      selection.kind !== Kind.FIELD ||
+      selection.alias ||
+      selection.name.value !== 'history' ||
+      selection.directives?.length ||
+      !selection.selectionSet
+    ) {
+      return false
+    }
+
+    const argumentNames = (selection.arguments || []).map(
+      ({ name }) => name.value,
+    )
+
+    if (
+      !argumentNames.includes('first') ||
+      argumentNames.some((name) => name !== 'first' && name !== 'path') ||
+      new Set(argumentNames).size !== argumentNames.length
+    ) {
+      return false
+    }
+
+    const first = getArgument(selection, 'first')?.value
+
+    if (first?.kind !== Kind.INT) return false
+
+    const firstValue = Number(first.value)
+    const pathArgument = getArgument(selection, 'path')
+
+    if (!pathArgument) {
+      return (
+        firstValue === 1 &&
+        validateHistorySelection(selection.selectionSet, 'head')
+      )
+    }
+
+    if (
+      !Number.isInteger(firstValue) ||
+      firstValue < 1 ||
+      firstValue > 100 ||
+      pathArgument.value.kind !== Kind.STRING
+    ) {
+      return false
+    }
+
+    const path = normalizeCmsPath(pathArgument.value.value)
+
+    if (
+      !path ||
+      path !== pathArgument.value.value ||
+      !isAllowedCmsWritePath(path)
+    ) {
+      return false
+    }
+
+    return validateHistorySelection(selection.selectionSet, 'file')
+  })
+}
+
+function validateHistorySelection(
+  selectionSet: SelectionSetNode,
+  historyKind: 'file' | 'head',
+) {
+  if (selectionSet.selections.length !== 1) return false
+
+  const nodes = selectionSet.selections[0]
+
+  return (
+    nodes.kind === Kind.FIELD &&
+    nodes.name.value === 'nodes' &&
+    !nodes.alias &&
+    !nodes.arguments?.length &&
+    !nodes.directives?.length &&
+    !!nodes.selectionSet &&
+    validateCommitNodeSelection(nodes.selectionSet, historyKind)
+  )
+}
+
+function validateCommitNodeSelection(
+  selectionSet: SelectionSetNode,
+  historyKind: 'file' | 'head',
+) {
+  const leafFields =
+    historyKind === 'head'
+      ? new Set(['oid', 'message'])
+      : new Set(['oid', 'committedDate'])
+
+  if (selectionSet.selections.length === 0) return false
+
+  return selectionSet.selections.every((selection) => {
+    if (
+      selection.kind !== Kind.FIELD ||
+      selection.alias ||
+      selection.directives?.length
+    ) {
+      return false
+    }
+
+    if (leafFields.has(selection.name.value)) {
+      return !selection.arguments?.length && !selection.selectionSet
+    }
+
+    if (historyKind === 'head' || selection.name.value !== 'author') {
+      return false
+    }
+
+    return (
+      !selection.arguments?.length &&
+      !!selection.selectionSet &&
+      validateAuthorSelection(selection.selectionSet)
+    )
+  })
+}
+
+function validateAuthorSelection(selectionSet: SelectionSetNode) {
+  const leafFields = new Set(['name', 'email', 'avatarUrl'])
+
+  if (selectionSet.selections.length === 0) return false
+
+  return selectionSet.selections.every((selection) => {
+    if (
+      selection.kind !== Kind.FIELD ||
+      selection.alias ||
+      selection.directives?.length
+    ) {
+      return false
+    }
+
+    if (leafFields.has(selection.name.value)) {
+      return !selection.arguments?.length && !selection.selectionSet
+    }
+
+    if (selection.name.value !== 'user') return false
+
+    return (
+      !selection.arguments?.length &&
+      !!selection.selectionSet &&
+      validateLeafSelection(selection.selectionSet, ['databaseId', 'login'])
+    )
+  })
+}
+
+function validateLeafSelection(
+  selectionSet: SelectionSetNode,
+  allowedNames: string[],
+) {
+  const allowed = new Set(allowedNames)
+
+  return (
+    selectionSet.selections.length > 0 &&
+    selectionSet.selections.every((selection) => {
+      return (
+        selection.kind === Kind.FIELD &&
+        allowed.has(selection.name.value) &&
+        !selection.arguments?.length &&
+        !selection.directives?.length &&
+        !selection.selectionSet
+      )
+    })
+  )
+}
+
+function isCmsCommitOperation(
+  operation: OperationDefinitionNode,
+  variables: Record<string, unknown>,
+) {
+  if (
+    operation.operation !== 'mutation' ||
+    operation.directives?.length ||
+    operation.selectionSet.selections.length !== 1 ||
+    Object.keys(variables).length !== 1 ||
+    !Object.hasOwn(variables, 'input')
+  ) {
+    return false
+  }
+
+  const root = operation.selectionSet.selections[0]
+
+  if (
+    root.kind !== Kind.FIELD ||
+    root.name.value !== 'createCommitOnBranch' ||
+    root.alias ||
+    root.directives?.length ||
+    !root.selectionSet ||
+    !hasExactArguments(root, ['input'])
+  ) {
+    return false
+  }
+
+  const input = getArgument(root, 'input')?.value
+
+  return input?.kind === Kind.VARIABLE && input.name.value === 'input'
+}
+
+function parseCmsCommitInput(
+  value: unknown,
+): { ok: true; value: CmsCommitInput } | { ok: false; message: string } {
+  if (
+    !isRecord(value) ||
+    !hasOnlyKeys(value, [
+      'branch',
+      'expectedHeadOid',
+      'fileChanges',
+      'message',
+    ]) ||
+    !isRecord(value.branch) ||
+    !hasOnlyKeys(value.branch, ['repositoryNameWithOwner', 'branchName']) ||
+    value.branch.repositoryNameWithOwner !==
+      `${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}` ||
+    value.branch.branchName !== CMS_REPOSITORY.branch ||
+    typeof value.expectedHeadOid !== 'string' ||
+    !SHA_PATTERN.test(value.expectedHeadOid) ||
+    !isRecord(value.fileChanges) ||
+    !hasOnlyKeys(value.fileChanges, ['additions', 'deletions']) ||
+    !isRecord(value.message) ||
+    !hasOnlyKeys(value.message, ['headline']) ||
+    typeof value.message.headline !== 'string' ||
+    value.message.headline.length > 500
+  ) {
+    return {
+      ok: false,
+      message: 'CMS commit inputが不正です。',
+    }
+  }
+
+  const additionsValue = value.fileChanges.additions ?? []
+  const deletionsValue = value.fileChanges.deletions ?? []
+
+  if (!Array.isArray(additionsValue) || !Array.isArray(deletionsValue)) {
+    return { ok: false, message: 'CMS file changesが不正です。' }
+  }
+
+  if (
+    additionsValue.length + deletionsValue.length === 0 ||
+    additionsValue.length + deletionsValue.length > MAX_CHANGE_COUNT
+  ) {
+    return {
+      ok: false,
+      message: `1回の保存は1件以上${MAX_CHANGE_COUNT}件以下にしてください。`,
+    }
+  }
+
+  const additions: ValidatedCmsAddition[] = []
+  const deletions: CmsDeletion[] = []
+  const paths = new Set<string>()
+  let totalContentBytes = 0
+
+  for (const addition of additionsValue) {
+    if (
+      !isRecord(addition) ||
+      !hasOnlyKeys(addition, ['path', 'contents']) ||
+      typeof addition.path !== 'string' ||
+      typeof addition.contents !== 'string'
+    ) {
+      return { ok: false, message: 'CMS追加ファイルが不正です。' }
+    }
+
+    const path = normalizeCmsPath(addition.path)
+
+    if (
+      !path ||
+      path !== addition.path ||
+      !isAllowedCmsWritePath(path) ||
+      paths.has(path)
+    ) {
+      return {
+        ok: false,
+        message: 'CMS管理対象外または重複した追加pathです。',
+      }
+    }
+
+    const validation = validateCmsAddition(path, addition.contents)
+
+    if (!validation.ok) {
+      return {
+        ok: false,
+        message: `${path}: ${validation.message}`,
+      }
+    }
+
+    totalContentBytes += validation.addition.byteSize
+
+    if (totalContentBytes > MAX_TOTAL_CONTENT_BYTES) {
+      return {
+        ok: false,
+        message: '1回に保存できるファイル合計は10 MiBまでです。',
+      }
+    }
+
+    paths.add(path)
+    additions.push(validation.addition)
+  }
+
+  for (const deletion of deletionsValue) {
+    if (
+      !isRecord(deletion) ||
+      !hasOnlyKeys(deletion, ['path']) ||
+      typeof deletion.path !== 'string'
+    ) {
+      return { ok: false, message: 'CMS削除ファイルが不正です。' }
+    }
+
+    const path = normalizeCmsPath(deletion.path)
+
+    if (
+      !path ||
+      path !== deletion.path ||
+      !isAllowedCmsWritePath(path) ||
+      paths.has(path)
+    ) {
+      return {
+        ok: false,
+        message: 'CMS管理対象外または重複した削除pathです。',
+      }
+    }
+
+    paths.add(path)
+    deletions.push({ path })
+  }
+
+  return {
+    ok: true,
+    value: {
+      expectedHeadOid: value.expectedHeadOid,
+      additions,
+      deletions,
+    },
+  }
+}
+
+type PublicationBranchState =
+  | { kind: 'missing' }
+  | { kind: 'base' }
+  | {
+      kind: 'commit'
+      commitOid: string
+      result: Record<string, unknown>
+    }
+
+async function ensurePublicationCommit({
+  commitInput,
+  reservation,
+  token,
+}: {
+  commitInput: CmsCommitInput
+  reservation: CmsMutationReservation
+  token: string
+}) {
+  let state = await inspectPublicationBranch(reservation, token)
+
+  if (state.kind === 'missing') {
+    try {
+      await githubJson({
+        body: {
+          ref: `refs/heads/${reservation.publicationBranch}`,
+          sha: reservation.expectedHeadOid,
+        },
+        method: 'POST',
+        path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/git/refs`,
+        token,
+      })
+    } catch (error) {
+      if (!(error instanceof GitHubApiError) || error.status !== 422) {
+        throw error
+      }
+    }
+
+    state = await inspectPublicationBranch(reservation, token)
+  }
+
+  if (state.kind === 'commit') return state.result
+
+  if (state.kind !== 'base') {
+    throw new GitHubApiError('CMS保存用branchを作成できませんでした。', 409)
+  }
+
+  return await commitChanges({
+    branch: reservation.publicationBranch,
+    commitInput,
+    expectedHeadOid: reservation.expectedHeadOid,
+    reservation,
+    token,
+  })
+}
+
+async function inspectPublicationBranch(
+  reservation: CmsMutationReservation,
+  token: string,
+): Promise<PublicationBranchState> {
+  const ref = await getOptionalGitRef(reservation.publicationBranch, token)
+
+  if (!ref) return { kind: 'missing' }
+  if (ref === reservation.expectedHeadOid) return { kind: 'base' }
+
+  const commit = await githubJson<unknown>({
+    path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/git/commits/${encodeURIComponent(ref)}`,
+    token,
+  })
+
+  if (
+    !isRecord(commit) ||
+    commit.sha !== ref ||
+    typeof commit.message !== 'string' ||
+    !commit.message.split(/\r?\n/gu).includes(reservation.commitMarker) ||
+    !Array.isArray(commit.parents) ||
+    commit.parents.length !== 1 ||
+    !isRecord(commit.parents[0]) ||
+    commit.parents[0].sha !== reservation.expectedHeadOid
+  ) {
+    throw new CmsStateError(
+      'CMS保存用branchのcommitをidempotency markerで照合できません。',
+      409,
+    )
+  }
+
+  const committedDate =
+    isRecord(commit.committer) && typeof commit.committer.date === 'string'
+      ? commit.committer.date
+      : null
+
+  return {
+    kind: 'commit',
+    commitOid: ref,
+    result: recoveredCommitResult(ref, committedDate),
+  }
+}
+
+async function getOptionalGitRef(branch: string, token: string) {
+  try {
+    const value = await githubJson<unknown>({
+      path: branchRefPath(branch),
+      token,
+    })
+    const sha = getGitRefSha(value)
+
+    if (!sha) {
+      throw new GitHubApiError('GitHub branch responseが不正です。', 502)
+    }
+
+    return sha
+  } catch (error) {
+    if (error instanceof GitHubApiError && error.status === 404) return null
+
+    throw error
+  }
+}
+
+async function reconcilePublication({
+  changedPaths,
+  publicationMode,
+  reservation,
+  token,
+}: {
+  changedPaths: string[]
+  publicationMode: PublicationMode
+  reservation: CmsMutationReservation
+  token: string
+}) {
+  const staged = await inspectPublicationBranch(reservation, token)
+
+  if (staged.kind !== 'commit') {
+    return { kind: 'retry' as const }
+  }
+
+  if (publicationMode === 'direct') {
+    await publishDirectCommit({
+      commitOid: staged.commitOid,
+      expectedHeadOid: reservation.expectedHeadOid,
+      token,
+    })
+
+    return {
+      kind: 'published' as const,
+      branch: CMS_REPOSITORY.branch,
+      commitOid: staged.commitOid,
+      response: withCmsExtension(staged.result, {
+        branch: CMS_REPOSITORY.branch,
+        mode: 'direct',
+      }),
+    }
+  }
+
+  const pullRequest = await ensurePullRequest({
+    branch: reservation.publicationBranch,
+    changedPaths,
+    reservation,
+    token,
+  })
+
+  return {
+    kind: 'published' as const,
+    branch: reservation.publicationBranch,
+    commitOid: staged.commitOid,
+    response: withCmsExtension(staged.result, {
+      branch: reservation.publicationBranch,
+      mode: 'review',
+      pull_request: {
+        number: pullRequest.number,
+        html_url: pullRequest.html_url,
+      },
+    }),
+  }
+}
+
+async function publishDirectCommit({
+  commitOid,
+  expectedHeadOid,
+  token,
+}: {
+  commitOid: string
+  expectedHeadOid: string
+  token: string
+}) {
+  const mainRef = await githubJson<unknown>({
+    path: branchRefPath(CMS_REPOSITORY.branch),
+    token,
+  })
+  const mainSha = getGitRefSha(mainRef)
+
+  if (!mainSha) {
+    throw new GitHubApiError('GitHub branch responseが不正です。', 502)
+  }
+
+  if (mainSha === commitOid) return
+
+  if (mainSha !== expectedHeadOid) {
+    const comparison = await githubJson<unknown>({
+      path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/compare/${encodeURIComponent(commitOid)}...${encodeURIComponent(mainSha)}`,
+      token,
+    })
+
+    if (
+      isRecord(comparison) &&
+      (comparison.status === 'ahead' || comparison.status === 'identical')
+    ) {
+      return
+    }
+
+    throw new CmsDefinitivePublicationError(
+      'mainが別の履歴へ進んだため、CMS commitを自動反映できません。',
+      409,
+    )
+  }
+
+  const updated = await githubJson<unknown>({
+    body: {
+      sha: commitOid,
+      force: false,
+    },
+    method: 'PATCH',
+    path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/git/refs/heads/${CMS_REPOSITORY.branch}`,
+    token,
+  })
+
+  if (getGitRefSha(updated) !== commitOid) {
+    throw new GitHubApiError('mainの更新結果を確認できません。', 502)
+  }
+}
+
+function recoveredCommitResult(
+  commitOid: string,
+  committedDate: string | null,
+) {
+  return {
+    data: {
+      createCommitOnBranch: {
+        commit: {
+          oid: commitOid,
+          committedDate,
+        },
+      },
+    },
+  }
+}
+
+function branchRefPath(branch: string) {
+  const encodedBranch = branch.split('/').map(encodeURIComponent).join('/')
+
+  return `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/git/ref/heads/${encodedBranch}`
+}
+
+async function deleteCmsBranch(branch: string, token: string) {
+  try {
+    const encodedBranch = branch.split('/').map(encodeURIComponent).join('/')
+    const response = await githubRequest({
+      method: 'DELETE',
+      path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/git/refs/heads/${encodedBranch}`,
+      token,
+    })
+
+    if (!response.ok && response.status !== 404) {
+      console.error(
+        JSON.stringify({
+          message: 'Failed to remove CMS branch',
+          branch,
+          status: response.status,
+        }),
+      )
+    }
+  } catch (error) {
+    console.error(
+      JSON.stringify({
+        message: 'Failed to remove CMS branch',
+        branch,
+        error: error instanceof Error ? error.message : String(error),
+      }),
+    )
+  }
+}
+
+async function ensurePullRequest({
+  branch,
+  changedPaths,
+  reservation,
+  token,
+}: {
+  branch: string
+  changedPaths: string[]
+  reservation: CmsMutationReservation
+  token: string
+}) {
+  const existing = await findOpenPullRequest(branch, token)
+
+  if (existing) return existing
+
+  const primaryPath = summarizePath(changedPaths[0])
+  const extraCount = changedPaths.length - 1
+  const title =
+    `cms: update ${primaryPath}` +
+    `${extraCount > 0 ? ` (+${extraCount})` : ''}`
+  const result = await githubJson<unknown>({
+    body: {
+      base: CMS_REPOSITORY.branch,
+      body: [
+        'Sveltia CMSの保存をDiscord認証済みユーザーから受け付けました。',
+        '',
+        `- Request ID: ${reservation.requestId}`,
+        `- ${reservation.commitMarker}`,
+        '- Files:',
+        ...changedPaths.map((path) => `  - \`${path}\``),
+        '',
+        '画像とMarkdownは同じcommitに含まれています。',
+        'CIでschema、content、buildを確認してからmainに取り込んでください。',
+      ].join('\n'),
+      head: branch,
+      title,
+    },
+    method: 'POST',
+    path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/pulls`,
+    token,
+  })
+
+  if (
+    !isRecord(result) ||
+    typeof result.number !== 'number' ||
+    typeof result.html_url !== 'string'
+  ) {
+    throw new GitHubApiError('GitHub pull request responseが不正です。', 502)
+  }
+
+  return {
+    number: result.number,
+    html_url: result.html_url,
+  }
+}
+
+async function findOpenPullRequest(branch: string, token: string) {
+  const head = encodeURIComponent(`${CMS_REPOSITORY.owner}:${branch}`)
+  const pulls = await githubJson<unknown>({
+    path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/pulls?state=open&base=${CMS_REPOSITORY.branch}&head=${head}&per_page=2`,
+    token,
+  })
+
+  if (!Array.isArray(pulls)) {
+    throw new GitHubApiError('GitHub pull request一覧が不正です。', 502)
+  }
+
+  const pull = pulls[0]
+
+  if (pull === undefined) return null
+
+  if (
+    !isRecord(pull) ||
+    typeof pull.number !== 'number' ||
+    typeof pull.html_url !== 'string'
+  ) {
+    throw new GitHubApiError('GitHub pull request responseが不正です。', 502)
+  }
+
+  return {
+    number: pull.number,
+    html_url: pull.html_url,
+  }
+}
+
+function buildCmsCommitMutation(additions: ValidatedCmsAddition[]) {
+  const fileShaQuery = additions
+    .map(({ path, byteSize }, index) => {
+      return byteSize <= MAX_GRAPHQL_BLOB_SIZE
+        ? `file_${index}: file(path: ${JSON.stringify(path)}) { oid }`
+        : ''
+    })
+    .filter(Boolean)
+    .join('\n')
+
+  return `
+    mutation CmsCommit($input: CreateCommitOnBranchInput!) {
+      createCommitOnBranch(input: $input) {
+        commit {
+          oid
+          committedDate
+          ${fileShaQuery}
+        }
+      }
+    }
+  `
+}
+
+function ensureCommitSucceeded(result: Record<string, unknown>) {
+  if (Array.isArray(result.errors) && result.errors.length > 0) {
+    const firstError = result.errors[0]
+    const message =
+      isRecord(firstError) && typeof firstError.message === 'string'
+        ? firstError.message
+        : 'GitHub GraphQL mutationが失敗しました。'
+
+    throw new GitHubApiError(message, 502)
+  }
+
+  if (
+    !isRecord(result.data) ||
+    !isRecord(result.data.createCommitOnBranch) ||
+    !isRecord(result.data.createCommitOnBranch.commit) ||
+    typeof result.data.createCommitOnBranch.commit.oid !== 'string' ||
+    !SHA_PATTERN.test(result.data.createCommitOnBranch.commit.oid)
+  ) {
+    throw new GitHubApiError(
+      'GitHub GraphQL mutation responseが不正です。',
+      502,
+    )
+  }
+}
+
+function withCmsExtension(
+  result: Record<string, unknown>,
+  cms: Record<string, unknown>,
+) {
+  const extensions = isRecord(result.extensions) ? result.extensions : {}
+
+  return {
+    ...result,
+    extensions: {
+      ...extensions,
+      cms,
+    },
+  }
+}
+
+function parseGraphqlPayload(text: string): GraphqlPayload | null {
+  try {
+    const value: unknown = JSON.parse(text)
+
+    if (
+      !isRecord(value) ||
+      !hasOnlyKeys(value, ['query', 'variables', 'operationName']) ||
+      typeof value.query !== 'string' ||
+      (value.variables !== undefined && !isRecord(value.variables)) ||
+      (value.operationName !== undefined &&
+        value.operationName !== null &&
+        typeof value.operationName !== 'string')
+    ) {
+      return null
+    }
+
+    return {
+      query: value.query,
+      variables: value.variables || {},
+    }
+  } catch {
+    return null
+  }
+}
+
+function parseOperation(query: string) {
+  try {
+    const document = parse(query)
+
+    if (document.definitions.length !== 1) return null
+
+    const definition = document.definitions[0]
+
+    return definition.kind === Kind.OPERATION_DEFINITION ? definition : null
+  } catch {
+    return null
+  }
+}
+
+function variablesMatchDefinitions(
+  operation: OperationDefinitionNode,
+  variables: Record<string, unknown>,
+) {
+  const defined = new Set(
+    (operation.variableDefinitions || []).map(
+      ({ variable }) => variable.name.value,
+    ),
+  )
+
+  return Object.keys(variables).every((name) => defined.has(name))
+}
+
+function hasExactArguments(field: FieldNode, names: string[]) {
+  const argumentsList = field.arguments || []
+
+  return (
+    argumentsList.length === names.length &&
+    new Set(argumentsList.map(({ name }) => name.value)).size ===
+      names.length &&
+    names.every((name) => argumentsList.some((arg) => arg.name.value === name))
+  )
+}
+
+function argumentMatches(
+  field: FieldNode,
+  name: string,
+  expected: string,
+  variables: Record<string, unknown>,
+) {
+  return getArgumentString(field, name, variables) === expected
+}
+
+function getArgument(field: FieldNode, name: string): ArgumentNode | undefined {
+  return field.arguments?.find((argument) => argument.name.value === name)
+}
+
+function getArgumentString(
+  field: FieldNode,
+  name: string,
+  variables: Record<string, unknown>,
+) {
+  const value = getArgument(field, name)?.value
+
+  return value ? resolveStringValue(value, variables) : null
+}
+
+function resolveStringValue(
+  value: ValueNode,
+  variables: Record<string, unknown>,
+) {
+  if (value.kind === Kind.STRING) return value.value
+
+  if (value.kind === Kind.VARIABLE) {
+    const variable = variables[value.name.value]
+
+    return typeof variable === 'string' ? variable : null
+  }
+
+  return null
+}
+
+function hasOnlyKeys(value: Record<string, unknown>, allowedKeys: string[]) {
+  const allowed = new Set(allowedKeys)
+
+  return Object.keys(value).every((key) => allowed.has(key))
+}
+
+function buildCommitHeadline(changedPaths: string[]) {
+  const extraCount = changedPaths.length - 1
+
+  return (
+    `cms: update ${summarizePath(changedPaths[0])}` +
+    `${extraCount > 0 ? ` (+${extraCount})` : ''}`
+  )
+}
+
+function summarizePath(path: string) {
+  return path.length > 200 ? `${path.slice(0, 197)}...` : path
+}
+
+function getGitRefSha(value: unknown) {
+  if (!isRecord(value) || !isRecord(value.object)) return null
+
+  return typeof value.object.sha === 'string' &&
+    SHA_PATTERN.test(value.object.sha)
+    ? value.object.sha
+    : null
+}
+
+function getCommitOid(result: Record<string, unknown>) {
+  const data = result.data
+
+  if (
+    !isRecord(data) ||
+    !isRecord(data.createCommitOnBranch) ||
+    !isRecord(data.createCommitOnBranch.commit) ||
+    typeof data.createCommitOnBranch.commit.oid !== 'string' ||
+    !SHA_PATTERN.test(data.createCommitOnBranch.commit.oid)
+  ) {
+    throw new GitHubApiError(
+      'GitHub commit responseからcommit OIDを取得できません。',
+      502,
+    )
+  }
+
+  return data.createCommitOnBranch.commit.oid
+}
+
+function getPublicationMode(value: string | undefined): PublicationMode | null {
+  const normalized = value?.trim().toLowerCase()
+
+  if (normalized === 'review') return 'review'
+  if (normalized === 'direct') return 'direct'
+
+  return null
+}
+
+function validateBrowserRequestBoundary(request: Request) {
+  const requestUrl = new URL(request.url)
+  const origin = request.headers.get('Origin')
+  const contentType = request.headers
+    .get('Content-Type')
+    ?.split(';', 1)[0]
+    .trim()
+    .toLowerCase()
+  const fetchSite = request.headers.get('Sec-Fetch-Site')?.trim().toLowerCase()
+
+  if (origin !== requestUrl.origin) {
+    return json({ message: 'CMS GraphQL requestのoriginが不正です。' }, 403)
+  }
+
+  if (fetchSite && fetchSite !== 'same-origin') {
+    return json(
+      { message: 'CMS GraphQL requestはsame-originに限定されています。' },
+      403,
+    )
+  }
+
+  if (contentType !== 'application/json') {
+    return json(
+      { message: 'CMS GraphQL requestはapplication/jsonで送信してください。' },
+      415,
+    )
+  }
+
+  return null
+}
+
+async function readRequestText(request: Request) {
+  const contentLength = Number(request.headers.get('Content-Length') || 0)
+
+  if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) {
+    return null
+  }
+
+  if (!request.body) return ''
+
+  const reader = request.body.getReader()
+  const decoder = new TextDecoder('utf-8', {
+    fatal: true,
+    ignoreBOM: false,
+  })
+  const chunks: string[] = []
+  let totalBytes = 0
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+
+      if (done) break
+
+      totalBytes += value.byteLength
+
+      if (totalBytes > MAX_REQUEST_BYTES) {
+        await reader.cancel().catch(() => undefined)
+        return null
+      }
+
+      chunks.push(decoder.decode(value, { stream: true }))
+    }
+
+    chunks.push(decoder.decode())
+    return chunks.join('')
+  } catch {
+    return null
+  } finally {
+    reader.releaseLock()
+  }
+}
+
+function toErrorResponse(error: unknown) {
+  if (error instanceof CmsStateError) {
+    return json(
+      { message: error.message },
+      error.status,
+      error.retryAfterSeconds
+        ? { 'Retry-After': String(error.retryAfterSeconds) }
+        : undefined,
+    )
+  }
+
+  if (error instanceof GitHubApiError) {
+    return json({ message: error.message }, error.status)
+  }
+
+  console.error(
+    JSON.stringify({
+      message: 'CMS GraphQL proxy failed',
+      error: error instanceof Error ? error.message : String(error),
+    }),
+  )
+
+  return json({ message: 'CMS GraphQL proxyでエラーが発生しました。' }, 500)
+}
+
+function describeMutationFailure(error: unknown) {
+  if (error instanceof CmsStateError || error instanceof GitHubApiError) {
+    return {
+      message: error.message,
+      status: error.status,
+    }
+  }
+
+  return {
+    message: 'CMS保存処理で予期しないエラーが発生しました。',
+    status: 500,
+  }
+}
+
+function mutationResponseHeaders(reservation: { requestId: string }) {
+  return {
+    'X-CMS-Audit-Status': 'recorded',
+    'X-Request-ID': reservation.requestId,
+  }
+}
+
+function json(data: unknown, status = 200, headers?: HeadersInit) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      ...headers,
+    },
+  })
+}

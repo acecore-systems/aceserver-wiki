@@ -1,0 +1,110 @@
+name: CMS rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: RevertするCMS commitの40文字SHA
+        required: true
+        type: string
+      reason:
+        description: Rollback理由
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: cms-rollback
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CMS_COMMIT_SHA: ${{ inputs.commit_sha }}
+      CMS_ROLLBACK_REASON: ${{ inputs.reason }}
+    steps:
+      - name: Checkout main with history
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Validate and prepare CMS revert
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$CMS_COMMIT_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "commit_sha must be a full 40-character SHA." >&2
+            exit 1
+          fi
+
+          if [[ -z "$CMS_ROLLBACK_REASON" ]] ||
+             [[ "${#CMS_ROLLBACK_REASON}" -gt 300 ]] ||
+             [[ "$CMS_ROLLBACK_REASON" == *$'\n'* ]] ||
+             [[ "$CMS_ROLLBACK_REASON" == *$'\r'* ]]; then
+            echo "reason must be a single line between 1 and 300 characters." >&2
+            exit 1
+          fi
+
+          git cat-file -e "${CMS_COMMIT_SHA}^{commit}"
+          git merge-base --is-ancestor "$CMS_COMMIT_SHA" HEAD
+
+          parent_count="$(git rev-list --parents -n 1 "$CMS_COMMIT_SHA" | wc -w)"
+          if [[ "$parent_count" -ne 2 ]]; then
+            echo "Merge commits cannot be reverted by this CMS workflow." >&2
+            exit 1
+          fi
+
+          mapfile -t changed_paths < <(
+            git diff-tree --no-commit-id --name-only -r "$CMS_COMMIT_SHA"
+          )
+
+          if [[ "${#changed_paths[@]}" -eq 0 ]]; then
+            echo "The target commit has no changed paths." >&2
+            exit 1
+          fi
+
+          for path in "${changed_paths[@]}"; do
+            case "$path" in
+              poc/astro-sveltia/src/content/wiki/*.md | \
+              poc/astro-sveltia/public/uploads/wiki/*)
+                ;;
+              *)
+                echo "Refusing to revert non-CMS path: $path" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git revert --no-edit "$CMS_COMMIT_SHA"
+          git commit --amend \
+            -m "revert(cms): rollback $CMS_COMMIT_SHA" \
+            -m "Reason: $CMS_ROLLBACK_REASON" \
+            -m "Requested by: $GITHUB_ACTOR"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: poc/astro-sveltia/.node-version
+          cache: npm
+          cache-dependency-path: poc/astro-sveltia/package-lock.json
+
+      - name: Install Astro dependencies
+        working-directory: poc/astro-sveltia
+        run: npm ci
+
+      - name: Build and validate rollback
+        working-directory: poc/astro-sveltia
+        run: npm run build
+
+      - name: Push validated rollback
+        run: |
+          set -euo pipefail
+          git push origin HEAD:main

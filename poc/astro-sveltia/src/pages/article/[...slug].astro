@@ -1,0 +1,48 @@
+---
+import { render } from 'astro:content'
+import WikiLayout from '../../layouts/WikiLayout.astro'
+import { SITE_NAME } from '../../config/wiki'
+import {
+  articlePath,
+  getWikiArticles,
+  groupWikiArticles,
+  type WikiArticle,
+} from '../../lib/wiki'
+
+interface Props {
+  article: WikiArticle
+}
+
+export async function getStaticPaths() {
+  const articles = await getWikiArticles()
+
+  return articles.map((article) => ({
+    params: { slug: article.id },
+    props: { article },
+  }))
+}
+
+const { article } = Astro.props
+const articles = await getWikiArticles()
+const categories = groupWikiArticles(articles)
+const { Content } = await render(article)
+const title = `${article.data.seoTitle ?? article.data.title}｜${SITE_NAME}`
+---
+
+<WikiLayout
+  title={title}
+  description={article.data.description}
+  canonicalPath={articlePath(article.id)}
+  categories={categories}
+  currentId={article.id}
+  type="article"
+  ogImage={article.data.ogImage}
+  showAds={false}
+>
+  <article class="article">
+    <h1 class="article__title">{article.data.title}</h1>
+    <div class="article__body">
+      <Content />
+    </div>
+  </article>
+</WikiLayout>
