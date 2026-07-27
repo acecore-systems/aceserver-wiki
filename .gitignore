@@ -67,6 +67,7 @@ typings/
 .cache
 .astro
 .wrangler
+poc/astro-sveltia/_worker.bundle
 
 # next.js build output
 .next

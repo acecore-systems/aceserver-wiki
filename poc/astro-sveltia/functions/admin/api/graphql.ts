@@ -13,7 +13,6 @@ import {
   hasExpectedCmsRepositoryConfig,
   isAllowedCmsWritePath,
   normalizeCmsPath,
-  sanitizeCmsBranchPart,
   type CmsRuntimeEnv,
 } from './_cms-policy.ts'
 import { getAccessIdentity, type AccessIdentity } from './_access-auth.ts'
@@ -31,6 +30,15 @@ import {
   githubRequest,
   isRecord,
 } from './_github-api.ts'
+import {
+  CmsStateError,
+  beginCmsMutation,
+  completeCmsMutation,
+  failCmsMutation,
+  markCmsMutationUnknown,
+  resumeCmsMutation,
+  type CmsMutationReservation,
+} from './_cms-state.ts'
 
 type GraphqlPayload = {
   query: string
@@ -49,6 +57,8 @@ type CmsCommitInput = {
 
 type AuthenticatedIdentity = Extract<AccessIdentity, { ok: true }>
 type PublicationMode = 'direct' | 'review'
+
+class CmsDefinitivePublicationError extends CmsStateError {}
 
 const SHA_PATTERN = /^[a-f0-9]{40}$/iu
 const MAX_GRAPHQL_QUERY_CHARS = 128 * 1024
@@ -110,10 +120,12 @@ export const onRequestPost: PagesFunction<CmsRuntimeEnv> = async ({
 
       return await handleCommitMutation({
         auth,
+        bodyText,
         env,
         operation,
         payload,
         publicationMode,
+        request,
       })
     }
 
@@ -166,16 +178,20 @@ async function handleReadQuery({
 
 async function handleCommitMutation({
   auth,
+  bodyText,
   env,
   operation,
   payload,
   publicationMode,
+  request,
 }: {
   auth: AuthenticatedIdentity
+  bodyText: string
   env: CmsRuntimeEnv
   operation: OperationDefinitionNode
   payload: GraphqlPayload
   publicationMode: PublicationMode
+  request: Request
 }) {
   if (!isCmsCommitOperation(operation, payload.variables)) {
     return json({ message: 'CMSで許可されていないGraphQL mutationです。' }, 403)
@@ -188,82 +204,224 @@ async function handleCommitMutation({
   }
 
   const commitInput = parsed.value
-  const token = await getGitHubToken(env)
-  const mainRef = await githubJson<unknown>({
-    path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/git/ref/heads/${CMS_REPOSITORY.branch}`,
-    token,
-  })
-  const mainSha = getGitRefSha(mainRef)
-
-  if (!mainSha) {
-    throw new GitHubApiError('GitHub branch responseが不正です。', 502)
-  }
-
-  if (mainSha !== commitInput.expectedHeadOid) {
-    return json(
-      {
-        message:
-          'mainが更新されています。CMSを再読み込みしてから、もう一度保存してください。',
-      },
-      409,
-    )
-  }
-
   const changedPaths = [
     ...commitInput.additions.map(({ path }) => path),
     ...commitInput.deletions.map(({ path }) => path),
   ]
-
-  if (publicationMode === 'direct') {
-    const result = await commitChanges({
-      branch: CMS_REPOSITORY.branch,
-      commitInput,
-      discordId: auth.discordId,
-      expectedHeadOid: mainSha,
-      token,
-    })
-
-    return json(
-      withCmsExtension(result, {
-        branch: CMS_REPOSITORY.branch,
-        mode: 'direct',
-      }),
-    )
-  }
-
-  const branch = await createCmsBranch({
-    baseSha: mainSha,
-    primaryPath: changedPaths[0],
-    token,
+  const mutation = await beginCmsMutation({
+    bodyText,
+    discordId: auth.discordId,
+    discordRoleIds: auth.discordRoleIds,
+    env,
+    expectedHeadOid: commitInput.expectedHeadOid,
+    paths: changedPaths,
+    request,
   })
 
+  if (mutation.kind === 'replay') {
+    return json(mutation.response, mutation.status, {
+      'X-CMS-Idempotent-Replay': 'true',
+      'X-Request-ID': mutation.requestId,
+    })
+  }
+
+  const { reservation } = mutation
+  let token: string
+
   try {
-    const result = await commitChanges({
-      branch,
-      commitInput,
-      discordId: auth.discordId,
-      expectedHeadOid: mainSha,
+    token = await getGitHubToken(env)
+  } catch (error) {
+    if (mutation.kind === 'reconcile') {
+      await markCmsMutationUnknown({
+        env,
+        message: describeMutationFailure(error).message,
+        reservation,
+      })
+    } else {
+      const failure = describeMutationFailure(error)
+
+      await failCmsMutation({
+        env,
+        message: failure.message,
+        reservation,
+        status: failure.status,
+      })
+    }
+
+    throw error
+  }
+
+  if (mutation.kind === 'reconcile') {
+    try {
+      const recovered = await reconcilePublication({
+        changedPaths,
+        publicationMode,
+        reservation,
+        token,
+      })
+
+      if (recovered.kind === 'published') {
+        await completeCmsMutation({
+          branch: recovered.branch,
+          commitOid: recovered.commitOid,
+          env,
+          reservation,
+          response: recovered.response,
+          status: 200,
+        })
+
+        if (publicationMode === 'direct') {
+          await deleteCmsBranch(reservation.publicationBranch, token)
+        }
+
+        return json(recovered.response, 200, {
+          'X-CMS-Audit-Status': 'recorded',
+          'X-CMS-Reconciled': 'true',
+          'X-Request-ID': reservation.requestId,
+        })
+      }
+
+      await resumeCmsMutation({ env, reservation })
+    } catch (error) {
+      if (error instanceof CmsDefinitivePublicationError) {
+        await deleteCmsBranch(reservation.publicationBranch, token)
+        await failCmsMutation({
+          env,
+          message: error.message,
+          reservation,
+          status: error.status,
+        })
+      } else {
+        await markCmsMutationUnknown({
+          env,
+          message: describeMutationFailure(error).message,
+          reservation,
+        })
+      }
+
+      throw error
+    }
+  }
+
+  let mainSha: string
+
+  try {
+    const mainRef = await githubJson<unknown>({
+      path: branchRefPath(CMS_REPOSITORY.branch),
       token,
     })
-    const pullRequest = await openPullRequest({
-      branch,
-      changedPaths,
-      discordId: auth.discordId,
-      token,
+    const parsedMainSha = getGitRefSha(mainRef)
+
+    if (!parsedMainSha) {
+      throw new GitHubApiError('GitHub branch responseが不正です。', 502)
+    }
+
+    mainSha = parsedMainSha
+  } catch (error) {
+    const failure = describeMutationFailure(error)
+
+    await failCmsMutation({
+      env,
+      message: failure.message,
+      reservation,
+      status: failure.status,
     })
 
-    return json(
-      withCmsExtension(result, {
-        branch,
-        mode: 'review',
-        pull_request: {
-          number: pullRequest.number,
-          html_url: pullRequest.html_url,
-        },
-      }),
-    )
+    throw error
+  }
+
+  if (mainSha !== commitInput.expectedHeadOid) {
+    const message =
+      'mainが更新されています。CMSを再読み込みしてから、もう一度保存してください。'
+
+    await failCmsMutation({
+      env,
+      message,
+      reservation,
+      status: 409,
+    })
+    await deleteCmsBranch(reservation.publicationBranch, token)
+
+    return json({ message }, 409, {
+      'X-Request-ID': reservation.requestId,
+    })
+  }
+
+  try {
+    const staged = await ensurePublicationCommit({
+      commitInput,
+      reservation,
+      token,
+    })
+    const commitOid = getCommitOid(staged)
+
+    if (publicationMode === 'direct') {
+      await publishDirectCommit({
+        commitOid,
+        expectedHeadOid: mainSha,
+        token,
+      })
+
+      const response = withCmsExtension(staged, {
+        branch: CMS_REPOSITORY.branch,
+        mode: 'direct',
+      })
+
+      await completeCmsMutation({
+        branch: CMS_REPOSITORY.branch,
+        commitOid,
+        env,
+        reservation,
+        response,
+        status: 200,
+      })
+      await deleteCmsBranch(reservation.publicationBranch, token)
+
+      return json(response, 200, mutationResponseHeaders(reservation))
+    }
+
+    const pullRequest = await ensurePullRequest({
+      branch: reservation.publicationBranch,
+      changedPaths,
+      reservation,
+      token,
+    })
+    const response = withCmsExtension(staged, {
+      branch: reservation.publicationBranch,
+      mode: 'review',
+      pull_request: {
+        number: pullRequest.number,
+        html_url: pullRequest.html_url,
+      },
+    })
+
+    await completeCmsMutation({
+      branch: reservation.publicationBranch,
+      commitOid,
+      env,
+      reservation,
+      response,
+      status: 200,
+    })
+
+    return json(response, 200, mutationResponseHeaders(reservation))
   } catch (error) {
-    await deleteCmsBranch(branch, token)
+    if (error instanceof CmsDefinitivePublicationError) {
+      await deleteCmsBranch(reservation.publicationBranch, token)
+      await failCmsMutation({
+        env,
+        message: error.message,
+        reservation,
+        status: error.status,
+      })
+    } else {
+      await markCmsMutationUnknown({
+        env,
+        message: describeMutationFailure(error).message,
+        reservation,
+      })
+    }
+
     throw error
   }
 }
@@ -271,14 +429,14 @@ async function handleCommitMutation({
 async function commitChanges({
   branch,
   commitInput,
-  discordId,
   expectedHeadOid,
+  reservation,
   token,
 }: {
   branch: string
   commitInput: CmsCommitInput
-  discordId: string
   expectedHeadOid: string
+  reservation: CmsMutationReservation
   token: string
 }) {
   const changedPaths = [
@@ -304,7 +462,10 @@ async function commitChanges({
             deletions: commitInput.deletions,
           },
           message: {
-            body: `Discord user ID: ${discordId}`,
+            body: [
+              `Request ID: ${reservation.requestId}`,
+              reservation.commitMarker,
+            ].join('\n'),
             headline: buildCommitHeadline(changedPaths),
           },
         },
@@ -800,41 +961,255 @@ function parseCmsCommitInput(
   }
 }
 
-async function createCmsBranch({
-  baseSha,
-  primaryPath,
+type PublicationBranchState =
+  | { kind: 'missing' }
+  | { kind: 'base' }
+  | {
+      kind: 'commit'
+      commitOid: string
+      result: Record<string, unknown>
+    }
+
+async function ensurePublicationCommit({
+  commitInput,
+  reservation,
   token,
 }: {
-  baseSha: string
-  primaryPath: string
+  commitInput: CmsCommitInput
+  reservation: CmsMutationReservation
   token: string
 }) {
-  const base = sanitizeCmsBranchPart(primaryPath)
+  let state = await inspectPublicationBranch(reservation, token)
 
-  for (let index = 0; index < 3; index += 1) {
-    const id = crypto.randomUUID().slice(0, 8)
-    const branch = `cms/asv/${timestamp()}-${base}-${id}`
-
+  if (state.kind === 'missing') {
     try {
       await githubJson({
         body: {
-          ref: `refs/heads/${branch}`,
-          sha: baseSha,
+          ref: `refs/heads/${reservation.publicationBranch}`,
+          sha: reservation.expectedHeadOid,
         },
         method: 'POST',
         path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/git/refs`,
         token,
       })
-
-      return branch
     } catch (error) {
       if (!(error instanceof GitHubApiError) || error.status !== 422) {
         throw error
       }
     }
+
+    state = await inspectPublicationBranch(reservation, token)
   }
 
-  throw new GitHubApiError('CMS保存用branchを作成できませんでした。', 409)
+  if (state.kind === 'commit') return state.result
+
+  if (state.kind !== 'base') {
+    throw new GitHubApiError('CMS保存用branchを作成できませんでした。', 409)
+  }
+
+  return await commitChanges({
+    branch: reservation.publicationBranch,
+    commitInput,
+    expectedHeadOid: reservation.expectedHeadOid,
+    reservation,
+    token,
+  })
+}
+
+async function inspectPublicationBranch(
+  reservation: CmsMutationReservation,
+  token: string,
+): Promise<PublicationBranchState> {
+  const ref = await getOptionalGitRef(reservation.publicationBranch, token)
+
+  if (!ref) return { kind: 'missing' }
+  if (ref === reservation.expectedHeadOid) return { kind: 'base' }
+
+  const commit = await githubJson<unknown>({
+    path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/git/commits/${encodeURIComponent(ref)}`,
+    token,
+  })
+
+  if (
+    !isRecord(commit) ||
+    commit.sha !== ref ||
+    typeof commit.message !== 'string' ||
+    !commit.message.split(/\r?\n/gu).includes(reservation.commitMarker) ||
+    !Array.isArray(commit.parents) ||
+    commit.parents.length !== 1 ||
+    !isRecord(commit.parents[0]) ||
+    commit.parents[0].sha !== reservation.expectedHeadOid
+  ) {
+    throw new CmsStateError(
+      'CMS保存用branchのcommitをidempotency markerで照合できません。',
+      409,
+    )
+  }
+
+  const committedDate =
+    isRecord(commit.committer) && typeof commit.committer.date === 'string'
+      ? commit.committer.date
+      : null
+
+  return {
+    kind: 'commit',
+    commitOid: ref,
+    result: recoveredCommitResult(ref, committedDate),
+  }
+}
+
+async function getOptionalGitRef(branch: string, token: string) {
+  try {
+    const value = await githubJson<unknown>({
+      path: branchRefPath(branch),
+      token,
+    })
+    const sha = getGitRefSha(value)
+
+    if (!sha) {
+      throw new GitHubApiError('GitHub branch responseが不正です。', 502)
+    }
+
+    return sha
+  } catch (error) {
+    if (error instanceof GitHubApiError && error.status === 404) return null
+
+    throw error
+  }
+}
+
+async function reconcilePublication({
+  changedPaths,
+  publicationMode,
+  reservation,
+  token,
+}: {
+  changedPaths: string[]
+  publicationMode: PublicationMode
+  reservation: CmsMutationReservation
+  token: string
+}) {
+  const staged = await inspectPublicationBranch(reservation, token)
+
+  if (staged.kind !== 'commit') {
+    return { kind: 'retry' as const }
+  }
+
+  if (publicationMode === 'direct') {
+    await publishDirectCommit({
+      commitOid: staged.commitOid,
+      expectedHeadOid: reservation.expectedHeadOid,
+      token,
+    })
+
+    return {
+      kind: 'published' as const,
+      branch: CMS_REPOSITORY.branch,
+      commitOid: staged.commitOid,
+      response: withCmsExtension(staged.result, {
+        branch: CMS_REPOSITORY.branch,
+        mode: 'direct',
+      }),
+    }
+  }
+
+  const pullRequest = await ensurePullRequest({
+    branch: reservation.publicationBranch,
+    changedPaths,
+    reservation,
+    token,
+  })
+
+  return {
+    kind: 'published' as const,
+    branch: reservation.publicationBranch,
+    commitOid: staged.commitOid,
+    response: withCmsExtension(staged.result, {
+      branch: reservation.publicationBranch,
+      mode: 'review',
+      pull_request: {
+        number: pullRequest.number,
+        html_url: pullRequest.html_url,
+      },
+    }),
+  }
+}
+
+async function publishDirectCommit({
+  commitOid,
+  expectedHeadOid,
+  token,
+}: {
+  commitOid: string
+  expectedHeadOid: string
+  token: string
+}) {
+  const mainRef = await githubJson<unknown>({
+    path: branchRefPath(CMS_REPOSITORY.branch),
+    token,
+  })
+  const mainSha = getGitRefSha(mainRef)
+
+  if (!mainSha) {
+    throw new GitHubApiError('GitHub branch responseが不正です。', 502)
+  }
+
+  if (mainSha === commitOid) return
+
+  if (mainSha !== expectedHeadOid) {
+    const comparison = await githubJson<unknown>({
+      path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/compare/${encodeURIComponent(commitOid)}...${encodeURIComponent(mainSha)}`,
+      token,
+    })
+
+    if (
+      isRecord(comparison) &&
+      (comparison.status === 'ahead' || comparison.status === 'identical')
+    ) {
+      return
+    }
+
+    throw new CmsDefinitivePublicationError(
+      'mainが別の履歴へ進んだため、CMS commitを自動反映できません。',
+      409,
+    )
+  }
+
+  const updated = await githubJson<unknown>({
+    body: {
+      sha: commitOid,
+      force: false,
+    },
+    method: 'PATCH',
+    path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/git/refs/heads/${CMS_REPOSITORY.branch}`,
+    token,
+  })
+
+  if (getGitRefSha(updated) !== commitOid) {
+    throw new GitHubApiError('mainの更新結果を確認できません。', 502)
+  }
+}
+
+function recoveredCommitResult(
+  commitOid: string,
+  committedDate: string | null,
+) {
+  return {
+    data: {
+      createCommitOnBranch: {
+        commit: {
+          oid: commitOid,
+          committedDate,
+        },
+      },
+    },
+  }
+}
+
+function branchRefPath(branch: string) {
+  const encodedBranch = branch.split('/').map(encodeURIComponent).join('/')
+
+  return `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/git/ref/heads/${encodedBranch}`
 }
 
 async function deleteCmsBranch(branch: string, token: string) {
@@ -866,17 +1241,21 @@ async function deleteCmsBranch(branch: string, token: string) {
   }
 }
 
-async function openPullRequest({
+async function ensurePullRequest({
   branch,
   changedPaths,
-  discordId,
+  reservation,
   token,
 }: {
   branch: string
   changedPaths: string[]
-  discordId: string
+  reservation: CmsMutationReservation
   token: string
 }) {
+  const existing = await findOpenPullRequest(branch, token)
+
+  if (existing) return existing
+
   const primaryPath = summarizePath(changedPaths[0])
   const extraCount = changedPaths.length - 1
   const title =
@@ -888,7 +1267,8 @@ async function openPullRequest({
       body: [
         'Sveltia CMSの保存をDiscord認証済みユーザーから受け付けました。',
         '',
-        `- Discord user ID: ${discordId}`,
+        `- Request ID: ${reservation.requestId}`,
+        `- ${reservation.commitMarker}`,
         '- Files:',
         ...changedPaths.map((path) => `  - \`${path}\``),
         '',
@@ -914,6 +1294,35 @@ async function openPullRequest({
   return {
     number: result.number,
     html_url: result.html_url,
+  }
+}
+
+async function findOpenPullRequest(branch: string, token: string) {
+  const head = encodeURIComponent(`${CMS_REPOSITORY.owner}:${branch}`)
+  const pulls = await githubJson<unknown>({
+    path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/pulls?state=open&base=${CMS_REPOSITORY.branch}&head=${head}&per_page=2`,
+    token,
+  })
+
+  if (!Array.isArray(pulls)) {
+    throw new GitHubApiError('GitHub pull request一覧が不正です。', 502)
+  }
+
+  const pull = pulls[0]
+
+  if (pull === undefined) return null
+
+  if (
+    !isRecord(pull) ||
+    typeof pull.number !== 'number' ||
+    typeof pull.html_url !== 'string'
+  ) {
+    throw new GitHubApiError('GitHub pull request responseが不正です。', 502)
+  }
+
+  return {
+    number: pull.number,
+    html_url: pull.html_url,
   }
 }
 
@@ -1109,6 +1518,25 @@ function getGitRefSha(value: unknown) {
     : null
 }
 
+function getCommitOid(result: Record<string, unknown>) {
+  const data = result.data
+
+  if (
+    !isRecord(data) ||
+    !isRecord(data.createCommitOnBranch) ||
+    !isRecord(data.createCommitOnBranch.commit) ||
+    typeof data.createCommitOnBranch.commit.oid !== 'string' ||
+    !SHA_PATTERN.test(data.createCommitOnBranch.commit.oid)
+  ) {
+    throw new GitHubApiError(
+      'GitHub commit responseからcommit OIDを取得できません。',
+      502,
+    )
+  }
+
+  return data.createCommitOnBranch.commit.oid
+}
+
 function getPublicationMode(value: string | undefined): PublicationMode | null {
   const normalized = value?.trim().toLowerCase()
 
@@ -1116,10 +1544,6 @@ function getPublicationMode(value: string | undefined): PublicationMode | null {
   if (normalized === 'direct') return 'direct'
 
   return null
-}
-
-function timestamp() {
-  return new Date().toISOString().replace(/\D/gu, '').slice(0, 14)
 }
 
 function validateBrowserRequestBoundary(request: Request) {
@@ -1196,6 +1620,16 @@ async function readRequestText(request: Request) {
 }
 
 function toErrorResponse(error: unknown) {
+  if (error instanceof CmsStateError) {
+    return json(
+      { message: error.message },
+      error.status,
+      error.retryAfterSeconds
+        ? { 'Retry-After': String(error.retryAfterSeconds) }
+        : undefined,
+    )
+  }
+
   if (error instanceof GitHubApiError) {
     return json({ message: error.message }, error.status)
   }
@@ -1208,6 +1642,27 @@ function toErrorResponse(error: unknown) {
   )
 
   return json({ message: 'CMS GraphQL proxyでエラーが発生しました。' }, 500)
+}
+
+function describeMutationFailure(error: unknown) {
+  if (error instanceof CmsStateError || error instanceof GitHubApiError) {
+    return {
+      message: error.message,
+      status: error.status,
+    }
+  }
+
+  return {
+    message: 'CMS保存処理で予期しないエラーが発生しました。',
+    status: 500,
+  }
+}
+
+function mutationResponseHeaders(reservation: { requestId: string }) {
+  return {
+    'X-CMS-Audit-Status': 'recorded',
+    'X-Request-ID': reservation.requestId,
+  }
 }
 
 function json(data: unknown, status = 200, headers?: HeadersInit) {

@@ -1,6 +1,10 @@
-import { cloudflareTest } from '@cloudflare/vitest-pool-workers'
+import {
+  cloudflareTest,
+  readD1Migrations,
+} from '@cloudflare/vitest-pool-workers'
 import { defineConfig } from 'vitest/config'
 
+const cmsStateMigrations = await readD1Migrations('./migrations')
 const testSecrets = {
   CMS_ACCESS_AUD: 'test-audience',
   CMS_ACCESS_TEAM_DOMAIN: 'https://team.cloudflareaccess.com',
@@ -21,7 +25,10 @@ export default defineConfig({
         configPath: './wrangler.jsonc',
       },
       miniflare: {
-        bindings: testSecrets,
+        bindings: {
+          ...testSecrets,
+          TEST_D1_MIGRATIONS: cmsStateMigrations,
+        },
       },
     }),
   ],

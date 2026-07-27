@@ -31,16 +31,17 @@ export async function getAccessIdentity(
   )
   const allowedRoleIds = parseSnowflakeCsv(
     env.CMS_DISCORD_ALLOWED_ROLE_IDS,
-    authorizationMode === 'guild',
+    authorizationMode !== 'role',
   )
 
   if (
     !allowedHostnames ||
     !issuer ||
     !audience ||
-    !DISCORD_SNOWFLAKE_PATTERN.test(allowedGuildId || '') ||
     !authorizationMode ||
-    !allowedRoleIds
+    !allowedRoleIds ||
+    (authorizationMode !== 'account' &&
+      !DISCORD_SNOWFLAKE_PATTERN.test(allowedGuildId || ''))
   ) {
     return {
       ok: false,
@@ -81,7 +82,9 @@ export async function getAccessIdentity(
     const discordId =
       custom && typeof custom.discord_id === 'string'
         ? custom.discord_id.trim()
-        : ''
+        : custom && typeof custom.sub === 'string'
+          ? custom.sub.trim()
+          : ''
     const discordGuildId =
       custom && typeof custom.discord_guild_id === 'string'
         ? custom.discord_guild_id.trim()
@@ -89,7 +92,9 @@ export async function getAccessIdentity(
     const rawDiscordRoleIds = custom?.discord_roles
     const rawDiscordRoleCount = Array.isArray(rawDiscordRoleIds)
       ? rawDiscordRoleIds.length
-      : null
+      : authorizationMode === 'account'
+        ? 0
+        : null
     const discordRoleIds = Array.isArray(rawDiscordRoleIds)
       ? rawDiscordRoleIds.flatMap((role): string[] => {
           return typeof role === 'string' &&
@@ -97,20 +102,21 @@ export async function getAccessIdentity(
             ? [role.trim()]
             : []
         })
-      : null
+      : authorizationMode === 'account'
+        ? []
+        : null
 
     if (
       !subject ||
       !DISCORD_SNOWFLAKE_PATTERN.test(discordId) ||
-      discordGuildId !== allowedGuildId ||
       !discordRoleIds ||
-      discordRoleIds.length !== rawDiscordRoleCount
+      discordRoleIds.length !== rawDiscordRoleCount ||
+      (authorizationMode !== 'account' && discordGuildId !== allowedGuildId)
     ) {
       return {
         ok: false,
         status: 403,
-        message:
-          'Cloudflare Access JWTのDiscord ID、guild、rolesを確認できません。',
+        message: 'Cloudflare Access JWTのDiscord属性を確認できません。',
       }
     }
 
@@ -209,7 +215,13 @@ function parseSnowflakeCsv(value: string | undefined, allowEmpty = false) {
 function parseAuthorizationMode(value: string | undefined) {
   const normalized = value?.trim().toLowerCase()
 
-  if (normalized === 'guild' || normalized === 'role') return normalized
+  if (
+    normalized === 'account' ||
+    normalized === 'guild' ||
+    normalized === 'role'
+  ) {
+    return normalized
+  }
 
   return null
 }

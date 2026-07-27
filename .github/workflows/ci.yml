@@ -80,5 +80,8 @@ jobs:
       - name: Build Astro PoC
         run: npm run build
 
+      - name: Bundle Pages Functions
+        run: npx wrangler pages functions build
+
       - name: Audit PoC dependencies
         run: npm audit --audit-level=high
