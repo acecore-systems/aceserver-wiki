@@ -467,6 +467,41 @@ describe('Discord callback and token endpoint', () => {
     )
   })
 
+  it('logs a stable rejection code without logging token request values', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const body = new URLSearchParams({
+      code: 'sensitive-authorization-code'.padEnd(43, 'x'),
+      code_verifier: VERIFIER,
+      grant_type: 'authorization_code',
+    })
+
+    try {
+      const response = await SELF.fetch(`${ISSUER}/token`, {
+        body,
+        headers: {
+          Authorization: `Basic ${btoa(
+            `${ACCESS_CLIENT_ID}:${ACCESS_CLIENT_SECRET}`,
+          )}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        method: 'POST',
+      })
+
+      expect(response.status).toBe(400)
+      expect(warn).toHaveBeenCalledExactlyOnceWith(
+        JSON.stringify({
+          error: 'token_redirect_uri_missing',
+          event: 'oidc_token_request_rejected',
+        }),
+      )
+      expect(warn.mock.calls.flat().join(' ')).not.toContain(
+        'sensitive-authorization-code',
+      )
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
   it('rejects an unverified Discord email and still revokes the token', async () => {
     const { discordState } = await beginAuthorization()
     const fetchMock = installDiscordFetchMock({ emailVerified: false })
