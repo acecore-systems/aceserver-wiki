@@ -23,9 +23,10 @@ yarn build
 既存の Pages 出力先に合わせて `dist/` に作成されます。トークンをリポジトリや
 公開ランタイム設定に含めないでください。
 
-現行の公開コンテンツはビルド時に Newt から取得しています。Newt を廃止する際は、
-記事・カテゴリ・リンクをリポジトリ管理のコンテンツへ移行してから
-`server/utils/newt.ts` と `NEWT_CDN_API_TOKEN` を削除します。
+このビルド手順はrollback用に保持している旧Nuxt/Newt実装向けです。
+本番公開は2026-07-27にAstro・Markdown版へ切り替えました。旧Pages projectと
+Newt設定はrollback window中は削除せず、旧projectからcustom domainを外して
+自動deployを停止しています。
 
 ## Astro・Markdown版
 
@@ -35,8 +36,11 @@ yarn build
 受ける[Wiki専用OIDC broker](./poc/discord-oidc-broker/README.md)、
 Cloudflare Access、Pages Functionsのcontent gatewayで構成しています。
 
-Newtの公開データはMarkdownへ移行済みです。現行のNuxt/Newt実装は、
-Astro版のE2E確認とcustom domain切替が完了するまでrollback用に保持します。
+Newtの公開データはMarkdownへ移行済みです。Astro版のE2E確認と
+`asv-wiki.acecore.net`のcustom domain切替も完了しています。旧Nuxt/Newt実装は
+rollback用に保持しています。
 公開・認証・D1・復旧の手順は
 [`poc/astro-sveltia/OPERATIONS.md`](./poc/astro-sveltia/OPERATIONS.md)
+を、実施記録は
+[`poc/astro-sveltia/CUTOVER-2026-07-27.md`](./poc/astro-sveltia/CUTOVER-2026-07-27.md)
 を参照してください。
