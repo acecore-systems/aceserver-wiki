@@ -10,6 +10,9 @@ backend:
     - token
   include_credentials: true
 
+output:
+  omit_empty_optional_fields: true
+
 slug:
   encoding: unicode
   clean_accents: false
