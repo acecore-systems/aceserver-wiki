@@ -207,6 +207,172 @@ describe('CMS publication modes', () => {
     ).toHaveLength(2)
   })
 
+  it('publishes an existing entry from the created ref response without an immediate ref re-read', async () => {
+    const calls: Array<{ url: string; method: string; body: unknown }> = []
+    let pendingRefReads = 0
+    let publicationBranch = ''
+    const commitSha = '6'.repeat(40)
+
+    mockFetch(async (url, init) => {
+      const method = init.method || 'GET'
+      const body = typeof init.body === 'string' ? JSON.parse(init.body) : null
+
+      calls.push({ url, method, body })
+
+      if (url.endsWith('/git/ref/heads/main')) {
+        return jsonResponse({ object: { sha: MAIN_SHA } })
+      }
+
+      if (isProjectionTreeUrl(url)) {
+        return projectionTreeResponse([
+          {
+            mode: '100644',
+            path: 'poc/astro-sveltia/src/content/wiki/test.md',
+            sha: '7'.repeat(40),
+            size: 200,
+            type: 'blob',
+          },
+        ])
+      }
+
+      if (method === 'GET' && url.includes('/git/ref/heads/cms/pending/')) {
+        pendingRefReads += 1
+        return jsonResponse({ message: 'Not Found' }, 404)
+      }
+
+      if (url.endsWith('/git/refs') && method === 'POST') {
+        const value = body as { ref: string; sha: string }
+
+        publicationBranch = value.ref.replace('refs/heads/', '')
+        return jsonResponse(
+          { ref: value.ref, object: { sha: value.sha } },
+          201,
+        )
+      }
+
+      if (url.endsWith('/graphql')) {
+        const variables = (body as GraphqlRequestBody).variables
+
+        expect(variables.input.branch.branchName).toBe(publicationBranch)
+        return commitResponse('6')
+      }
+
+      if (url.endsWith('/git/refs/heads/main') && method === 'PATCH') {
+        return jsonResponse({ object: { sha: commitSha } })
+      }
+
+      if (method === 'DELETE' && url.includes('/git/refs/heads/cms/pending/')) {
+        return new Response(null, { status: 204 })
+      }
+
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const response = await onRequestPost({
+      request: graphqlRequest(commitVariables(MAIN_SHA)),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(200)
+    expect(pendingRefReads).toBe(1)
+    expect(calls.some(({ url }) => url.endsWith('/graphql'))).toBe(true)
+  })
+
+  it('recovers when a concurrent ref creation returns 422 but the ref is now at the base commit', async () => {
+    let pendingRefReads = 0
+    let publicationBranch = ''
+    const commitSha = '8'.repeat(40)
+
+    mockFetch(async (url, init) => {
+      const method = init.method || 'GET'
+      const body = typeof init.body === 'string' ? JSON.parse(init.body) : null
+
+      if (url.endsWith('/git/ref/heads/main')) {
+        return jsonResponse({ object: { sha: MAIN_SHA } })
+      }
+
+      if (isProjectionTreeUrl(url)) return projectionTreeResponse()
+
+      if (method === 'GET' && url.includes('/git/ref/heads/cms/pending/')) {
+        pendingRefReads += 1
+
+        return pendingRefReads === 1
+          ? jsonResponse({ message: 'Not Found' }, 404)
+          : jsonResponse({ object: { sha: MAIN_SHA } })
+      }
+
+      if (url.endsWith('/git/refs') && method === 'POST') {
+        const value = body as { ref: string }
+
+        publicationBranch = value.ref.replace('refs/heads/', '')
+        return jsonResponse({ message: 'Reference already exists' }, 422)
+      }
+
+      if (url.endsWith('/graphql')) {
+        const variables = (body as GraphqlRequestBody).variables
+
+        expect(variables.input.branch.branchName).toBe(publicationBranch)
+        return commitResponse('8')
+      }
+
+      if (url.endsWith('/git/refs/heads/main') && method === 'PATCH') {
+        return jsonResponse({ object: { sha: commitSha } })
+      }
+
+      if (method === 'DELETE' && url.includes('/git/refs/heads/cms/pending/')) {
+        return new Response(null, { status: 204 })
+      }
+
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const response = await onRequestPost({
+      request: graphqlRequest(commitVariables(MAIN_SHA)),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(200)
+    expect(pendingRefReads).toBe(2)
+  })
+
+  it('preserves a non-recoverable ref validation failure as an upstream error', async () => {
+    const calls: string[] = []
+
+    mockFetch(async (url, init) => {
+      const method = init.method || 'GET'
+
+      calls.push(url)
+
+      if (url.endsWith('/git/ref/heads/main')) {
+        return jsonResponse({ object: { sha: MAIN_SHA } })
+      }
+
+      if (isProjectionTreeUrl(url)) return projectionTreeResponse()
+
+      if (method === 'GET' && url.includes('/git/ref/heads/cms/pending/')) {
+        return jsonResponse({ message: 'Not Found' }, 404)
+      }
+
+      if (url.endsWith('/git/refs') && method === 'POST') {
+        return jsonResponse({ message: 'Validation Failed' }, 422)
+      }
+
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const response = await onRequestPost({
+      request: graphqlRequest(commitVariables(MAIN_SHA)),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+    const result = (await response.json()) as { message: string }
+
+    expect(response.status).toBe(502)
+    expect(result.message).toBe(
+      'GitHubにCMS保存用branchを作成できませんでした。',
+    )
+    expect(calls.filter((url) => url.endsWith('/graphql'))).toHaveLength(0)
+  })
+
   it('records a definitive main divergence as failed and removes the staging branch', async () => {
     const calls: Array<{ url: string; method: string; body: unknown }> = []
     const divergedSha = 'b'.repeat(40)
@@ -235,8 +401,13 @@ describe('CMS publication modes', () => {
       }
 
       if (url.endsWith('/git/refs') && method === 'POST') {
+        const value = body as { ref: string }
+
         branchSha = MAIN_SHA
-        return jsonResponse({ object: { sha: MAIN_SHA } }, 201)
+        return jsonResponse(
+          { ref: value.ref, object: { sha: MAIN_SHA } },
+          201,
+        )
       }
 
       if (url.endsWith('/graphql')) {
@@ -2027,6 +2198,10 @@ function mockFetch(
 
       if (url === `${ACCESS_ISSUER}/cdn-cgi/access/certs`) {
         return jsonResponse({ keys: [accessJwk] })
+      }
+
+      if (url.startsWith('https://api.github.com/')) {
+        expect(init.cache).toBe('no-store')
       }
 
       if (url === INSTALLATION_TOKEN_URL) {

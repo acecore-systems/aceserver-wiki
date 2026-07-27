@@ -319,7 +319,10 @@ export async function readGitHubResponseJson(response: Response) {
 
 async function githubFetch(input: string, init: RequestInit) {
   try {
-    return await fetch(input, init)
+    return await fetch(input, {
+      ...init,
+      cache: 'no-store',
+    })
   } catch (error) {
     console.error(
       JSON.stringify({
