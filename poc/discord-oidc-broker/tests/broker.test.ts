@@ -502,6 +502,38 @@ describe('Discord callback and token endpoint', () => {
     }
   })
 
+  it('classifies malformed authorization codes without logging them', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const cases = [
+      {
+        code: 'short-sensitive-code',
+        expected: 'token_code_too_short',
+      },
+      {
+        code: 'long-sensitive-code'.padEnd(257, 'x'),
+        expected: 'token_code_too_long',
+      },
+      {
+        code: `${'character-sensitive-code'.padEnd(42, 'x')}\n`,
+        expected: 'token_code_characters_invalid',
+      },
+    ]
+
+    try {
+      for (const testCase of cases) {
+        const response = await SELF.fetch(tokenRequest(testCase.code, VERIFIER))
+        expect(response.status).toBe(400)
+      }
+
+      expect(
+        warn.mock.calls.map(([message]) => JSON.parse(message).error),
+      ).toEqual(cases.map(({ expected }) => expected))
+      expect(warn.mock.calls.flat().join(' ')).not.toContain('sensitive-code')
+    } finally {
+      warn.mockRestore()
+    }
+  })
+
   it('rejects an unverified Discord email and still revokes the token', async () => {
     const { discordState } = await beginAuthorization()
     const fetchMock = installDiscordFetchMock({ emailVerified: false })
