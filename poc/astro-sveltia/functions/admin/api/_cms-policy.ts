@@ -10,6 +10,7 @@ export const CMS_MEDIA_PREFIX =
 
 export type CmsRuntimeEnv = Omit<
   Env,
+  | 'SKIP_DEPENDENCY_INSTALL'
   | 'CMS_DATABASE'
   | 'CMS_DISCORD_ALLOWED_ROLE_IDS'
   | 'CMS_DISCORD_AUTHORIZATION_MODE'
