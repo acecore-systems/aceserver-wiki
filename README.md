@@ -31,8 +31,9 @@ yarn build
 
 移行先のWikiは
 [`poc/astro-sveltia`](./poc/astro-sveltia/README.md)
-にあります。Astro、repository内Markdown、stock Sveltia CMS、Cloudflare Access、
-Pages Functionsのcontent gatewayで構成しています。
+にあります。Astro、repository内Markdown、stock Sveltia CMS、Discord OAuthを
+受ける[Wiki専用OIDC broker](./poc/discord-oidc-broker/README.md)、
+Cloudflare Access、Pages Functionsのcontent gatewayで構成しています。
 
 Newtの公開データはMarkdownへ移行済みです。現行のNuxt/Newt実装は、
 Astro版のE2E確認とcustom domain切替が完了するまでrollback用に保持します。

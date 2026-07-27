@@ -92,3 +92,46 @@ jobs:
 
       - name: Audit Astro dependencies
         run: npm audit --audit-level=high
+
+  discord-oidc-broker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: poc/discord-oidc-broker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: poc/discord-oidc-broker/.node-version
+          cache: npm
+          cache-dependency-path: poc/discord-oidc-broker/package-lock.json
+
+      - name: Install broker dependencies
+        run: npm ci
+
+      - name: Generate Cloudflare types
+        run: npm run cf:typegen
+
+      - name: Verify generated Cloudflare types
+        run: |
+          git diff --exit-code -- worker-configuration.d.ts
+          test -z "$(git status --porcelain --untracked-files=all -- worker-configuration.d.ts)"
+
+      - name: Typecheck broker
+        run: npm run check
+
+      - name: Run broker Worker tests
+        run: npm run test:unit
+
+      - name: Run signing-key helper tests
+        run: npm run test:keygen
+
+      - name: Validate broker deployment bundle
+        run: npx wrangler deploy --dry-run
+
+      - name: Audit broker dependencies
+        run: npm audit --audit-level=high

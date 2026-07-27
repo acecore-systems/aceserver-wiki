@@ -1,0 +1,4 @@
+# Local development template only. Never put production values here.
+OIDC_ACCESS_CLIENT_SECRET=replace-with-local-secret
+OIDC_SIGNING_PRIVATE_KEY_PEM=replace-with-local-pkcs8-pem
+DISCORD_CLIENT_SECRET=replace-with-local-secret

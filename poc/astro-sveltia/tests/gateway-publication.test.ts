@@ -1146,6 +1146,44 @@ describe('GitHub App authentication', () => {
 })
 
 describe('CMS read controls', () => {
+  it('rejects an organization token even when its Discord claim is valid', async () => {
+    const organizationJwt = await signAccessJwt('org')
+    const fetchMock = mockFetch(async (url) => {
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const response = await onRequestPost({
+      request: graphqlQueryRequest(headHistoryQuery(), {}, organizationJwt),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(403)
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes('/access_tokens'),
+      ),
+    ).toBe(false)
+  })
+
+  it('rejects an application token that only has custom.sub', async () => {
+    const fallbackJwt = await signAccessJwt('app', { sub: DISCORD_ID })
+    const fetchMock = mockFetch(async (url) => {
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const response = await onRequestPost({
+      request: graphqlQueryRequest(headHistoryQuery(), {}, fallbackJwt),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(403)
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes('/access_tokens'),
+      ),
+    ).toBe(false)
+  })
+
   it('rejects a banned user on GraphQL and REST reads before GitHub access', async () => {
     const now = Math.floor(Date.now() / 1000)
     const fetchMock = mockFetch(async (url) => {
@@ -1969,11 +2007,12 @@ function graphqlRawRequest(
 function graphqlQueryRequest(
   query: string,
   variables: Record<string, unknown> = {},
+  accessJwt = validAccessJwt,
 ) {
   return new Request('https://wiki-admin.example.test/admin/api/graphql', {
     method: 'POST',
     headers: {
-      'Cf-Access-Jwt-Assertion': validAccessJwt,
+      'Cf-Access-Jwt-Assertion': accessJwt,
       'Content-Type': 'application/json',
       Origin: 'https://wiki-admin.example.test',
       'Sec-Fetch-Site': 'same-origin',
@@ -2164,11 +2203,13 @@ function readTestDerElement(
   }
 }
 
-function signAccessJwt() {
+function signAccessJwt(
+  type = 'app',
+  custom: Record<string, string> = { discord_id: DISCORD_ID },
+) {
   return new SignJWT({
-    custom: {
-      sub: DISCORD_ID,
-    },
+    type,
+    custom,
   })
     .setProtectedHeader({ alg: 'RS256', kid: ACCESS_KEY_ID })
     .setIssuer(ACCESS_ISSUER)

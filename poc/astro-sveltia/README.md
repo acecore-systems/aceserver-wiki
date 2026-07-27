@@ -11,7 +11,8 @@ fail closedで無効です。
 
 1. Astroが `src/content/wiki/*.md` を静的な記事ページへ変換する。
 2. `/admin/` ではforkしていないSveltia CMS 0.172.4を起動する。
-3. Cloudflare Accessがログインを担当する。
+3. Wiki専用OIDC brokerがDiscord OAuth2をOIDCへ変換し、Cloudflare Accessが
+   ログインを担当する。
 4. Pages Functionsのcontent gatewayがAccess JWT内のDiscord属性を検証する。
 5. gatewayだけがrepository限定のGitHub App installation tokenを保持し、
    許可されたMarkdownと画像だけをGitHubへ保存する。
@@ -25,8 +26,8 @@ raw Discord user IDを含めず、request IDだけを残します。Discord user
 
 Cloudflare Accessのメール許可ルールは広く設定できますが、gatewayはメールを
 認可に使いません。本番既定の`account`モードは、Access JWTの
-`custom.sub`または`custom.discord_id`をDiscord snowflakeとして検証し、
-Discordでログインできた全アカウントを編集可能にします。
+`custom.discord_id`をDiscord snowflakeとして検証し、
+メール検証済みの全Discordアカウントをドメイン制限なしで編集可能にします。
 
 guildまたはroleで制限する場合は、OIDC brokerがDiscord membershipを確認し、
 次のcustom claimsをAccess JWTへ渡す必要があります。
@@ -35,15 +36,13 @@ guildまたはroleで制限する場合は、OIDC brokerがDiscord membershipを
 - `custom.discord_guild_id`
 - `custom.discord_roles`（role IDの配列）
 
-DiscordをCloudflare AccessのGeneric OIDCへ直接接続する構成は、provider testと
-実ログインを完了してから採用します。直接接続できない場合は、OIDC brokerで
-Discordログインとclaims発行を行います。claimsが欠落・不正の場合、gatewayは
-fail closedで拒否します。
-
-直接接続ではscopeを`openid email identify`、email claimを`email`とし、
-OIDC Claimsへ`sub`を明示してAccess JWTの`custom.sub`へDiscord snowflakeを
-渡します。Access JWT自身のtop-level `sub`はCloudflare側のsubjectなので、
-Discord IDとして使用しません。
+Discordの通常OAuth2はOIDC ID tokenとJWKSを提供しないため、Cloudflare Accessの
+Generic OIDCへ直接接続しません。専用brokerがDiscordの`identify email` scopeで
+本人情報を取得し、OIDC ID tokenへ`discord_id`を発行します。Access側はscopeを
+`openid email`、OIDC Claimsを`discord_id`、email claimを`email`として設定し、
+Access JWTの`custom.discord_id`へ渡します。claimsが欠落・不正の場合、gatewayは
+fail closedで拒否します。Access JWT自身のtop-level `sub`はCloudflare側の
+subjectなので、Discord IDとして使用しません。
 
 `CMS_DISCORD_AUTHORIZATION_MODE=guild` では、brokerがguild membershipを
 確認したうえで発行した `discord_guild_id` が一致すれば、そのguildの全員を
@@ -157,14 +156,18 @@ Direct Uploadは使いません。現行Wikiとは別の移行先Pages project
 `acecore-systems/aceserver-wiki`を接続します。
 
 - Root directory: `poc/astro-sveltia`
-- Build command: `npm run build`
+- Build command: `npm ci && npm run build`
 - Build output: `dist`
 - Production branch: `main`
 
+rootのYarn projectと独立したnpm projectとしてbuildするため、Wrangler varsの
+`SKIP_DEPENDENCY_INSTALL=1`でPagesの自動installを止めます。
+
 Git Provider、source repository、GitHub push deployment、preview domainを
 確認してから検証します。mainへAstro実装が入る前の初回deployment失敗は
-production成功とは扱いません。`asv-wiki.acecore.net` は、`pages.dev`上で
-Discordログイン・保存・再ビルド・rollbackまでE2E確認した後にだけ接続します。
+production成功とは扱いません。`asv-wiki.acecore.net` は、
+`aceserver-wiki-astro.pages.dev`上でDiscordログイン・保存・再ビルド・rollback
+までE2E確認した後にだけ接続します。
 branch previewは`CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretを
 登録しません。
 
@@ -174,5 +177,5 @@ branch previewは`CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretを
 - 既存URL redirect、検索、sitemap、robots、404、SEO、OGP、広告実装を移行済み
 - AdSenseは未審査UGCへ配信しないため全公開ページで無効化済み
 - D1監査、rate limit、BAN、idempotency、rollback workflowを実装済み
-- Cloudflare Access、Discord IdP、GitHub App、Pages productionは環境構築後に
-  E2E確認し、custom domainを切り替える
+- Discord OAuth→OIDC broker、Cloudflare Access、GitHub App、Pages productionは
+  環境構築後にE2E確認し、custom domainを切り替える

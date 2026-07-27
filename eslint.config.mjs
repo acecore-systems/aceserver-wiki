@@ -2,7 +2,10 @@ import withNuxt from './.nuxt/eslint.config.mjs'
 
 export default withNuxt(
   {
-    ignores: ['poc/astro-sveltia/worker-configuration.d.ts'],
+    ignores: [
+      'poc/astro-sveltia/worker-configuration.d.ts',
+      'poc/discord-oidc-broker/worker-configuration.d.ts',
+    ],
   },
   {
     rules: {

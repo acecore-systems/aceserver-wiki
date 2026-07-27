@@ -8,7 +8,7 @@ Cloudflare Pagesで運用するための手順です。公開コンテンツの�
 
 - GitHub repository: `acecore-systems/aceserver-wiki`
 - Cloudflare Pages root: `poc/astro-sveltia`
-- Build command: `npm run build`
+- Build command: `npm ci && npm run build`
 - Build output: `dist`
 - Production branch: `main`
 - CMS path: `/admin/*`
@@ -17,61 +17,83 @@ Cloudflare Pagesで運用するための手順です。公開コンテンツの�
 - CMS状態: D1 binding `CMS_DATABASE`
 
 Pagesは必ずGitHub連携で作成し、Direct Uploadを本番経路にしません。
+rootのYarn projectと独立してnpm installするため、Wrangler varsの
+`SKIP_DEPENDENCY_INSTALL=1`でPagesの自動installを止めます。
 production以外では`CMS_PUBLICATION_MODE=disabled`とし、GitHub AppとAccessの
 secretを登録しません。
 
 ## 初回公開ゲート
 
-1. PRのroot CI、Astro CI、依存監査、Pages previewをすべてgreenにする。
-2. production用とpreview用D1へmigrationを適用する。
-3. GitHub連携Pages projectを作成し、source repository、root、build、output、
-   production branchを確認する。
-4. productionだけにD1 binding、Access設定、GitHub App設定を登録する。
-5. Access applicationで`/admin/*`だけをDiscord IdP限定で保護する。
-6. `pages.dev`で公開面とCMS保存のE2Eを完了する。
-7. custom domainを切り替え、GitHub push由来のproduction deploymentと
-   custom domain activeを確認する。
+1. PRのroot CI、Astro CI、OIDC broker CI、依存監査、Pages previewを
+   すべてgreenにする。
+2. OIDC broker用D1へmigrationを適用する。
+3. brokerのRS256 signing keyとAccess client secretを生成する。private keyと
+   client secretはrepositoryへ保存せず、公開JWKだけを通常variableにする。
+4. Discord applicationのcallbackを`https://wiki-auth.acecore.net/callback`へ
+   変更してclient secretを発行し、brokerの3 secretを登録する。
+5. brokerを`wiki-auth.acecore.net`へ配備し、discovery、JWKS、authorization
+   error、token errorが期待どおりであることを確認する。
+6. AccessへGeneric OIDC IdPを追加してProvider Testを通す。
+7. production用とpreview用CMS D1へmigrationを適用し、両方でpendingが0件で
+   あることを確認する。この作業はAccess設定から独立して先に完了できる。
+8. `aceserver-wiki-astro.pages.dev`と`asv-wiki.acecore.net`の`/admin*`だけを
+   broker IdP限定で保護し、Access application audienceを取得する。
+9. productionへCMS D1 binding、Access設定、GitHub App設定を登録する。
+   previewはpreview専用CMS D1 bindingだけを維持する。
+10. GitHub連携Pages projectのsource repository、root、build、output、
+    production branchを確認してPRをmergeし、`github:push` production
+    deploymentを成功させる。
+11. `aceserver-wiki-astro.pages.dev`で公開面とCMS保存のE2Eを完了する。
+12. `asv-wiki.acecore.net`を切り替え、GitHub push由来のproduction deploymentと
+    custom domain activeを確認する。
 
 ### D1 migration
 
 repository rootのNode.js 24.18.0を使用します。
 
 ```bash
-cd poc/astro-sveltia
+cd poc/discord-oidc-broker
+npx wrangler d1 migrations apply OIDC_STATE_DB --remote
+npx wrangler d1 migrations list OIDC_STATE_DB --remote
+
+cd ../astro-sveltia
 npx wrangler d1 migrations apply CMS_DATABASE --remote
 npx wrangler d1 migrations apply CMS_DATABASE --env preview --remote
 npx wrangler d1 migrations list CMS_DATABASE --remote
 npx wrangler d1 migrations list CMS_DATABASE --env preview --remote
 ```
 
-両方の`migrations list`でpendingが0件になるまで公開しません。PagesのGit
-deploymentはD1 migrationを自動適用しません。
+broker、CMS production、CMS previewの3つすべての`migrations list`でpendingが
+0件になるまで公開しません。Worker/PagesのGit deploymentはD1 migrationを
+自動適用しません。
 
 ## Cloudflare Access
 
-Access applicationは、productionの`pages.dev`とcustom domainの両方について
-`/admin*`をdestinationに指定します。利用できるlogin methodはWiki専用の
-Discord IdPだけに限定し、OTPを含めません。1つのIdPだけを使うため、instant
-authenticationを有効にできます。
+Access applicationは、`aceserver-wiki-astro.pages.dev`と
+`asv-wiki.acecore.net`の両方について`/admin*`をdestinationに指定します。
+利用できるlogin methodはWiki専用のOIDC brokerだけに限定し、OTPを含めません。
+1つのIdPだけを使うため、instant authenticationを有効にできます。
 
 gatewayは次をすべて検証します。
 
-- Access JWTの署名、issuer、audience、有効期限
+- Access JWTの署名、issuer、audience、有効期限、application token
+  (`type=app`)であること
 - 実際のrequest hostname
 - OIDC claimから得たDiscord snowflake
 - repository、branch、content root、media rootの固定allowlist
 
 `CMS_ACCESS_HOSTNAMES`には実際にAccessで保護したproduction hostnameだけを
-カンマ区切りで設定します。
+カンマ区切りで設定します。初回切替時は
+`aceserver-wiki-astro.pages.dev,asv-wiki.acecore.net`です。
 
-`account`モードではAccess JWTの`custom.sub`または`custom.discord_id`を
-Discord snowflakeとして検証します。Discord Generic OIDCはprovider testと
-実ログインを通過してから本番へ採用し、通らない場合はDiscord OAuthを受ける
-OIDC brokerを使用します。
+`account`モードではAccess JWTの`custom.discord_id`だけをDiscord snowflake
+として検証します。Discordの通常OAuth2はOIDC ID token/JWKSを提供しないため
+直接接続せず、Wiki専用OIDC brokerを使用します。
 
-直接接続のscopeは`openid email identify`、email claimは`email`、OIDC Claimsは
-`sub`です。これによりDiscordの`sub`をAccess JWTの`custom.sub`へ渡します。
-Access JWT自身のtop-level `sub`をDiscord IDとして使用しません。
+Access側はscopeを`openid email`、email claimを`email`、OIDC Claimsを
+`discord_id`、PKCEを有効にします。Provider Testと実ログインで
+`custom.discord_id`がDiscord snowflakeになることを確認します。Access JWT自身の
+top-level `sub`をDiscord IDとして使用しません。
 
 ## GitHub App
 
@@ -220,5 +242,12 @@ deployment成功まで確認します。
 - read、追加量、CMS全体容量の各上限を429または413でfail closedに拒否する
 - rollback workflowで対象commitだけを戻せる
 
-custom domain切替後も、旧Pages projectとNewt設定はrollback window中は削除
-しません。安定確認後にだけ旧project、Newt token、旧build経路を整理します。
+### custom domain rollback
+
+切替前に、旧Pages project `aceserver-wiki`のactive deployment ID、commit SHA、
+custom domain状態と確認時刻を運用記録へ残します。重大な障害が起きた場合は、
+`asv-wiki.acecore.net`を新projectから外して旧projectへ戻し、custom domainが
+activeになってからトップ、代表記事、旧URL redirectを再確認します。
+
+切替後も旧Pages projectとNewt設定はrollback window中は削除しません。
+Astro版の安定確認後にだけ旧project、Newt token、旧build経路を整理します。

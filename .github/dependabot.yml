@@ -33,3 +33,24 @@ updates:
       time: '09:00'
       timezone: Asia/Tokyo
     open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: /poc/discord-oidc-broker
+    schedule:
+      interval: weekly
+      day: monday
+      time: '09:00'
+      timezone: Asia/Tokyo
+    open-pull-requests-limit: 5
+    groups:
+      broker-npm-minor-patch:
+        patterns:
+          - '*'
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Keep declarations aligned with the Node 24 runtime.
+      - dependency-name: '@types/node'
+        update-types:
+          - version-update:semver-major

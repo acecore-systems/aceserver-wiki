@@ -82,9 +82,7 @@ export async function getAccessIdentity(
     const discordId =
       custom && typeof custom.discord_id === 'string'
         ? custom.discord_id.trim()
-        : custom && typeof custom.sub === 'string'
-          ? custom.sub.trim()
-          : ''
+        : ''
     const discordGuildId =
       custom && typeof custom.discord_guild_id === 'string'
         ? custom.discord_guild_id.trim()
@@ -107,6 +105,7 @@ export async function getAccessIdentity(
         : null
 
     if (
+      payload.type !== 'app' ||
       !subject ||
       !DISCORD_SNOWFLAKE_PATTERN.test(discordId) ||
       !discordRoleIds ||
