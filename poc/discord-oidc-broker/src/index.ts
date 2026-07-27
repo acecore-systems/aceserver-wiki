@@ -556,12 +556,36 @@ async function handleToken(
       'token_code_missing',
     )
   }
-  if (code.length < 32 || code.length > 256 || !OPAQUE_VALUE.test(code)) {
+  if (code.length === 0) {
     return rejectTokenRequest(
       400,
       'invalid_request',
       'grant parameters are invalid',
-      'token_code_malformed',
+      'token_code_empty',
+    )
+  }
+  if (code.length < 32) {
+    return rejectTokenRequest(
+      400,
+      'invalid_request',
+      'grant parameters are invalid',
+      'token_code_too_short',
+    )
+  }
+  if (code.length > 256) {
+    return rejectTokenRequest(
+      400,
+      'invalid_request',
+      'grant parameters are invalid',
+      'token_code_too_long',
+    )
+  }
+  if (!OPAQUE_VALUE.test(code)) {
+    return rejectTokenRequest(
+      400,
+      'invalid_request',
+      'grant parameters are invalid',
+      'token_code_characters_invalid',
     )
   }
   if (redirectUri === null) {
