@@ -1523,22 +1523,40 @@ async function ensurePublicationCommit({
 
   if (state.kind === 'missing') {
     try {
-      await githubJson({
+      const expectedRef = `refs/heads/${reservation.publicationBranch}`
+      const created = await githubJson<unknown>({
         body: {
-          ref: `refs/heads/${reservation.publicationBranch}`,
+          ref: expectedRef,
           sha: reservation.expectedHeadOid,
         },
         method: 'POST',
         path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/git/refs`,
         token,
       })
+
+      if (
+        !isRecord(created) ||
+        created.ref !== expectedRef ||
+        getGitRefSha(created) !== reservation.expectedHeadOid
+      ) {
+        throw new GitHubApiError('GitHub branch作成結果を確認できません。', 502)
+      }
+
+      state = { kind: 'base' }
     } catch (error) {
       if (!(error instanceof GitHubApiError) || error.status !== 422) {
         throw error
       }
-    }
 
-    state = await inspectPublicationBranch(reservation, token)
+      state = await inspectPublicationBranch(reservation, token)
+
+      if (state.kind === 'missing') {
+        throw new GitHubApiError(
+          'GitHubにCMS保存用branchを作成できませんでした。',
+          502,
+        )
+      }
+    }
   }
 
   if (state.kind === 'commit') return state.result
