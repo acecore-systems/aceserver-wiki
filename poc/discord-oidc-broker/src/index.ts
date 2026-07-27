@@ -478,6 +478,21 @@ async function authenticateTokenClient(
   )
 }
 
+function rejectTokenRequest(
+  status: number,
+  error: string,
+  description: string,
+  logCode: string,
+): Response {
+  console.warn(
+    JSON.stringify({
+      error: logCode,
+      event: 'oidc_token_request_rejected',
+    }),
+  )
+  return oauthError(status, error, description)
+}
+
 async function handleToken(
   request: Request,
   env: Env,
@@ -496,48 +511,90 @@ async function handleToken(
   try {
     parameters = await readFormBody(request)
   } catch {
-    return oauthError(
+    return rejectTokenRequest(
       400,
       'invalid_request',
       'token request must be form encoded',
+      'token_form_invalid',
     )
   }
   if (hasDuplicateParameters(parameters)) {
-    return oauthError(400, 'invalid_request', 'duplicate parameters')
+    return rejectTokenRequest(
+      400,
+      'invalid_request',
+      'duplicate parameters',
+      'token_parameters_duplicated',
+    )
   }
   if (!(await authenticateTokenClient(request, parameters, config))) {
-    const response = oauthError(
+    const response = rejectTokenRequest(
       401,
       'invalid_client',
       'client authentication failed',
+      'token_client_authentication_failed',
     )
     response.headers.set('WWW-Authenticate', 'Basic realm="oidc-token"')
     return response
   }
   if (parameters.get('grant_type') !== 'authorization_code') {
-    return oauthError(
+    return rejectTokenRequest(
       400,
       'unsupported_grant_type',
       'grant_type must be authorization_code',
+      'token_grant_type_unsupported',
     )
   }
 
   const code = parameters.get('code')
   const redirectUri = parameters.get('redirect_uri')
   const verifier = parameters.get('code_verifier')
-  if (
-    code === null ||
-    code.length < 32 ||
-    code.length > 256 ||
-    !OPAQUE_VALUE.test(code) ||
-    redirectUri === null ||
-    verifier === null ||
-    !PKCE_VERIFIER.test(verifier)
-  ) {
-    return oauthError(400, 'invalid_request', 'grant parameters are invalid')
+  if (code === null) {
+    return rejectTokenRequest(
+      400,
+      'invalid_request',
+      'grant parameters are invalid',
+      'token_code_missing',
+    )
+  }
+  if (code.length < 32 || code.length > 256 || !OPAQUE_VALUE.test(code)) {
+    return rejectTokenRequest(
+      400,
+      'invalid_request',
+      'grant parameters are invalid',
+      'token_code_malformed',
+    )
+  }
+  if (redirectUri === null) {
+    return rejectTokenRequest(
+      400,
+      'invalid_request',
+      'grant parameters are invalid',
+      'token_redirect_uri_missing',
+    )
+  }
+  if (verifier === null) {
+    return rejectTokenRequest(
+      400,
+      'invalid_request',
+      'grant parameters are invalid',
+      'token_code_verifier_missing',
+    )
+  }
+  if (!PKCE_VERIFIER.test(verifier)) {
+    return rejectTokenRequest(
+      400,
+      'invalid_request',
+      'grant parameters are invalid',
+      'token_code_verifier_malformed',
+    )
   }
   if (!config.accessRedirectUris.has(redirectUri)) {
-    return oauthError(400, 'invalid_grant', 'authorization grant is invalid')
+    return rejectTokenRequest(
+      400,
+      'invalid_grant',
+      'authorization grant is invalid',
+      'token_redirect_uri_untrusted',
+    )
   }
 
   const authorization = await consumeAuthorizationCode(
@@ -548,10 +605,11 @@ async function handleToken(
     now,
   )
   if (authorization === null) {
-    return oauthError(
+    return rejectTokenRequest(
       400,
       'invalid_grant',
       'authorization grant is invalid or expired',
+      'token_authorization_grant_invalid',
     )
   }
 
