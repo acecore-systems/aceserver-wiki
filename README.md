@@ -27,9 +27,15 @@ yarn build
 記事・カテゴリ・リンクをリポジトリ管理のコンテンツへ移行してから
 `server/utils/newt.ts` と `NEWT_CDN_API_TOKEN` を削除します。
 
-## Astro・Markdown編集PoC
+## Astro・Markdown版
 
-Astro、repository内Markdown、stock Sveltia CMS、Discord属性を検証する
-content gatewayを
+移行先のWikiは
 [`poc/astro-sveltia`](./poc/astro-sveltia/README.md)
-で並行開発しています。このPoCは現行Nuxt/Newtや公開Pages設定を切り替えません。
+にあります。Astro、repository内Markdown、stock Sveltia CMS、Cloudflare Access、
+Pages Functionsのcontent gatewayで構成しています。
+
+Newtの公開データはMarkdownへ移行済みです。現行のNuxt/Newt実装は、
+Astro版のE2E確認とcustom domain切替が完了するまでrollback用に保持します。
+公開・認証・D1・復旧の手順は
+[`poc/astro-sveltia/OPERATIONS.md`](./poc/astro-sveltia/OPERATIONS.md)
+を参照してください。

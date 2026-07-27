@@ -21,6 +21,23 @@ CREATE TABLE IF NOT EXISTS cms_rate_limits (
 CREATE INDEX IF NOT EXISTS cms_rate_limits_window_idx
   ON cms_rate_limits (window_start);
 
+CREATE TABLE IF NOT EXISTS cms_mutation_rate_limits (
+  scope TEXT NOT NULL CHECK (scope IN ('user', 'global')),
+  actor_id TEXT NOT NULL,
+  window_start INTEGER NOT NULL,
+  mutation_count INTEGER NOT NULL CHECK (mutation_count >= 0),
+  addition_bytes INTEGER NOT NULL CHECK (addition_bytes >= 0),
+  max_mutation_count INTEGER NOT NULL CHECK (max_mutation_count > 0),
+  max_addition_bytes INTEGER NOT NULL CHECK (max_addition_bytes > 0),
+  last_reservation_id TEXT NOT NULL,
+  CHECK (mutation_count <= max_mutation_count),
+  CHECK (addition_bytes <= max_addition_bytes),
+  PRIMARY KEY (scope, actor_id, window_start)
+);
+
+CREATE INDEX IF NOT EXISTS cms_mutation_rate_limits_window_idx
+  ON cms_mutation_rate_limits (window_start);
+
 CREATE TABLE IF NOT EXISTS cms_mutations (
   idempotency_key TEXT PRIMARY KEY CHECK (length(idempotency_key) = 64),
   actor_discord_id TEXT NOT NULL,
@@ -41,6 +58,9 @@ CREATE TABLE IF NOT EXISTS cms_mutations (
 
 CREATE INDEX IF NOT EXISTS cms_mutations_actor_idx
   ON cms_mutations (actor_discord_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS cms_mutations_state_updated_at_idx
+  ON cms_mutations (state, updated_at);
 
 CREATE TABLE IF NOT EXISTS cms_audit_events (
   id TEXT PRIMARY KEY,

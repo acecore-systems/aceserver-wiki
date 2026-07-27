@@ -1,7 +1,20 @@
 import type { CmsRuntimeEnv } from './_cms-policy.ts'
 
 const RATE_LIMIT_WINDOW_SECONDS = 10 * 60
-const RATE_LIMIT_MAX_MUTATIONS = 12
+const GLOBAL_READ_BURST_WINDOW_SECONDS = 10
+const GLOBAL_READ_SUSTAINED_WINDOW_SECONDS = 10 * 60
+const RATE_LIMIT_MAX_READS_PER_USER = 120
+const RATE_LIMIT_MAX_READS_GLOBAL_BURST = 60
+const RATE_LIMIT_MAX_READS_GLOBAL_SUSTAINED = 240
+const GLOBAL_READ_RATE_LIMIT_ACTOR = 'gateway'
+const GLOBAL_MUTATION_RATE_LIMIT_ACTOR = 'gateway'
+export const CMS_MUTATION_RATE_LIMITS = {
+  windowSeconds: RATE_LIMIT_WINDOW_SECONDS,
+  userMutations: 12,
+  globalMutations: 60,
+  userAdditionBytes: 16 * 1024 * 1024,
+  globalAdditionBytes: 64 * 1024 * 1024,
+} as const
 const PROCESSING_LEASE_SECONDS = 5 * 60
 const REPLAY_RETENTION_SECONDS = 7 * 24 * 60 * 60
 const UNKNOWN_RETENTION_SECONDS = 30 * 24 * 60 * 60
@@ -60,12 +73,123 @@ export class CmsStateError extends Error {
   }
 }
 
+export async function authorizeCmsApiAttempt({
+  discordId,
+  env,
+  request,
+}: {
+  discordId: string
+  env: CmsRuntimeEnv
+  request: Request
+}) {
+  const database = requireCmsDatabase(env)
+  const now = Math.floor(Date.now() / 1000)
+  const requestId = getRequestId(request)
+  const userWindowStart = now - (now % RATE_LIMIT_WINDOW_SECONDS)
+  const globalBurstWindowStart = now - (now % GLOBAL_READ_BURST_WINDOW_SECONDS)
+  const globalSustainedWindowStart =
+    now - (now % GLOBAL_READ_SUSTAINED_WINDOW_SECONDS)
+
+  try {
+    await cleanupCmsState(database, now)
+
+    const ban = await database
+      .prepare(
+        `SELECT reason, expires_at
+         FROM cms_bans
+         WHERE discord_id = ?
+           AND (expires_at IS NULL OR expires_at > ?)
+         LIMIT 1`,
+      )
+      .bind(discordId, now)
+      .first<{ expires_at: number | null; reason: string }>()
+
+    if (ban) {
+      throw new CmsStateError(
+        ban.expires_at
+          ? 'このDiscordユーザーのCMS閲覧権限は一時停止されています。'
+          : 'このDiscordユーザーのCMS閲覧権限は停止されています。',
+        403,
+      )
+    }
+
+    const userReadCount = await incrementReadRateLimit({
+      actorId: discordId,
+      database,
+      maximum: RATE_LIMIT_MAX_READS_PER_USER,
+      scope: 'read-user',
+      windowStart: userWindowStart,
+    })
+    const userRetryAfterSeconds = Math.max(
+      1,
+      userWindowStart + RATE_LIMIT_WINDOW_SECONDS - now,
+    )
+
+    if (userReadCount === null) {
+      throw new CmsStateError(
+        'CMS APIアクセス回数がユーザー上限に達しました。少し待ってから再試行してください。',
+        429,
+        userRetryAfterSeconds,
+      )
+    }
+
+    const globalBurstReadCount = await incrementReadRateLimit({
+      actorId: GLOBAL_READ_RATE_LIMIT_ACTOR,
+      database,
+      maximum: RATE_LIMIT_MAX_READS_GLOBAL_BURST,
+      scope: 'read-global-burst',
+      windowStart: globalBurstWindowStart,
+    })
+
+    if (globalBurstReadCount === null) {
+      throw new CmsStateError(
+        'CMS API全体の短時間アクセス上限に達しました。少し待ってから再試行してください。',
+        429,
+        Math.max(
+          1,
+          globalBurstWindowStart + GLOBAL_READ_BURST_WINDOW_SECONDS - now,
+        ),
+      )
+    }
+
+    const globalSustainedReadCount = await incrementReadRateLimit({
+      actorId: GLOBAL_READ_RATE_LIMIT_ACTOR,
+      database,
+      maximum: RATE_LIMIT_MAX_READS_GLOBAL_SUSTAINED,
+      scope: 'read-global-sustained',
+      windowStart: globalSustainedWindowStart,
+    })
+
+    if (globalSustainedReadCount === null) {
+      throw new CmsStateError(
+        'CMS API全体の継続アクセス上限に達しました。少し待ってから再試行してください。',
+        429,
+        Math.max(
+          1,
+          globalSustainedWindowStart +
+            GLOBAL_READ_SUSTAINED_WINDOW_SECONDS -
+            now,
+        ),
+      )
+    }
+  } catch (error) {
+    if (error instanceof CmsStateError) throw error
+
+    logStateError('CMS read authorization failed', {
+      error,
+      requestId,
+    })
+    throw new CmsStateError('CMSのBANとrate limitを確認できません。', 503)
+  }
+}
+
 export async function beginCmsMutation({
   bodyText,
   discordId,
   discordRoleIds,
   env,
   expectedHeadOid,
+  mutationBytes,
   paths,
   request,
 }: {
@@ -74,6 +198,7 @@ export async function beginCmsMutation({
   discordRoleIds: string[]
   env: CmsRuntimeEnv
   expectedHeadOid: string
+  mutationBytes: number
   paths: string[]
   request: Request
 }): Promise<CmsMutationStart> {
@@ -163,33 +288,11 @@ export async function beginCmsMutation({
       )
     }
 
+    if (!Number.isSafeInteger(mutationBytes) || mutationBytes < 0) {
+      throw new CmsStateError('CMS追加ファイルのbyte数が不正です。', 500)
+    }
+
     const windowStart = now - (now % RATE_LIMIT_WINDOW_SECONDS)
-    const rate = await database
-      .prepare(
-        `INSERT INTO cms_rate_limits (
-           scope, actor_id, window_start, hit_count
-         ) VALUES ('mutation', ?, ?, 1)
-         ON CONFLICT(scope, actor_id, window_start)
-         DO UPDATE SET hit_count = hit_count + 1
-         RETURNING hit_count`,
-      )
-      .bind(discordId, windowStart)
-      .first<{ hit_count: number }>()
-
-    if (!rate || !Number.isInteger(rate.hit_count)) {
-      throw new Error('D1 rate limit result is invalid')
-    }
-
-    if (rate.hit_count > RATE_LIMIT_MAX_MUTATIONS) {
-      const retryAfterSeconds = windowStart + RATE_LIMIT_WINDOW_SECONDS - now
-
-      throw new CmsStateError(
-        '保存回数が上限に達しました。少し待ってから再試行してください。',
-        429,
-        Math.max(1, retryAfterSeconds),
-      )
-    }
-
     const auditId = crypto.randomUUID()
     const leaseExpiresAt = now + PROCESSING_LEASE_SECONDS
     const mutationStatement =
@@ -248,48 +351,115 @@ export async function beginCmsMutation({
               now,
               now,
             )
-    const results = await database.batch([
-      mutationStatement,
-      database
-        .prepare(
-          `INSERT INTO cms_audit_events (
-             id,
-             occurred_at,
-             actor_discord_id,
-             discord_role_ids_json,
-             request_id,
-             action,
-             status,
-             paths_json
-           )
-           SELECT ?, ?, ?, ?, ?, 'mutation', 'attempted', ?
-           WHERE EXISTS (
-             SELECT 1
-             FROM cms_mutations
-             WHERE idempotency_key = ?
-               AND audit_id = ?
-               AND state = 'processing'
-           )`,
-        )
-        .bind(
+    let results: D1Result<unknown>[]
+
+    try {
+      results = await database.batch([
+        mutationRateLimitStatement({
+          actorId: discordId,
+          additionBytes: mutationBytes,
+          database,
+          lastReservationId: auditId,
+          maxAdditionBytes: CMS_MUTATION_RATE_LIMITS.userAdditionBytes,
+          maxMutationCount: CMS_MUTATION_RATE_LIMITS.userMutations,
+          scope: 'user',
+          windowStart,
+        }),
+        mutationRateLimitStatement({
+          actorId: GLOBAL_MUTATION_RATE_LIMIT_ACTOR,
+          additionBytes: mutationBytes,
+          database,
+          lastReservationId: auditId,
+          maxAdditionBytes: CMS_MUTATION_RATE_LIMITS.globalAdditionBytes,
+          maxMutationCount: CMS_MUTATION_RATE_LIMITS.globalMutations,
+          scope: 'global',
+          windowStart,
+        }),
+        mutationStatement,
+        database
+          .prepare(
+            `INSERT INTO cms_audit_events (
+               id,
+               occurred_at,
+               actor_discord_id,
+               discord_role_ids_json,
+               request_id,
+               action,
+               status,
+               paths_json
+             )
+             SELECT ?, ?, ?, ?, ?, 'mutation', 'attempted', ?
+             WHERE EXISTS (
+               SELECT 1
+               FROM cms_mutations
+               WHERE idempotency_key = ?
+                 AND audit_id = ?
+                 AND state = 'processing'
+             )`,
+          )
+          .bind(
+            auditId,
+            now,
+            discordId,
+            JSON.stringify(discordRoleIds),
+            requestId,
+            JSON.stringify(paths),
+            idempotencyKey,
+            auditId,
+          ),
+        mutationRateCompensationStatement({
+          actorId: discordId,
+          additionBytes: mutationBytes,
           auditId,
-          now,
-          discordId,
-          JSON.stringify(discordRoleIds),
-          requestId,
-          JSON.stringify(paths),
+          database,
           idempotencyKey,
+          scope: 'user',
+          windowStart,
+        }),
+        mutationRateCompensationStatement({
+          actorId: GLOBAL_MUTATION_RATE_LIMIT_ACTOR,
+          additionBytes: mutationBytes,
           auditId,
-        ),
-    ])
+          database,
+          idempotencyKey,
+          scope: 'global',
+          windowStart,
+        }),
+      ])
+    } catch (error) {
+      const rateLimitError = await getMutationRateLimitError({
+        additionBytes: mutationBytes,
+        database,
+        discordId,
+        now,
+        windowStart,
+      })
 
-    if (!hasExactlyOneChange(results[0]) || !hasExactlyOneChange(results[1])) {
-      if (hasExactlyOneChange(results[0]) !== hasExactlyOneChange(results[1])) {
-        throw new Error(
-          'CMS mutation reservation and audit were not changed as a pair',
-        )
-      }
+      if (rateLimitError) throw rateLimitError
+      throw error
+    }
 
+    const mutationReserved =
+      hasExactlyOneChange(results[2]) && hasExactlyOneChange(results[3])
+    const mutationRaced = hasNoChanges(results[2]) && hasNoChanges(results[3])
+    const rateLimitsReserved =
+      hasExactlyOneChange(results[0]) && hasExactlyOneChange(results[1])
+    const rateLimitsCompensated =
+      hasExactlyOneChange(results[4]) && hasExactlyOneChange(results[5])
+
+    if (
+      !rateLimitsReserved ||
+      (mutationReserved &&
+        (!hasNoChanges(results[4]) || !hasNoChanges(results[5]))) ||
+      (mutationRaced && !rateLimitsCompensated) ||
+      (!mutationReserved && !mutationRaced)
+    ) {
+      throw new Error(
+        'CMS mutation rate limits, reservation, and audit were not changed atomically',
+      )
+    }
+
+    if (mutationRaced) {
       const raced = await getMutation(database, idempotencyKey)
       const racedReplay = parseSuccessfulReplay(raced)
 
@@ -673,6 +843,18 @@ async function cleanupCmsState(database: D1Database, now: number) {
   await database.batch([
     database
       .prepare(
+        `DELETE FROM cms_mutation_rate_limits
+         WHERE rowid IN (
+           SELECT rowid
+           FROM cms_mutation_rate_limits
+           WHERE window_start < ?
+           ORDER BY window_start
+           LIMIT ?
+         )`,
+      )
+      .bind(now - RATE_LIMIT_RETENTION_SECONDS, RETENTION_DELETE_LIMIT),
+    database
+      .prepare(
         `DELETE FROM cms_rate_limits
          WHERE rowid IN (
            SELECT rowid
@@ -710,6 +892,244 @@ async function cleanupCmsState(database: D1Database, now: number) {
       )
       .bind(now - UNKNOWN_RETENTION_SECONDS, RETENTION_DELETE_LIMIT),
   ])
+}
+
+function mutationRateLimitStatement({
+  actorId,
+  additionBytes,
+  database,
+  lastReservationId,
+  maxAdditionBytes,
+  maxMutationCount,
+  scope,
+  windowStart,
+}: {
+  actorId: string
+  additionBytes: number
+  database: D1Database
+  lastReservationId: string
+  maxAdditionBytes: number
+  maxMutationCount: number
+  scope: 'global' | 'user'
+  windowStart: number
+}) {
+  return database
+    .prepare(
+      `INSERT INTO cms_mutation_rate_limits (
+         scope,
+         actor_id,
+         window_start,
+         mutation_count,
+         addition_bytes,
+         max_mutation_count,
+         max_addition_bytes,
+         last_reservation_id
+       ) VALUES (?, ?, ?, 1, ?, ?, ?, ?)
+       ON CONFLICT(scope, actor_id, window_start)
+       DO UPDATE SET
+         mutation_count = mutation_count + 1,
+         addition_bytes = addition_bytes + excluded.addition_bytes,
+         max_mutation_count = excluded.max_mutation_count,
+         max_addition_bytes = excluded.max_addition_bytes,
+         last_reservation_id = excluded.last_reservation_id`,
+    )
+    .bind(
+      scope,
+      actorId,
+      windowStart,
+      additionBytes,
+      maxMutationCount,
+      maxAdditionBytes,
+      lastReservationId,
+    )
+}
+
+function mutationRateCompensationStatement({
+  actorId,
+  additionBytes,
+  auditId,
+  database,
+  idempotencyKey,
+  scope,
+  windowStart,
+}: {
+  actorId: string
+  additionBytes: number
+  auditId: string
+  database: D1Database
+  idempotencyKey: string
+  scope: 'global' | 'user'
+  windowStart: number
+}) {
+  return database
+    .prepare(
+      `UPDATE cms_mutation_rate_limits
+       SET mutation_count = mutation_count - 1,
+           addition_bytes = addition_bytes - ?,
+           last_reservation_id = ''
+       WHERE scope = ?
+         AND actor_id = ?
+         AND window_start = ?
+         AND last_reservation_id = ?
+         AND NOT EXISTS (
+           SELECT 1
+           FROM cms_mutations AS mutation
+           INNER JOIN cms_audit_events AS audit
+             ON audit.id = mutation.audit_id
+           WHERE mutation.idempotency_key = ?
+             AND mutation.audit_id = ?
+             AND mutation.state = 'processing'
+             AND audit.status = 'attempted'
+         )`,
+    )
+    .bind(
+      additionBytes,
+      scope,
+      actorId,
+      windowStart,
+      auditId,
+      idempotencyKey,
+      auditId,
+    )
+}
+
+async function getMutationRateLimitError({
+  additionBytes,
+  database,
+  discordId,
+  now,
+  windowStart,
+}: {
+  additionBytes: number
+  database: D1Database
+  discordId: string
+  now: number
+  windowStart: number
+}) {
+  const rows = await database.batch<{
+    addition_bytes: number
+    mutation_count: number
+  }>([
+    database
+      .prepare(
+        `SELECT mutation_count, addition_bytes
+         FROM cms_mutation_rate_limits
+         WHERE scope = 'user'
+           AND actor_id = ?
+           AND window_start = ?
+         LIMIT 1`,
+      )
+      .bind(discordId, windowStart),
+    database
+      .prepare(
+        `SELECT mutation_count, addition_bytes
+         FROM cms_mutation_rate_limits
+         WHERE scope = 'global'
+           AND actor_id = ?
+           AND window_start = ?
+         LIMIT 1`,
+      )
+      .bind(GLOBAL_MUTATION_RATE_LIMIT_ACTOR, windowStart),
+  ])
+  const user = rows[0]?.results[0]
+  const global = rows[1]?.results[0]
+  const retryAfterSeconds = Math.max(
+    1,
+    windowStart + RATE_LIMIT_WINDOW_SECONDS - now,
+  )
+
+  if (
+    user &&
+    user.mutation_count + 1 > CMS_MUTATION_RATE_LIMITS.userMutations
+  ) {
+    return new CmsStateError(
+      '保存回数がユーザー上限に達しました。少し待ってから再試行してください。',
+      429,
+      retryAfterSeconds,
+    )
+  }
+
+  if (
+    user &&
+    user.addition_bytes + additionBytes >
+      CMS_MUTATION_RATE_LIMITS.userAdditionBytes
+  ) {
+    return new CmsStateError(
+      '追加ファイル量がユーザー上限に達しました。少し待ってから再試行してください。',
+      429,
+      retryAfterSeconds,
+    )
+  }
+
+  if (
+    global &&
+    global.mutation_count + 1 > CMS_MUTATION_RATE_LIMITS.globalMutations
+  ) {
+    return new CmsStateError(
+      'CMS全体の保存回数が上限に達しました。少し待ってから再試行してください。',
+      429,
+      retryAfterSeconds,
+    )
+  }
+
+  if (
+    global &&
+    global.addition_bytes + additionBytes >
+      CMS_MUTATION_RATE_LIMITS.globalAdditionBytes
+  ) {
+    return new CmsStateError(
+      'CMS全体の追加ファイル量が上限に達しました。少し待ってから再試行してください。',
+      429,
+      retryAfterSeconds,
+    )
+  }
+
+  return null
+}
+
+async function incrementReadRateLimit({
+  actorId,
+  database,
+  maximum,
+  scope,
+  windowStart,
+}: {
+  actorId: string
+  database: D1Database
+  maximum: number
+  scope: 'read-global-burst' | 'read-global-sustained' | 'read-user'
+  windowStart: number
+}) {
+  const result = await database
+    .prepare(
+      `INSERT INTO cms_rate_limits (
+         scope, actor_id, window_start, hit_count
+       ) VALUES (?, ?, ?, 1)
+       ON CONFLICT(scope, actor_id, window_start)
+       DO UPDATE SET hit_count = hit_count + 1
+       WHERE cms_rate_limits.hit_count < ?
+       RETURNING hit_count`,
+    )
+    .bind(scope, actorId, windowStart, maximum)
+    .run<{
+      hit_count?: number
+    }>()
+  const hitCount = result.results[0]?.hit_count
+
+  if (result.meta.changes === 0 && result.results.length === 0) {
+    return null
+  }
+
+  if (
+    !hasExactlyOneChange(result) ||
+    !Number.isInteger(hitCount) ||
+    (hitCount as number) < 1 ||
+    (hitCount as number) > maximum
+  ) {
+    throw new Error('D1 read rate limit result is invalid')
+  }
+
+  return hitCount as number
 }
 
 async function transitionStaleMutationToUnknown({
@@ -842,6 +1262,10 @@ function assertPairedStateChange(
 
 function hasExactlyOneChange(result: D1Result<unknown> | undefined) {
   return result?.meta?.changes === 1
+}
+
+function hasNoChanges(result: D1Result<unknown> | undefined) {
+  return result?.meta?.changes === 0
 }
 
 function throwStateOperationError(

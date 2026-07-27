@@ -21,27 +21,14 @@ const ADMIN_CONTENT_SECURITY_POLICY = [
   "worker-src 'self' blob:",
 ].join('; ')
 
-const PUBLIC_CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "base-uri 'self'",
-  "connect-src 'self' https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com",
-  "font-src 'self' data:",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  'frame-src https://*.doubleclick.net https://*.google.com https://*.googlesyndication.com',
-  "img-src 'self' data: blob: https:",
-  "object-src 'none'",
-  "script-src 'self' https://pagead2.googlesyndication.com https://*.googlesyndication.com",
-  "style-src 'self' 'unsafe-inline'",
-  'upgrade-insecure-requests',
-].join('; ')
+const CSP_NONCE_PLACEHOLDER = '__CSP_NONCE__'
 
 export const onRequest: PagesFunction = async ({ next, request }) => {
   const url = new URL(request.url)
   const redirect = getLegacyRedirect(url)
   const response = redirect
     ? Response.redirect(new URL(redirect, url.origin), 301)
-    : await next()
+    : await next(withoutHtmlConditionalHeaders(request, url))
 
   return withSecurityHeaders(response, url)
 }
@@ -74,14 +61,17 @@ function getLegacyRedirect(url: URL) {
   return `${destination.pathname}${destination.search}`
 }
 
-function withSecurityHeaders(response: Response, url: URL) {
+async function withSecurityHeaders(response: Response, url: URL) {
   const headers = new Headers(response.headers)
   const isAdmin =
     url.pathname === '/admin' || url.pathname.startsWith('/admin/')
+  const nonce = createNonce()
 
   headers.set(
     'Content-Security-Policy',
-    isAdmin ? ADMIN_CONTENT_SECURITY_POLICY : PUBLIC_CONTENT_SECURITY_POLICY,
+    isAdmin
+      ? ADMIN_CONTENT_SECURITY_POLICY
+      : buildPublicContentSecurityPolicy(nonce),
   )
   headers.set('Cross-Origin-Opener-Policy', 'same-origin')
   headers.set('Cross-Origin-Resource-Policy', 'same-site')
@@ -100,11 +90,79 @@ function withSecurityHeaders(response: Response, url: URL) {
 
   if (isAdmin) headers.set('Cache-Control', 'no-store')
 
-  return new Response(response.body, {
+  let body: BodyInit | null = response.body
+  const isPublicHtml =
+    !isAdmin && headers.get('Content-Type')?.toLowerCase().includes('text/html')
+
+  if (isPublicHtml) {
+    headers.delete('Content-Length')
+    headers.delete('ETag')
+    headers.delete('Last-Modified')
+    headers.set('Cache-Control', 'no-store')
+
+    if (response.body) {
+      const html = await response.text()
+      body = html.replaceAll(
+        `nonce="${CSP_NONCE_PLACEHOLDER}"`,
+        `nonce="${nonce}"`,
+      )
+    }
+  }
+
+  return new Response(body, {
     status: response.status,
     statusText: response.statusText,
     headers,
   })
+}
+
+function withoutHtmlConditionalHeaders(request: Request, url: URL) {
+  if (
+    (request.method !== 'GET' && request.method !== 'HEAD') ||
+    !isLikelyHtmlPath(url.pathname)
+  ) {
+    return request
+  }
+
+  const headers = new Headers(request.headers)
+  headers.delete('If-Modified-Since')
+  headers.delete('If-None-Match')
+
+  return new Request(request, { headers })
+}
+
+function isLikelyHtmlPath(pathname: string) {
+  if (
+    pathname === '/' ||
+    pathname.endsWith('/') ||
+    pathname.endsWith('.html')
+  ) {
+    return true
+  }
+
+  const lastSegment = pathname.slice(pathname.lastIndexOf('/') + 1)
+  return !lastSegment.includes('.')
+}
+
+function buildPublicContentSecurityPolicy(nonce: string) {
+  return [
+    "default-src 'self'",
+    "base-uri 'none'",
+    "connect-src 'self'",
+    "font-src 'self' data:",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "frame-src 'none'",
+    "img-src 'self' data: blob:",
+    "object-src 'none'",
+    `script-src 'nonce-${nonce}' 'strict-dynamic' 'self'`,
+    "style-src 'self' 'unsafe-inline'",
+    'upgrade-insecure-requests',
+  ].join('; ')
+}
+
+function createNonce() {
+  return crypto.randomUUID().replaceAll('-', '')
 }
 
 function buildPermissionsPolicy() {

@@ -32,7 +32,7 @@ const {
   type = 'website',
   robots = 'index, follow',
   ogImage,
-  showAds = true,
+  showAds = false,
 } = Astro.props
 
 const canonical = new URL(canonicalPath, Astro.site ?? SITE_ORIGIN).toString()
@@ -75,6 +75,7 @@ const absoluteOgImage = ogImage
       showAds && (
         <script
           is:inline
+          nonce="__CSP_NONCE__"
           async
           crossorigin="anonymous"
           src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}

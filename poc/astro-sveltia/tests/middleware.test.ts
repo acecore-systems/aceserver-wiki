@@ -35,7 +35,7 @@ describe('Pages middleware', () => {
     expect(policy).not.toContain('pagead2.googlesyndication.com')
   })
 
-  it('allows only the public advertising script hosts on wiki pages', async () => {
+  it('uses a per-response strict nonce policy on public pages', async () => {
     const response = await onRequest({
       request: new Request('https://asv-wiki.acecore.net/article/rule/'),
       next: async () => new Response('wiki'),
@@ -43,7 +43,11 @@ describe('Pages middleware', () => {
 
     const policy = response.headers.get('Content-Security-Policy') || ''
 
-    expect(policy).toContain('pagead2.googlesyndication.com')
+    expect(policy).toMatch(/script-src 'nonce-[a-f0-9]{32}'/u)
+    expect(policy).toContain("'strict-dynamic'")
+    expect(policy).toContain("frame-src 'none'")
+    expect(policy).not.toContain("'unsafe-eval'")
+    expect(policy).not.toContain("script-src 'self' https:")
     expect(policy).not.toContain('https://unpkg.com')
     expect(response.headers.get('X-Frame-Options')).toBe('DENY')
   })

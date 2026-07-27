@@ -4,6 +4,7 @@ import {
   type CmsRuntimeEnv,
 } from '../_cms-policy.ts'
 import { getAccessIdentity, type AccessIdentity } from '../_access-auth.ts'
+import { CmsStateError, authorizeCmsApiAttempt } from '../_cms-state.ts'
 import {
   GitHubApiError,
   copyGitHubResponse,
@@ -23,6 +24,10 @@ export const onRequest: PagesFunction<CmsRuntimeEnv> = async ({
   request,
   env,
 }) => {
+  const requestBoundaryError = validateBrowserRequestBoundary(request)
+
+  if (requestBoundaryError) return requestBoundaryError
+
   const auth = await getAccessIdentity(request, env)
 
   if (!auth.ok) {
@@ -47,9 +52,14 @@ export const onRequest: PagesFunction<CmsRuntimeEnv> = async ({
   const proxyPath = getProxyPath(request)
 
   try {
-    const token = await getGitHubToken(env)
-
     if (proxyPath === 'user') {
+      await authorizeCmsApiAttempt({
+        discordId: auth.discordId,
+        env,
+        request,
+      })
+      const token = await getGitHubToken(env)
+
       return await handleCurrentUser({ auth, method, token })
     }
 
@@ -65,6 +75,13 @@ export const onRequest: PagesFunction<CmsRuntimeEnv> = async ({
         403,
       )
     }
+
+    await authorizeCmsApiAttempt({
+      discordId: auth.discordId,
+      env,
+      request,
+    })
+    const token = await getGitHubToken(env)
 
     if (target.kind === 'tree') {
       return await handleTreeRead({ method, ref: target.ref, token })
@@ -201,7 +218,30 @@ function getProxyLogin(auth: AuthenticatedIdentity) {
   return `discord-${auth.discordId}`
 }
 
+function validateBrowserRequestBoundary(request: Request) {
+  const fetchSite = request.headers.get('Sec-Fetch-Site')?.trim().toLowerCase()
+
+  if (fetchSite && fetchSite !== 'same-origin') {
+    return json(
+      { message: 'CMS GitHub API requestはsame-originに限定されています。' },
+      403,
+    )
+  }
+
+  return null
+}
+
 function toErrorResponse(error: unknown) {
+  if (error instanceof CmsStateError) {
+    return json(
+      { message: error.message },
+      error.status,
+      error.retryAfterSeconds
+        ? { 'Retry-After': String(error.retryAfterSeconds) }
+        : undefined,
+    )
+  }
+
   if (error instanceof GitHubApiError) {
     return json({ message: error.message }, error.status)
   }

@@ -12,7 +12,29 @@ const GITHUB_API_VERSION = '2022-11-28'
 const USER_AGENT = 'aceserver-wiki-sveltia-content-gateway'
 const INSTALLATION_TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000
 const MAX_GITHUB_JSON_BYTES = 16 * 1024 * 1024
+const MAX_PRIVATE_KEY_PEM_CHARS = 32 * 1024
+const MIN_PRIVATE_KEY_DER_BYTES = 256
+const MAX_PRIVATE_KEY_DER_BYTES = 16 * 1024
 const SHA_PATTERN = /^[a-f0-9]{40}$/iu
+const BASE64_PATTERN =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u
+const RSA_ALGORITHM_IDENTIFIER = Uint8Array.of(
+  0x30,
+  0x0d,
+  0x06,
+  0x09,
+  0x2a,
+  0x86,
+  0x48,
+  0x86,
+  0xf7,
+  0x0d,
+  0x01,
+  0x01,
+  0x01,
+  0x05,
+  0x00,
+)
 
 // Only the repository-scoped GitHub App credential is cached. No request
 // identity, request body, or authorization decision is stored globally.
@@ -34,10 +56,7 @@ export class GitHubApiError extends Error {
 export async function getGitHubToken(env: CmsRuntimeEnv) {
   const clientId = env.CMS_GITHUB_APP_CLIENT_ID?.trim()
   const installationId = env.CMS_GITHUB_APP_INSTALLATION_ID?.trim()
-  const privateKey = env.CMS_GITHUB_APP_PRIVATE_KEY?.replace(
-    /\\n/gu,
-    '\n',
-  ).trim()
+  const privateKey = env.CMS_GITHUB_APP_PRIVATE_KEY
 
   if (
     !clientId ||
@@ -61,7 +80,10 @@ export async function getGitHubToken(env: CmsRuntimeEnv) {
   let appJwt: string
 
   try {
-    const signingKey = await importPKCS8(privateKey, 'RS256')
+    const signingKey = await importPKCS8(
+      normalizeGitHubAppPrivateKey(privateKey),
+      'RS256',
+    )
     const now = Math.floor(Date.now() / 1000)
 
     appJwt = await new SignJWT({})
@@ -291,6 +313,10 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value)
 }
 
+export async function readGitHubResponseJson(response: Response) {
+  return await readResponseJson(response)
+}
+
 async function githubFetch(input: string, init: RequestInit) {
   try {
     return await fetch(input, init)
@@ -365,4 +391,212 @@ async function readBoundedResponseText(
   } finally {
     reader.releaseLock()
   }
+}
+
+function normalizeGitHubAppPrivateKey(value: string) {
+  if (value.length === 0 || value.length > MAX_PRIVATE_KEY_PEM_CHARS) {
+    throw new Error('GitHub App private key size is invalid')
+  }
+
+  const pem = value.replace(/\\n/gu, '\n').replace(/\r\n?/gu, '\n').trim()
+  const pkcs8 = decodePem(pem, 'PRIVATE KEY')
+
+  if (pkcs8) {
+    validateSingleDerSequence(pkcs8)
+    return encodePem(pkcs8, 'PRIVATE KEY')
+  }
+
+  const pkcs1 = decodePem(pem, 'RSA PRIVATE KEY')
+
+  if (!pkcs1) {
+    throw new Error('GitHub App private key PEM label is invalid')
+  }
+
+  validateSingleDerSequence(pkcs1)
+
+  const privateKey = encodeDerElement(0x04, pkcs1)
+  const privateKeyInfo = concatenateBytes([
+    Uint8Array.of(0x02, 0x01, 0x00),
+    RSA_ALGORITHM_IDENTIFIER,
+    privateKey,
+  ])
+
+  return encodePem(encodeDerElement(0x30, privateKeyInfo), 'PRIVATE KEY')
+}
+
+function decodePem(value: string, label: 'PRIVATE KEY' | 'RSA PRIVATE KEY') {
+  const lines = value.split('\n')
+
+  if (
+    lines.length < 3 ||
+    lines[0] !== `-----BEGIN ${label}-----` ||
+    lines.at(-1) !== `-----END ${label}-----`
+  ) {
+    return null
+  }
+
+  const bodyLines = lines.slice(1, -1)
+
+  if (
+    bodyLines.some(
+      (line) =>
+        line.length === 0 ||
+        line.length > 76 ||
+        !/^[A-Za-z0-9+/]+={0,2}$/u.test(line),
+    )
+  ) {
+    throw new Error('GitHub App private key PEM body is invalid')
+  }
+
+  const body = bodyLines.join('')
+
+  if (
+    body.length % 4 !== 0 ||
+    !BASE64_PATTERN.test(body) ||
+    body.length > Math.ceil((MAX_PRIVATE_KEY_DER_BYTES * 4) / 3) + 4
+  ) {
+    throw new Error('GitHub App private key base64 is invalid')
+  }
+
+  let binary: string
+
+  try {
+    binary = atob(body)
+  } catch {
+    throw new Error('GitHub App private key base64 is invalid')
+  }
+
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0))
+
+  if (
+    bytes.byteLength < MIN_PRIVATE_KEY_DER_BYTES ||
+    bytes.byteLength > MAX_PRIVATE_KEY_DER_BYTES ||
+    bytesToBase64(bytes) !== body
+  ) {
+    throw new Error('GitHub App private key DER size is invalid')
+  }
+
+  return bytes
+}
+
+function validateSingleDerSequence(bytes: Uint8Array) {
+  if (bytes[0] !== 0x30) {
+    throw new Error('GitHub App private key DER is not a sequence')
+  }
+
+  const length = decodeDerLength(bytes, 1)
+
+  if (length.contentOffset + length.contentLength !== bytes.byteLength) {
+    throw new Error('GitHub App private key DER length is invalid')
+  }
+}
+
+function decodeDerLength(bytes: Uint8Array, offset: number) {
+  const first = bytes[offset]
+
+  if (first === undefined) {
+    throw new Error('GitHub App private key DER length is missing')
+  }
+
+  if (first < 0x80) {
+    return {
+      contentLength: first,
+      contentOffset: offset + 1,
+    }
+  }
+
+  const octetCount = first & 0x7f
+
+  if (octetCount === 0 || octetCount > 4) {
+    throw new Error('GitHub App private key DER length is invalid')
+  }
+
+  const lengthEnd = offset + 1 + octetCount
+
+  if (
+    lengthEnd > bytes.byteLength ||
+    bytes[offset + 1] === 0 ||
+    (octetCount === 1 && (bytes[offset + 1] ?? 0) < 0x80)
+  ) {
+    throw new Error('GitHub App private key DER length is not canonical')
+  }
+
+  let contentLength = 0
+
+  for (let index = offset + 1; index < lengthEnd; index += 1) {
+    contentLength = contentLength * 256 + (bytes[index] ?? 0)
+  }
+
+  return {
+    contentLength,
+    contentOffset: lengthEnd,
+  }
+}
+
+function encodeDerElement(tag: number, content: Uint8Array) {
+  return concatenateBytes([
+    Uint8Array.of(tag),
+    encodeDerLength(content.byteLength),
+    content,
+  ])
+}
+
+function encodeDerLength(length: number) {
+  if (!Number.isSafeInteger(length) || length < 0) {
+    throw new Error('DER length is invalid')
+  }
+
+  if (length < 0x80) return Uint8Array.of(length)
+
+  const octets: number[] = []
+  let remaining = length
+
+  while (remaining > 0) {
+    octets.unshift(remaining & 0xff)
+    remaining = Math.floor(remaining / 256)
+  }
+
+  return Uint8Array.of(0x80 | octets.length, ...octets)
+}
+
+function concatenateBytes(parts: Uint8Array[]) {
+  const result = new Uint8Array(
+    parts.reduce((total, part) => total + part.byteLength, 0),
+  )
+  let offset = 0
+
+  for (const part of parts) {
+    result.set(part, offset)
+    offset += part.byteLength
+  }
+
+  return result
+}
+
+function encodePem(
+  bytes: Uint8Array,
+  label: 'PRIVATE KEY' | 'RSA PRIVATE KEY',
+) {
+  const body = bytesToBase64(bytes)
+    .match(/.{1,64}/gu)
+    ?.join('\n')
+
+  if (!body) throw new Error('GitHub App private key PEM encoding failed')
+
+  return `-----BEGIN ${label}-----\n${body}\n-----END ${label}-----`
+}
+
+function bytesToBase64(bytes: Uint8Array) {
+  const chunks: string[] = []
+  const chunkSize = 0x8000
+
+  for (let offset = 0; offset < bytes.byteLength; offset += chunkSize) {
+    chunks.push(
+      String.fromCharCode(
+        ...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)),
+      ),
+    )
+  }
+
+  return btoa(chunks.join(''))
 }

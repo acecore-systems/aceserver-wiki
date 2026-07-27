@@ -5,6 +5,7 @@ import {
   exportJWK,
   exportPKCS8,
   generateKeyPair,
+  jwtVerify,
   type JWK,
 } from 'jose'
 import {
@@ -17,8 +18,14 @@ import {
   vi,
 } from 'vitest'
 
-import { onRequestPost } from '../functions/admin/api/graphql.ts'
 import {
+  CMS_PROJECTED_TREE_LIMITS,
+  onRequestPost,
+} from '../functions/admin/api/graphql.ts'
+import { onRequest as onGitHubProxyRequest } from '../functions/admin/api/github/[[path]].ts'
+import { getGitHubToken } from '../functions/admin/api/_github-api.ts'
+import {
+  CMS_MUTATION_RATE_LIMITS,
   beginCmsMutation,
   completeCmsMutation,
 } from '../functions/admin/api/_cms-state.ts'
@@ -36,6 +43,7 @@ const INSTALLATION_TOKEN_URL = `https://api.github.com/app/installations/${GITHU
 
 let accessPrivateKey: CryptoKey
 let accessJwk: JWK
+let githubPublicKey: CryptoKey
 let githubPrivateKeyPem: string
 let validAccessJwt: string
 
@@ -56,6 +64,7 @@ beforeAll(async () => {
   accessJwk.alg = 'RS256'
   accessJwk.kid = ACCESS_KEY_ID
   accessJwk.use = 'sig'
+  githubPublicKey = githubKeys.publicKey
   githubPrivateKeyPem = await exportPKCS8(githubKeys.privateKey)
   validAccessJwt = await signAccessJwt()
 })
@@ -64,6 +73,7 @@ beforeEach(async () => {
   await env.CMS_DATABASE.exec(`
     DELETE FROM cms_audit_events;
     DELETE FROM cms_mutations;
+    DELETE FROM cms_mutation_rate_limits;
     DELETE FROM cms_rate_limits;
     DELETE FROM cms_bans;
   `)
@@ -216,6 +226,8 @@ describe('CMS publication modes', () => {
         })
       }
 
+      if (isProjectionTreeUrl(url)) return projectionTreeResponse()
+
       if (method === 'GET' && url.includes('/git/ref/heads/cms/pending/')) {
         return branchSha
           ? jsonResponse({ object: { sha: branchSha } })
@@ -281,6 +293,8 @@ describe('CMS publication modes', () => {
       if (url.endsWith('/git/ref/heads/main')) {
         return jsonResponse({ object: { sha: MAIN_SHA } })
       }
+
+      if (isProjectionTreeUrl(url)) return projectionTreeResponse()
 
       if (method === 'GET' && url.includes('/git/ref/heads/cms/pending/')) {
         return reviewBranchSha
@@ -357,6 +371,8 @@ describe('CMS publication modes', () => {
         return jsonResponse({ object: { sha: MAIN_SHA } })
       }
 
+      if (isProjectionTreeUrl(url)) return projectionTreeResponse()
+
       if (method === 'GET' && url.includes('/git/ref/heads/cms/pending/')) {
         return reviewBranchSha
           ? jsonResponse({ object: { sha: reviewBranchSha } })
@@ -417,6 +433,160 @@ describe('CMS publication modes', () => {
     ).first<{ state: string }>()
 
     expect(mutation?.state).toBe('unknown')
+  })
+
+  it('rejects a projected CMS tree above one thousand files before commit', async () => {
+    const calls: string[] = []
+
+    mockFetch(async (url) => {
+      calls.push(url)
+
+      if (url.endsWith('/git/ref/heads/main')) {
+        return jsonResponse({ object: { sha: MAIN_SHA } })
+      }
+
+      if (isProjectionTreeUrl(url)) {
+        return projectionTreeResponse(contentTree(1000))
+      }
+
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const response = await onRequestPost({
+      request: graphqlRequest(commitVariables(MAIN_SHA)),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+    const state = await env.CMS_DATABASE.prepare(
+      `SELECT
+         (SELECT state FROM cms_mutations LIMIT 1) AS mutation_state,
+         (SELECT status FROM cms_audit_events LIMIT 1) AS audit_status`,
+    ).first<{ audit_status: string; mutation_state: string }>()
+
+    expect(response.status).toBe(413)
+    expect(state).toEqual({
+      mutation_state: 'failed',
+      audit_status: 'failed',
+    })
+    expect(calls.some((url) => url.endsWith('/git/refs'))).toBe(false)
+    expect(calls.some((url) => url.endsWith('/graphql'))).toBe(false)
+  })
+
+  it('allows a deletion that brings an oversized CMS tree back to the cap', async () => {
+    const tree = contentTree(CMS_PROJECTED_TREE_LIMITS.maxFiles + 1)
+    const publication = mockSuccessfulDirectPublication('e', tree)
+    const response = await onRequestPost({
+      request: graphqlRequest(
+        deletionVariables(MAIN_SHA, tree.at(-1)?.path || ''),
+      ),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(200)
+    expect(publication.calls.some(({ url }) => url.endsWith('/graphql'))).toBe(
+      true,
+    )
+  })
+
+  it('rejects projected CMS media above 512 MiB before commit', async () => {
+    const calls: string[] = []
+
+    mockFetch(async (url) => {
+      calls.push(url)
+
+      if (url.endsWith('/git/ref/heads/main')) {
+        return jsonResponse({ object: { sha: MAIN_SHA } })
+      }
+
+      if (isProjectionTreeUrl(url)) {
+        return projectionTreeResponse([
+          {
+            mode: '100644',
+            path: 'poc/astro-sveltia/public/uploads/wiki/existing.png',
+            sha: 'f'.repeat(40),
+            size: CMS_PROJECTED_TREE_LIMITS.maxMediaBytes,
+            type: 'blob',
+          },
+        ])
+      }
+
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const response = await onRequestPost({
+      request: graphqlRequest(mediaCommitVariables(MAIN_SHA)),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(413)
+    expect(calls.some((url) => url.endsWith('/git/refs'))).toBe(false)
+    expect(calls.some((url) => url.endsWith('/graphql'))).toBe(false)
+  })
+
+  it('rejects projected Markdown above 64 MiB before commit', async () => {
+    const calls = mockProjectionOnly([
+      {
+        mode: '100644',
+        path: 'poc/astro-sveltia/src/content/wiki/existing.md',
+        sha: '1'.repeat(40),
+        size: CMS_PROJECTED_TREE_LIMITS.maxContentBytes,
+        type: 'blob',
+      },
+    ])
+    const response = await onRequestPost({
+      request: graphqlRequest(commitVariables(MAIN_SHA)),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(413)
+    expect(calls.some((url) => url.endsWith('/git/refs'))).toBe(false)
+  })
+
+  it('rejects the projected aggregate CMS blob size even below category caps', async () => {
+    const calls = mockProjectionOnly([
+      {
+        mode: '100644',
+        path: 'poc/astro-sveltia/public/uploads/wiki/existing.png',
+        sha: '2'.repeat(40),
+        size: 500 * 1024 * 1024,
+        type: 'blob',
+      },
+      {
+        mode: '100644',
+        path: 'poc/astro-sveltia/src/content/wiki/existing.md',
+        sha: '3'.repeat(40),
+        size: 12 * 1024 * 1024,
+        type: 'blob',
+      },
+    ])
+    const response = await onRequestPost({
+      request: graphqlRequest(commitVariables(MAIN_SHA)),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(413)
+    expect(calls.some((url) => url.endsWith('/git/refs'))).toBe(false)
+  })
+
+  it('allows deleting oversized Markdown to recover below the byte cap', async () => {
+    const path = 'poc/astro-sveltia/src/content/wiki/oversized.md'
+    const publication = mockSuccessfulDirectPublication('4', [
+      {
+        mode: '100644',
+        path,
+        sha: '4'.repeat(40),
+        size: CMS_PROJECTED_TREE_LIMITS.maxContentBytes + 1,
+        type: 'blob',
+      },
+    ])
+    const response = await onRequestPost({
+      request: graphqlRequest(deletionVariables(MAIN_SHA, path)),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(200)
+    expect(publication.calls.some(({ url }) => url.endsWith('/graphql'))).toBe(
+      true,
+    )
   })
 })
 
@@ -485,10 +655,26 @@ describe('CMS mutation controls', () => {
     const counts = await env.CMS_DATABASE.prepare(
       `SELECT
          (SELECT COUNT(*) FROM cms_mutations) AS mutations,
-         (SELECT COUNT(*) FROM cms_audit_events) AS audits`,
-    ).first<{ mutations: number; audits: number }>()
+         (SELECT COUNT(*) FROM cms_audit_events) AS audits,
+         (SELECT mutation_count
+          FROM cms_mutation_rate_limits
+          WHERE scope = 'user') AS user_rate,
+         (SELECT mutation_count
+          FROM cms_mutation_rate_limits
+          WHERE scope = 'global') AS global_rate`,
+    ).first<{
+      mutations: number
+      audits: number
+      user_rate: number
+      global_rate: number
+    }>()
 
-    expect(counts).toEqual({ mutations: 1, audits: 1 })
+    expect(counts).toEqual({
+      mutations: 1,
+      audits: 1,
+      user_rate: 1,
+      global_rate: 1,
+    })
   })
 
   it('moves an expired processing lease to unknown for reconciliation', async () => {
@@ -778,6 +964,7 @@ describe('CMS mutation controls', () => {
         discordRoleIds: [DISCORD_ROLE_ID],
         env: runtimeEnv,
         expectedHeadOid: MAIN_SHA,
+        mutationBytes: 1,
         paths: ['poc/astro-sveltia/src/content/wiki/test.md'],
         request: new Request(
           'https://wiki-admin.example.test/admin/api/graphql',
@@ -794,6 +981,7 @@ describe('CMS mutation controls', () => {
         discordRoleIds: [DISCORD_ROLE_ID],
         env: runtimeEnv,
         expectedHeadOid: MAIN_SHA,
+        mutationBytes: 1,
         paths: ['poc/astro-sveltia/src/content/wiki/test.md'],
         request: new Request(
           'https://wiki-admin.example.test/admin/api/graphql',
@@ -802,6 +990,483 @@ describe('CMS mutation controls', () => {
     ).rejects.toMatchObject({
       status: 429,
     })
+  })
+
+  it.each([
+    {
+      name: 'global mutation count',
+      scope: 'global',
+      actorId: 'gateway',
+      mutationCount: CMS_MUTATION_RATE_LIMITS.globalMutations,
+      additionBytes: 0,
+      maxMutationCount: CMS_MUTATION_RATE_LIMITS.globalMutations,
+      maxAdditionBytes: CMS_MUTATION_RATE_LIMITS.globalAdditionBytes,
+    },
+    {
+      name: 'user addition bytes',
+      scope: 'user',
+      actorId: DISCORD_ID,
+      mutationCount: 0,
+      additionBytes: CMS_MUTATION_RATE_LIMITS.userAdditionBytes,
+      maxMutationCount: CMS_MUTATION_RATE_LIMITS.userMutations,
+      maxAdditionBytes: CMS_MUTATION_RATE_LIMITS.userAdditionBytes,
+    },
+    {
+      name: 'global addition bytes',
+      scope: 'global',
+      actorId: 'gateway',
+      mutationCount: 0,
+      additionBytes: CMS_MUTATION_RATE_LIMITS.globalAdditionBytes,
+      maxMutationCount: CMS_MUTATION_RATE_LIMITS.globalMutations,
+      maxAdditionBytes: CMS_MUTATION_RATE_LIMITS.globalAdditionBytes,
+    },
+  ])(
+    'fails closed and rolls back partial counters at the $name limit',
+    async ({
+      actorId,
+      additionBytes,
+      maxAdditionBytes,
+      maxMutationCount,
+      mutationCount,
+      name,
+      scope,
+    }) => {
+      const now = Math.floor(Date.now() / 1000)
+      const windowStart = now - (now % CMS_MUTATION_RATE_LIMITS.windowSeconds)
+
+      await env.CMS_DATABASE.prepare(
+        `INSERT INTO cms_mutation_rate_limits (
+           scope,
+           actor_id,
+           window_start,
+           mutation_count,
+           addition_bytes,
+           max_mutation_count,
+           max_addition_bytes,
+           last_reservation_id
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, 'seed')`,
+      )
+        .bind(
+          scope,
+          actorId,
+          windowStart,
+          mutationCount,
+          additionBytes,
+          maxMutationCount,
+          maxAdditionBytes,
+        )
+        .run()
+
+      await expect(
+        beginCmsMutation({
+          ...mutationStartArgs(`rate-limit-${name}`),
+          mutationBytes: 1,
+        }),
+      ).rejects.toMatchObject({
+        status: 429,
+      })
+
+      const state = await env.CMS_DATABASE.prepare(
+        `SELECT
+           (SELECT COUNT(*) FROM cms_mutations) AS mutations,
+           (SELECT COUNT(*) FROM cms_audit_events) AS audits,
+           (SELECT COUNT(*) FROM cms_mutation_rate_limits) AS rate_rows,
+           (SELECT mutation_count
+            FROM cms_mutation_rate_limits
+            WHERE scope = ? AND actor_id = ?) AS mutation_count,
+           (SELECT addition_bytes
+            FROM cms_mutation_rate_limits
+            WHERE scope = ? AND actor_id = ?) AS addition_bytes`,
+      )
+        .bind(scope, actorId, scope, actorId)
+        .first<{
+          addition_bytes: number
+          audits: number
+          mutation_count: number
+          mutations: number
+          rate_rows: number
+        }>()
+
+      expect(state).toEqual({
+        mutations: 0,
+        audits: 0,
+        rate_rows: 1,
+        mutation_count: mutationCount,
+        addition_bytes: additionBytes,
+      })
+    },
+  )
+})
+
+describe('GitHub App authentication', () => {
+  it('signs an installation JWT with a downloaded PKCS#1 RSA private key', async () => {
+    const clientId = 'Iv1.pkcs1-gateway-test'
+    const installationId = '987655'
+    const installationUrl = `https://api.github.com/app/installations/${installationId}/access_tokens`
+    const pkcs1PrivateKey = pkcs8ToPkcs1Pem(githubPrivateKeyPem)
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init: RequestInit = {}) => {
+        const url = String(input)
+
+        if (url !== installationUrl) {
+          throw new Error(`Unexpected request: ${url}`)
+        }
+
+        const authorization = new Headers(init.headers).get('Authorization')
+        const appJwt = authorization?.replace(/^Bearer /u, '')
+
+        expect(appJwt).toBeTruthy()
+        await expect(
+          jwtVerify(appJwt || '', githubPublicKey, {
+            algorithms: ['RS256'],
+            issuer: clientId,
+          }),
+        ).resolves.toBeTruthy()
+
+        return jsonResponse({
+          token: 'pkcs1-installation-token',
+          expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        })
+      },
+    )
+
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(
+      getGitHubToken(
+        testEnv('direct', {
+          CMS_GITHUB_APP_CLIENT_ID: clientId,
+          CMS_GITHUB_APP_INSTALLATION_ID: installationId,
+          CMS_GITHUB_APP_PRIVATE_KEY: pkcs1PrivateKey,
+        }),
+      ),
+    ).resolves.toBe('pkcs1-installation-token')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('CMS read controls', () => {
+  it('rejects a banned user on GraphQL and REST reads before GitHub access', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const fetchMock = mockFetch(async (url) => {
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    await env.CMS_DATABASE.prepare(
+      `INSERT INTO cms_bans (
+         discord_id, reason, expires_at, created_at, created_by
+       ) VALUES (?, ?, NULL, ?, ?)`,
+    )
+      .bind(DISCORD_ID, 'read test ban', now, 'test-suite')
+      .run()
+
+    const graphqlResponse = await onRequestPost({
+      request: graphqlQueryRequest(headHistoryQuery()),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+    const restResponse = await onGitHubProxyRequest({
+      request: githubProxyRequest(
+        `repos/acecore-systems/aceserver-wiki/git/trees/main?recursive=1`,
+      ),
+      env: testEnv('direct'),
+    } as Parameters<typeof onGitHubProxyRequest>[0])
+    const rateCount = await env.CMS_DATABASE.prepare(
+      `SELECT COUNT(*) AS count FROM cms_rate_limits`,
+    ).first<{ count: number }>()
+
+    expect(graphqlResponse.status).toBe(403)
+    expect(restResponse.status).toBe(403)
+    expect(rateCount?.count).toBe(0)
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes('/access_tokens'),
+      ),
+    ).toBe(false)
+  })
+
+  it('caps per-user reads without consuming more global capacity after 429', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const windowStart = now - (now % (10 * 60))
+
+    mockFetch(async (url) => {
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    await env.CMS_DATABASE.prepare(
+      `INSERT INTO cms_rate_limits (
+         scope, actor_id, window_start, hit_count
+       ) VALUES ('read-user', ?, ?, 120)`,
+    )
+      .bind(DISCORD_ID, windowStart)
+      .run()
+
+    const first = await onRequestPost({
+      request: graphqlQueryRequest(headHistoryQuery()),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+    const second = await onRequestPost({
+      request: graphqlQueryRequest(headHistoryQuery()),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+    const counts = await env.CMS_DATABASE.prepare(
+      `SELECT
+         (SELECT hit_count
+          FROM cms_rate_limits
+          WHERE scope = 'read-user' AND actor_id = ?) AS user_count,
+         (SELECT hit_count
+          FROM cms_rate_limits
+          WHERE scope = 'read-global-burst'
+            AND actor_id = 'gateway') AS global_count`,
+    )
+      .bind(DISCORD_ID)
+      .first<{ global_count: number | null; user_count: number }>()
+
+    expect(first.status).toBe(429)
+    expect(second.status).toBe(429)
+    expect(Number(first.headers.get('Retry-After'))).toBeGreaterThan(0)
+    expect(Number(second.headers.get('Retry-After'))).toBeGreaterThan(0)
+    expect(counts).toEqual({
+      user_count: 120,
+      global_count: null,
+    })
+  })
+
+  it('caps global reads through the REST gateway and returns Retry-After', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const windowStart = now - (now % 10)
+
+    mockFetch(async (url) => {
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    await env.CMS_DATABASE.prepare(
+      `INSERT INTO cms_rate_limits (
+         scope, actor_id, window_start, hit_count
+       ) VALUES ('read-global-burst', 'gateway', ?, 60)`,
+    )
+      .bind(windowStart)
+      .run()
+
+    const response = await onGitHubProxyRequest({
+      request: githubProxyRequest(
+        `repos/acecore-systems/aceserver-wiki/git/trees/main?recursive=1`,
+      ),
+      env: testEnv('direct'),
+    } as Parameters<typeof onGitHubProxyRequest>[0])
+    const counts = await env.CMS_DATABASE.prepare(
+      `SELECT scope, hit_count
+       FROM cms_rate_limits
+       WHERE scope IN ('read-user', 'read-global-burst')
+       ORDER BY scope`,
+    ).all<{ hit_count: number; scope: string }>()
+
+    expect(response.status).toBe(429)
+    expect(Number(response.headers.get('Retry-After'))).toBeGreaterThan(0)
+    expect(Number(response.headers.get('Retry-After'))).toBeLessThanOrEqual(10)
+    expect(counts.results).toEqual([
+      { scope: 'read-global-burst', hit_count: 60 },
+      { scope: 'read-user', hit_count: 1 },
+    ])
+  })
+
+  it('caps sustained global reads across the ten-minute window', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const windowStart = now - (now % (10 * 60))
+
+    mockFetch(async (url) => {
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    await env.CMS_DATABASE.prepare(
+      `INSERT INTO cms_rate_limits (
+         scope, actor_id, window_start, hit_count
+       ) VALUES ('read-global-sustained', 'gateway', ?, 240)`,
+    )
+      .bind(windowStart)
+      .run()
+
+    const response = await onGitHubProxyRequest({
+      request: githubProxyRequest('user'),
+      env: testEnv('direct'),
+    } as Parameters<typeof onGitHubProxyRequest>[0])
+    const counts = await env.CMS_DATABASE.prepare(
+      `SELECT scope, hit_count
+       FROM cms_rate_limits
+       WHERE scope IN (
+         'read-user',
+         'read-global-burst',
+         'read-global-sustained'
+       )
+       ORDER BY scope`,
+    ).all<{ hit_count: number; scope: string }>()
+
+    expect(response.status).toBe(429)
+    expect(Number(response.headers.get('Retry-After'))).toBeGreaterThan(0)
+    expect(Number(response.headers.get('Retry-After'))).toBeLessThanOrEqual(
+      10 * 60,
+    )
+    expect(counts.results).toEqual([
+      { scope: 'read-global-burst', hit_count: 1 },
+      { scope: 'read-global-sustained', hit_count: 240 },
+      { scope: 'read-user', hit_count: 1 },
+    ])
+  })
+
+  it('fails closed on GraphQL and REST when the D1 binding is missing', async () => {
+    const runtimeEnv = {
+      ...testEnv('direct'),
+      CMS_DATABASE: undefined,
+    }
+    const fetchMock = mockFetch(async (url) => {
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    const graphqlResponse = await onRequestPost({
+      request: graphqlQueryRequest(headHistoryQuery()),
+      env: runtimeEnv,
+    } as Parameters<typeof onRequestPost>[0])
+    const restResponse = await onGitHubProxyRequest({
+      request: githubProxyRequest('user'),
+      env: runtimeEnv,
+    } as Parameters<typeof onGitHubProxyRequest>[0])
+
+    expect(graphqlResponse.status).toBe(503)
+    expect(restResponse.status).toBe(503)
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes('/access_tokens'),
+      ),
+    ).toBe(false)
+  })
+
+  it('rejects cross-site REST reads and invalid paths before D1 or GitHub', async () => {
+    mockFetch(async (url) => {
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const crossSite = await onGitHubProxyRequest({
+      request: githubProxyRequest('user', {
+        fetchSite: 'cross-site',
+      }),
+      env: testEnv('direct'),
+    } as Parameters<typeof onGitHubProxyRequest>[0])
+    const invalidPath = await onGitHubProxyRequest({
+      request: githubProxyRequest(
+        'repos/acecore-systems/aceserver-wiki/private-metadata',
+      ),
+      env: testEnv('direct'),
+    } as Parameters<typeof onGitHubProxyRequest>[0])
+    const rateCount = await env.CMS_DATABASE.prepare(
+      `SELECT COUNT(*) AS count FROM cms_rate_limits`,
+    ).first<{ count: number }>()
+
+    expect(crossSite.status).toBe(403)
+    expect(invalidPath.status).toBe(403)
+    expect(rateCount?.count).toBe(0)
+  })
+
+  it('reserves API attempts before reading invalid or oversized GraphQL bodies', async () => {
+    mockFetch(async (url) => {
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const invalid = await onRequestPost({
+      request: graphqlRawRequest('{'),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+    const oversized = await onRequestPost({
+      request: graphqlRawRequest('{}', {
+        contentLength: 16 * 1024 * 1024 + 1,
+      }),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+    const rates = await env.CMS_DATABASE.prepare(
+      `SELECT scope, hit_count
+       FROM cms_rate_limits
+       WHERE scope IN (
+         'read-user',
+         'read-global-burst',
+         'read-global-sustained'
+       )
+       ORDER BY scope`,
+    ).all<{ hit_count: number; scope: string }>()
+
+    expect(invalid.status).toBe(400)
+    expect(oversized.status).toBe(413)
+    expect(rates.results).toEqual([
+      { scope: 'read-global-burst', hit_count: 2 },
+      { scope: 'read-global-sustained', hit_count: 2 },
+      { scope: 'read-user', hit_count: 2 },
+    ])
+  })
+
+  it('returns a global attempt 429 without reading the GraphQL body', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const windowStart = now - (now % 10)
+    let bodyRead = false
+
+    await env.CMS_DATABASE.prepare(
+      `INSERT INTO cms_rate_limits (
+         scope, actor_id, window_start, hit_count
+       ) VALUES ('read-global-burst', 'gateway', ?, 60)`,
+    )
+      .bind(windowStart)
+      .run()
+
+    const baseRequest = graphqlRawRequest('{}')
+    const unreadRequest = new Proxy(baseRequest, {
+      get(target, property) {
+        if (property === 'body') {
+          bodyRead = true
+          throw new Error('GraphQL body was read after the attempt limit')
+        }
+
+        const value = Reflect.get(target, property, target) as unknown
+
+        return typeof value === 'function' ? value.bind(target) : value
+      },
+    })
+    const response = await onRequestPost({
+      request: unreadRequest,
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(429)
+    expect(Number(response.headers.get('Retry-After'))).toBeLessThanOrEqual(10)
+    expect(bodyRead).toBe(false)
+  })
+
+  it('rejects oversized unused read variables before GitHub', async () => {
+    const fetchMock = mockFetch(async (url) => {
+      throw new Error(`Unexpected request: ${url}`)
+    })
+    const response = await onRequestPost({
+      request: graphqlQueryRequest(
+        `
+          query Oversized($junk: String) {
+            repository(owner: "acecore-systems", name: "aceserver-wiki") {
+              ref(qualifiedName: "main") {
+                target {
+                  ... on Commit {
+                    history(first: 1) {
+                      nodes { oid message }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        `,
+        { junk: 'x'.repeat(65 * 1024) },
+      ),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(413)
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes('api.github.com/graphql'),
+      ),
+    ).toBe(false)
   })
 })
 
@@ -815,7 +1480,24 @@ describe('stock Sveltia read queries', () => {
               ref: {
                 target: {
                   history: {
-                    nodes: [],
+                    nodes: [
+                      {
+                        oid: 'b'.repeat(40),
+                        committedDate: '2026-07-27T00:00:00Z',
+                        author: {
+                          name: 'Private repository author',
+                          email: 'private-author@example.test',
+                          avatarUrl:
+                            'https://avatars.example.test/private-user',
+                          user: {
+                            databaseId: 987654321,
+                            login: 'private-login',
+                          },
+                          privateMetadata: 'must-not-pass',
+                        },
+                        privateMetadata: 'must-not-pass',
+                      },
+                    ],
                   },
                 },
               },
@@ -844,7 +1526,7 @@ describe('stock Sveltia read queries', () => {
                         name
                         email
                         avatarUrl
-                        user { login }
+                        user { databaseId login }
                       }
                       committedDate
                     }
@@ -857,8 +1539,120 @@ describe('stock Sveltia read queries', () => {
       `),
       env: testEnv('direct'),
     } as Parameters<typeof onRequestPost>[0])
+    const body = (await response.json()) as {
+      data: {
+        repository: {
+          ref: {
+            target: {
+              history: {
+                nodes: unknown[]
+              }
+            }
+          }
+        }
+      }
+    }
+    const serialized = JSON.stringify(body)
 
     expect(response.status).toBe(200)
+    expect(body.data.repository.ref.target.history.nodes).toEqual([
+      {
+        oid: 'b'.repeat(40),
+        committedDate: '2026-07-27T00:00:00Z',
+        author: {
+          name: 'Anonymous',
+          email: '',
+          avatarUrl: '',
+          user: null,
+        },
+      },
+    ])
+    expect(serialized).not.toContain('Private repository author')
+    expect(serialized).not.toContain('private-author@example.test')
+    expect(serialized).not.toContain('private-login')
+    expect(serialized).not.toContain('987654321')
+    expect(serialized).not.toContain('must-not-pass')
+  })
+
+  it('redacts the pathless HEAD message while preserving its oid', async () => {
+    mockFetch(async (url) => {
+      if (url.endsWith('/graphql')) {
+        return jsonResponse({
+          data: {
+            repository: {
+              ref: {
+                target: {
+                  history: {
+                    nodes: [
+                      {
+                        oid: 'c'.repeat(40),
+                        message:
+                          'Private release plan and internal incident details',
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        })
+      }
+
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const response = await onRequestPost({
+      request: graphqlQueryRequest(headHistoryQuery()),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+    const body = (await response.json()) as {
+      data: {
+        repository: {
+          ref: {
+            target: {
+              history: {
+                nodes: Array<{ message: string; oid: string }>
+              }
+            }
+          }
+        }
+      }
+    }
+    const node = body.data.repository.ref.target.history.nodes[0]
+
+    expect(response.status).toBe(200)
+    expect(node).toEqual({
+      oid: 'c'.repeat(40),
+      message: '',
+    })
+    expect(JSON.stringify(body)).not.toContain('Private release plan')
+  })
+
+  it('rejects a ref alias that could bypass response sanitization', async () => {
+    mockFetch(async (url) => {
+      throw new Error(`Unexpected request: ${url}`)
+    })
+
+    const response = await onRequestPost({
+      request: graphqlQueryRequest(`
+        query {
+          repository(owner: "acecore-systems", name: "aceserver-wiki") {
+            secret: ref(qualifiedName: "main") {
+              target {
+                ... on Commit {
+                  history(first: 1) {
+                    nodes { oid message }
+                  }
+                }
+              }
+            }
+          }
+        }
+      `),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+
+    expect(response.status).toBe(403)
   })
 
   it('limits pathless HEAD history to the stock Sveltia first-one query', async () => {
@@ -888,8 +1682,7 @@ describe('stock Sveltia read queries', () => {
 function mockFetch(
   handler: (url: string, init: RequestInit) => Promise<Response>,
 ) {
-  vi.stubGlobal(
-    'fetch',
+  const fetchMock = vi.fn(
     async (input: RequestInfo | URL, init: RequestInit = {}) => {
       const url = String(input)
 
@@ -907,9 +1700,15 @@ function mockFetch(
       return await handler(url, init)
     },
   )
+
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
 }
 
-function mockSuccessfulDirectPublication(marker: string) {
+function mockSuccessfulDirectPublication(
+  marker: string,
+  projectionTree: Parameters<typeof projectionTreeResponse>[0] = [],
+) {
   const calls: Array<{ url: string; method: string; body: unknown }> = []
   let mainSha = MAIN_SHA
   let publicationBranch = ''
@@ -924,6 +1723,10 @@ function mockSuccessfulDirectPublication(marker: string) {
 
     if (url.endsWith('/git/ref/heads/main')) {
       return jsonResponse({ object: { sha: mainSha } })
+    }
+
+    if (isProjectionTreeUrl(url)) {
+      return projectionTreeResponse(projectionTree)
     }
 
     if (method === 'GET' && url.includes('/git/ref/heads/cms/pending/')) {
@@ -977,6 +1780,28 @@ function mockSuccessfulDirectPublication(marker: string) {
   }
 }
 
+function mockProjectionOnly(
+  tree: Parameters<typeof projectionTreeResponse>[0],
+) {
+  const calls: string[] = []
+
+  mockFetch(async (url) => {
+    calls.push(url)
+
+    if (url.endsWith('/git/ref/heads/main')) {
+      return jsonResponse({ object: { sha: MAIN_SHA } })
+    }
+
+    if (isProjectionTreeUrl(url)) {
+      return projectionTreeResponse(tree)
+    }
+
+    throw new Error(`Unexpected request: ${url}`)
+  })
+
+  return calls
+}
+
 function mockCommitResponseLossThenRecovery(
   marker: string,
   parentSha = MAIN_SHA,
@@ -996,6 +1821,8 @@ function mockCommitResponseLossThenRecovery(
     if (url.endsWith('/git/ref/heads/main')) {
       return jsonResponse({ object: { sha: mainSha } })
     }
+
+    if (isProjectionTreeUrl(url)) return projectionTreeResponse()
 
     if (method === 'GET' && url.includes('/git/ref/heads/cms/pending/')) {
       return publicationBranchSha
@@ -1061,12 +1888,16 @@ function mutationStartArgs(bodyText: string) {
     discordRoleIds: [DISCORD_ROLE_ID],
     env: testEnv('direct'),
     expectedHeadOid: MAIN_SHA,
+    mutationBytes: 1,
     paths: ['poc/astro-sveltia/src/content/wiki/test.md'],
     request: new Request('https://wiki-admin.example.test/admin/api/graphql'),
   }
 }
 
-function testEnv(publicationMode: 'direct' | 'review') {
+function testEnv(
+  publicationMode: 'direct' | 'review',
+  overrides: Partial<CmsRuntimeEnv> = {},
+) {
   return {
     CMS_DATABASE: env.CMS_DATABASE,
     CMS_REPOSITORY_OWNER: 'acecore-systems',
@@ -1084,6 +1915,7 @@ function testEnv(publicationMode: 'direct' | 'review') {
     CMS_GITHUB_APP_CLIENT_ID: GITHUB_CLIENT_ID,
     CMS_GITHUB_APP_INSTALLATION_ID: GITHUB_INSTALLATION_ID,
     CMS_GITHUB_APP_PRIVATE_KEY: githubPrivateKeyPem,
+    ...overrides,
   } as CmsRuntimeEnv
 }
 
@@ -1112,7 +1944,32 @@ function graphqlRequest(
   })
 }
 
-function graphqlQueryRequest(query: string) {
+function graphqlRawRequest(
+  body: string,
+  { contentLength }: { contentLength?: number } = {},
+) {
+  const headers = new Headers({
+    'Cf-Access-Jwt-Assertion': validAccessJwt,
+    'Content-Type': 'application/json',
+    Origin: 'https://wiki-admin.example.test',
+    'Sec-Fetch-Site': 'same-origin',
+  })
+
+  if (contentLength !== undefined) {
+    headers.set('Content-Length', String(contentLength))
+  }
+
+  return new Request('https://wiki-admin.example.test/admin/api/graphql', {
+    method: 'POST',
+    headers,
+    body,
+  })
+}
+
+function graphqlQueryRequest(
+  query: string,
+  variables: Record<string, unknown> = {},
+) {
   return new Request('https://wiki-admin.example.test/admin/api/graphql', {
     method: 'POST',
     headers: {
@@ -1121,8 +1978,83 @@ function graphqlQueryRequest(query: string) {
       Origin: 'https://wiki-admin.example.test',
       'Sec-Fetch-Site': 'same-origin',
     },
-    body: JSON.stringify({ query, variables: {} }),
+    body: JSON.stringify({ query, variables }),
   })
+}
+
+function githubProxyRequest(
+  path: string,
+  { fetchSite = 'same-origin' }: { fetchSite?: string } = {},
+) {
+  const headers = new Headers({
+    'Cf-Access-Jwt-Assertion': validAccessJwt,
+  })
+
+  if (fetchSite) headers.set('Sec-Fetch-Site', fetchSite)
+
+  return new Request(
+    `https://wiki-admin.example.test/admin/api/github/api/v3/${path}`,
+    {
+      headers,
+    },
+  )
+}
+
+function headHistoryQuery() {
+  return `
+    query {
+      repository(owner: "acecore-systems", name: "aceserver-wiki") {
+        ref(qualifiedName: "main") {
+          target {
+            ... on Commit {
+              history(first: 1) {
+                nodes { oid message }
+              }
+            }
+          }
+        }
+      }
+    }
+  `
+}
+
+function deletionVariables(expectedHeadOid: string, path: string) {
+  return {
+    input: {
+      branch: {
+        repositoryNameWithOwner: 'acecore-systems/aceserver-wiki',
+        branchName: 'main',
+      },
+      expectedHeadOid,
+      fileChanges: {
+        additions: [],
+        deletions: [{ path }],
+      },
+      message: { headline: 'Delete over-cap content' },
+    },
+  }
+}
+
+function mediaCommitVariables(expectedHeadOid: string) {
+  return {
+    input: {
+      branch: {
+        repositoryNameWithOwner: 'acecore-systems/aceserver-wiki',
+        branchName: 'main',
+      },
+      expectedHeadOid,
+      fileChanges: {
+        additions: [
+          {
+            path: 'poc/astro-sveltia/public/uploads/wiki/new.png',
+            contents: encodeBytes(createPng(1, 1)),
+          },
+        ],
+        deletions: [],
+      },
+      message: { headline: 'Add projected over-cap media' },
+    },
+  }
 }
 
 function commitVariables(expectedHeadOid: string) {
@@ -1155,6 +2087,80 @@ draft: false
       },
       message: { headline: 'Test gateway publication' },
     },
+  }
+}
+
+function pkcs8ToPkcs1Pem(pkcs8Pem: string) {
+  const body = pkcs8Pem
+    .replace('-----BEGIN PRIVATE KEY-----', '')
+    .replace('-----END PRIVATE KEY-----', '')
+    .replace(/\s+/gu, '')
+  const bytes = Uint8Array.from(atob(body), (value) => value.charCodeAt(0))
+  const outer = readTestDerElement(bytes, 0, 0x30)
+  const version = readTestDerElement(bytes, outer.contentOffset, 0x02)
+  const algorithm = readTestDerElement(bytes, version.endOffset, 0x30)
+  const privateKey = readTestDerElement(bytes, algorithm.endOffset, 0x04)
+
+  if (
+    outer.endOffset !== bytes.byteLength ||
+    privateKey.endOffset !== outer.endOffset
+  ) {
+    throw new Error('Test PKCS#8 private key has an unexpected structure')
+  }
+
+  const pkcs1 = bytes.slice(privateKey.contentOffset, privateKey.endOffset)
+  const encoded = btoa(String.fromCharCode(...pkcs1))
+    .match(/.{1,64}/gu)
+    ?.join('\n')
+
+  if (!encoded) throw new Error('Could not encode test PKCS#1 key')
+
+  return `-----BEGIN RSA PRIVATE KEY-----\n${encoded}\n-----END RSA PRIVATE KEY-----`
+}
+
+function readTestDerElement(
+  bytes: Uint8Array,
+  offset: number,
+  expectedTag: number,
+) {
+  if (bytes[offset] !== expectedTag) {
+    throw new Error('Test private key has an unexpected DER tag')
+  }
+
+  const firstLength = bytes[offset + 1]
+
+  if (firstLength === undefined) {
+    throw new Error('Test private key has no DER length')
+  }
+
+  let contentLength = 0
+  let contentOffset = offset + 2
+
+  if (firstLength < 0x80) {
+    contentLength = firstLength
+  } else {
+    const octetCount = firstLength & 0x7f
+
+    if (octetCount === 0 || octetCount > 4) {
+      throw new Error('Test private key has an invalid DER length')
+    }
+
+    contentOffset += octetCount
+
+    for (let index = offset + 2; index < contentOffset; index += 1) {
+      contentLength = contentLength * 256 + (bytes[index] ?? 0)
+    }
+  }
+
+  const endOffset = contentOffset + contentLength
+
+  if (endOffset > bytes.byteLength) {
+    throw new Error('Test private key DER length exceeds its input')
+  }
+
+  return {
+    contentOffset,
+    endOffset,
   }
 }
 
@@ -1193,8 +2199,41 @@ function jsonResponse(data: unknown, status = 200) {
   })
 }
 
+function contentTree(count: number) {
+  return Array.from({ length: count }, (_, index) => ({
+    mode: '100644',
+    path: `poc/astro-sveltia/src/content/wiki/entry-${index}.md`,
+    sha: index.toString(16).padStart(40, '0'),
+    size: 1,
+    type: 'blob' as const,
+  }))
+}
+
+function isProjectionTreeUrl(url: string) {
+  return url.includes(`/git/trees/${MAIN_SHA}?recursive=1`)
+}
+
+function projectionTreeResponse(
+  tree: Array<{
+    mode: string
+    path: string
+    sha: string
+    size?: number
+    type: 'blob' | 'tree'
+  }> = [],
+) {
+  return jsonResponse({
+    sha: MAIN_SHA,
+    tree,
+    truncated: false,
+  })
+}
+
 function encodeUtf8(value: string) {
-  const bytes = new TextEncoder().encode(value)
+  return encodeBytes(new TextEncoder().encode(value))
+}
+
+function encodeBytes(bytes: Uint8Array) {
   let binary = ''
 
   for (const byte of bytes) {
@@ -1202,6 +2241,56 @@ function encodeUtf8(value: string) {
   }
 
   return btoa(binary)
+}
+
+function createPng(width: number, height: number) {
+  return new Uint8Array([
+    0x89,
+    0x50,
+    0x4e,
+    0x47,
+    0x0d,
+    0x0a,
+    0x1a,
+    0x0a,
+    0x00,
+    0x00,
+    0x00,
+    0x0d,
+    0x49,
+    0x48,
+    0x44,
+    0x52,
+    (width >>> 24) & 0xff,
+    (width >>> 16) & 0xff,
+    (width >>> 8) & 0xff,
+    width & 0xff,
+    (height >>> 24) & 0xff,
+    (height >>> 16) & 0xff,
+    (height >>> 8) & 0xff,
+    height & 0xff,
+    0x08,
+    0x02,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x49,
+    0x45,
+    0x4e,
+    0x44,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+  ])
 }
 
 type GraphqlRequestBody = {

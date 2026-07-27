@@ -16,23 +16,22 @@ export type CmsRuntimeEnv = Omit<
   | 'CMS_DISCORD_GUILD_ID'
   | 'CMS_PUBLICATION_MODE'
 > & {
+  CMS_ACCESS_AUD?: string
+  CMS_ACCESS_HOSTNAMES?: string
+  CMS_ACCESS_TEAM_DOMAIN?: string
   CMS_DATABASE?: D1Database
   CMS_DISCORD_ALLOWED_ROLE_IDS: string
   CMS_DISCORD_AUTHORIZATION_MODE: string
   CMS_DISCORD_GUILD_ID?: string
+  CMS_GITHUB_APP_CLIENT_ID?: string
+  CMS_GITHUB_APP_INSTALLATION_ID?: string
+  CMS_GITHUB_APP_PRIVATE_KEY?: string
   CMS_PUBLICATION_MODE: string
 }
 
 const MAX_CMS_PATH_LENGTH = 240
 const MARKDOWN_EXTENSION = '.md'
-const MEDIA_EXTENSIONS = new Set([
-  '.avif',
-  '.gif',
-  '.jpeg',
-  '.jpg',
-  '.png',
-  '.webp',
-])
+const MEDIA_EXTENSIONS = new Set(['.jpeg', '.jpg', '.png', '.webp'])
 const CMS_DIRECTORY_ROOTS = [
   CMS_CONTENT_PREFIX.slice(0, -1),
   CMS_MEDIA_PREFIX.slice(0, -1),

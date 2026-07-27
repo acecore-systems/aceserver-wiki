@@ -3,9 +3,12 @@ import { readdir, readFile } from 'node:fs/promises'
 import { parse } from 'parse5'
 import { parse as parseYaml } from 'yaml'
 
+import { isExternalHttpUrl } from '../src/lib/external-link-policy.ts'
+
 const root = new URL('../', import.meta.url)
 const dist = new URL('dist/', root)
 const contentDirectory = new URL('src/content/wiki/', root)
+const site = process.env.ASTRO_SITE_URL ?? 'https://asv-wiki.acecore.net'
 const rootDescription =
   'エースサーバーの公式Wikiです。Minecraftサーバーへの参加方法、基本ルール、Discord連携、コマンドやプラグイン、Hubと各ワールドの遊び方、運営方針、コミュニティ情報をまとめています。初めて参加する方も、プレイ中に仕様や注意点を確認したい方も、必要な記事をカテゴリから探せます。'
 const adsenseSource =
@@ -32,8 +35,8 @@ assert(
 )
 assert(linkHref(rootDocument, 'canonical') === 'https://asv-wiki.acecore.net/')
 assert(
-  hasScriptSource(rootDocument, adsenseSource),
-  'AdSense Auto Ads loader is missing from the public root.',
+  !hasScriptSource(rootDocument, adsenseSource),
+  'Unmoderated Wiki root must not load AdSense.',
 )
 assert(
   expectedHeaderLinks.every((href) => hasAnchorHref(rootDocument, href)),
@@ -53,6 +56,11 @@ assert(
 assert(
   hasScriptSource(searchDocument, '/search.js'),
   'Search must load its CSP-compatible same-origin external script.',
+)
+assertTrustedScriptNonce(searchDocument, '/search.js')
+assert(
+  !hasScriptSource(searchDocument, adsenseSource),
+  'Unmoderated search results must not load AdSense.',
 )
 
 const notFoundDocument = await readHtml('404.html')
@@ -100,9 +108,14 @@ for (const article of articles) {
     `Article Twitter image differs: ${article.slug}`,
   )
   assert(
-    hasScriptSource(document, adsenseSource),
-    `Article does not load AdSense: ${article.slug}`,
+    !hasScriptSource(document, adsenseSource),
+    `Unmoderated article must not load AdSense: ${article.slug}`,
   )
+  const articleBody = findElements(document, 'div').find((node) =>
+    getAttribute(node, 'class').split(/\s+/u).includes('article__body'),
+  )
+  assert(articleBody, `Article body is missing: ${article.slug}`)
+  assertExternalLinksAreUgc(articleBody, article.slug)
 }
 
 const builtArticleDirectories = (
@@ -175,7 +188,7 @@ assert(
 )
 
 console.log(
-  `Validated ${articles.length} current published articles, canonicals, search index, sitemap, robots, SEO, OG, AdSense, and CSP-compatible search script.`,
+  `Validated ${articles.length} current published articles, canonicals, search index, sitemap, robots, SEO, OG, disabled AdSense on UGC surfaces, and CSP-compatible search script.`,
 )
 
 async function readHtml(path) {
@@ -230,10 +243,36 @@ function hasScriptSource(document, source) {
   )
 }
 
+function assertTrustedScriptNonce(document, source) {
+  const script = findElements(document, 'script').find(
+    (node) => getAttribute(node, 'src') === source,
+  )
+
+  assert(
+    getAttribute(script, 'nonce') === '__CSP_NONCE__',
+    `Trusted script is missing its CSP nonce placeholder: ${source}`,
+  )
+}
+
 function hasAnchorHref(document, href) {
   return findElements(document, 'a').some(
     (node) => getAttribute(node, 'href') === href,
   )
+}
+
+function assertExternalLinksAreUgc(document, slug) {
+  for (const anchor of findElements(document, 'a')) {
+    const href = getAttribute(anchor, 'href')
+
+    if (!isExternalHttpUrl(href, site)) continue
+
+    const rel = new Set(getAttribute(anchor, 'rel').split(/\s+/u))
+
+    assert(
+      rel.has('ugc') && rel.has('nofollow'),
+      `External article link must be marked as UGC: ${slug} -> ${href}`,
+    )
+  }
 }
 
 function parseFrontmatter(source) {

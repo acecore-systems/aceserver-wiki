@@ -1,5 +1,8 @@
 export const onRequestGet: PagesFunction<Env> = async ({ request, next }) => {
-  const response = await next()
+  const headers = new Headers(request.headers)
+  headers.delete('If-Modified-Since')
+  headers.delete('If-None-Match')
+  const response = await next(new Request(request, { headers }))
 
   if (!response.ok) {
     return response

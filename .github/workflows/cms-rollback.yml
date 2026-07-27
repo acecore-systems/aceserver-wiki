@@ -30,9 +30,10 @@ jobs:
       - name: Checkout main with history
         uses: actions/checkout@v7
         with:
+          ref: main
           fetch-depth: 0
 
-      - name: Validate and revert CMS commit
+      - name: Validate and prepare CMS revert
         shell: bash
         run: |
           set -euo pipefail
@@ -87,4 +88,23 @@ jobs:
             -m "revert(cms): rollback $CMS_COMMIT_SHA" \
             -m "Reason: $CMS_ROLLBACK_REASON" \
             -m "Requested by: $GITHUB_ACTOR"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: poc/astro-sveltia/.node-version
+          cache: npm
+          cache-dependency-path: poc/astro-sveltia/package-lock.json
+
+      - name: Install Astro dependencies
+        working-directory: poc/astro-sveltia
+        run: npm ci
+
+      - name: Build and validate rollback
+        working-directory: poc/astro-sveltia
+        run: npm run build
+
+      - name: Push validated rollback
+        run: |
+          set -euo pipefail
           git push origin HEAD:main

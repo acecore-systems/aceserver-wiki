@@ -5,9 +5,16 @@ import {
   isCmsMarkdownPath,
   isCmsMediaPath,
 } from './_cms-policy.ts'
+import {
+  assertMarkdownSource,
+  mdxModulePattern,
+  wikiImagePathPattern,
+} from '../../../src/lib/markdown-policy.ts'
 
 const MAX_MARKDOWN_BYTES = 512 * 1024
 const MAX_MEDIA_BYTES = 8 * 1024 * 1024
+const MAX_IMAGE_DIMENSION = 4096
+const MAX_IMAGE_PIXELS = 16 * 1024 * 1024
 const FRONTMATTER_KEYS = new Set([
   'title',
   'seoTitle',
@@ -25,14 +32,11 @@ const WIKI_CATEGORIES = new Set([
   'コミュニティ紹介',
   'その他',
 ])
-const WIKI_IMAGE_PATH_PATTERN =
-  /^\/uploads\/wiki\/[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*\.(?:avif|gif|jpe?g|png|webp)$/u
 const BASE64_PATTERN =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u
 const RAW_HTML_PATTERN =
   /<(?!https?:\/\/|mailto:)(?:!--|!|\?|\/?[A-Za-z][A-Za-z0-9:-]*(?=[\s/>]|$))/iu
-const ESM_PATTERN =
-  /^\s*(?:import\s+.+\s+from\s+|export\s+(?:default|const|let|var|function|class|\{))/mu
+const ESM_PATTERN = mdxModulePattern
 const DANGEROUS_URI_PATTERN = /\b(?:data|javascript|vbscript)\s*:/iu
 const YAML_REFERENCE_PATTERN = /(?:^|\s)[&*][A-Za-z0-9_-]+|^\s*<<\s*:/mu
 const LEVEL_ONE_ATX_HEADING_PATTERN = /^(?: {0,3})#(?:[ \t]+|$)/u
@@ -104,13 +108,14 @@ export function validateCmsAddition(
       return { ok: false, message: '画像のbase64を復号できません。' }
     }
 
-    const detectedMediaType = detectImageMediaType(bytes)
+    const detectedImage = detectImageMetadata(bytes)
     const expectedMediaType = expectedMediaTypeForPath(path)
 
-    if (!detectedMediaType || detectedMediaType !== expectedMediaType) {
+    if (!detectedImage || detectedImage.mediaType !== expectedMediaType) {
       return {
         ok: false,
-        message: '画像の拡張子、MIME type、ファイルシグネチャが一致しません。',
+        message:
+          '画像は4096px・16777216画素以内のPNG、JPEG、WebPに限定し、拡張子と内容を一致させてください。',
       }
     }
 
@@ -120,7 +125,7 @@ export function validateCmsAddition(
         path,
         contents,
         byteSize,
-        mediaType: detectedMediaType,
+        mediaType: detectedImage.mediaType,
       },
     }
   }
@@ -213,7 +218,7 @@ function validateMarkdown(bytes: Uint8Array) {
   if (
     frontmatter.ogImage !== undefined &&
     (typeof frontmatter.ogImage !== 'string' ||
-      !WIKI_IMAGE_PATH_PATTERN.test(frontmatter.ogImage))
+      !wikiImagePathPattern.test(frontmatter.ogImage))
   ) {
     return 'ogImageはWiki画像フォルダ内の公開パスで指定してください。'
   }
@@ -248,6 +253,12 @@ function validateMarkdown(bytes: Uint8Array) {
 
   if (containsLevelOneHeading(parts.body)) {
     return 'Markdown本文のh1は記事タイトル用に予約されています。見出しはh2から使用してください。'
+  }
+
+  try {
+    assertMarkdownSource(parts.body, 'CMS submission')
+  } catch {
+    return 'Markdown本文が公開ビルドの安全規則に違反しています。'
   }
 
   return null
@@ -354,64 +365,270 @@ function decodeBase64(value: string, expectedByteSize: number) {
   }
 }
 
-function detectImageMediaType(bytes: Uint8Array) {
-  if (
-    bytes.length >= 20 &&
-    hasBytes(bytes, 0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]) &&
-    hasBytes(bytes, bytes.length - 12, [0x00, 0x00, 0x00, 0x00]) &&
-    readAscii(bytes, bytes.length - 8, 4) === 'IEND'
-  ) {
-    return 'image/png'
+type ImageMetadata = {
+  mediaType: 'image/jpeg' | 'image/png' | 'image/webp'
+  width: number
+  height: number
+}
+
+function detectImageMetadata(bytes: Uint8Array): ImageMetadata | null {
+  const png = readPngDimensions(bytes)
+  if (png && hasAllowedImageDimensions(png)) {
+    return { mediaType: 'image/png', ...png }
   }
 
-  if (
-    bytes.length >= 4 &&
-    hasBytes(bytes, 0, [0xff, 0xd8, 0xff]) &&
-    hasBytes(bytes, bytes.length - 2, [0xff, 0xd9])
-  ) {
-    return 'image/jpeg'
+  const jpeg = readJpegDimensions(bytes)
+  if (jpeg && hasAllowedImageDimensions(jpeg)) {
+    return { mediaType: 'image/jpeg', ...jpeg }
   }
 
-  if (
-    bytes.length >= 14 &&
-    (readAscii(bytes, 0, 6) === 'GIF87a' ||
-      readAscii(bytes, 0, 6) === 'GIF89a') &&
-    bytes[bytes.length - 1] === 0x3b
-  ) {
-    return 'image/gif'
+  const webp = readWebpDimensions(bytes)
+  if (webp && hasAllowedImageDimensions(webp)) {
+    return { mediaType: 'image/webp', ...webp }
   }
-
-  if (
-    bytes.length >= 16 &&
-    readAscii(bytes, 0, 4) === 'RIFF' &&
-    readUint32LittleEndian(bytes, 4) === bytes.length - 8 &&
-    readAscii(bytes, 8, 4) === 'WEBP' &&
-    ['VP8 ', 'VP8L', 'VP8X'].includes(readAscii(bytes, 12, 4))
-  ) {
-    return 'image/webp'
-  }
-
-  if (isAvif(bytes)) return 'image/avif'
 
   return null
 }
 
-function isAvif(bytes: Uint8Array) {
-  if (bytes.length < 16 || readAscii(bytes, 4, 4) !== 'ftyp') return false
-
-  const boxSize = readUint32(bytes, 0)
-
-  if (boxSize < 16 || boxSize > bytes.length || boxSize % 4 !== 0) {
-    return false
+function readPngDimensions(bytes: Uint8Array) {
+  if (
+    bytes.length < 45 ||
+    !hasBytes(bytes, 0, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+  ) {
+    return null
   }
 
-  for (let offset = 8; offset + 4 <= boxSize; offset += 4) {
-    const brand = readAscii(bytes, offset, 4)
+  let offset = 8
+  let dimensions: { width: number; height: number } | null = null
 
-    if (brand === 'avif' || brand === 'avis') return true
+  while (offset + 12 <= bytes.length) {
+    const length = readUint32(bytes, offset)
+    const type = readAscii(bytes, offset + 4, 4)
+    const chunkEnd = offset + 12 + length
+
+    if (chunkEnd > bytes.length) return null
+
+    if (!dimensions) {
+      if (type !== 'IHDR' || length !== 13) return null
+      dimensions = {
+        width: readUint32(bytes, offset + 8),
+        height: readUint32(bytes, offset + 12),
+      }
+    } else if (type === 'IHDR') {
+      return null
+    }
+
+    // APNG can contain an unbounded number of decoded frames. CMS images are
+    // intentionally static, so reject its animation control chunk.
+    if (type === 'acTL') return null
+
+    if (type === 'IEND') {
+      return length === 0 && chunkEnd === bytes.length ? dimensions : null
+    }
+
+    offset = chunkEnd
   }
 
-  return false
+  return null
+}
+
+function readJpegDimensions(bytes: Uint8Array) {
+  if (
+    bytes.length < 13 ||
+    !hasBytes(bytes, 0, [0xff, 0xd8, 0xff]) ||
+    !hasBytes(bytes, bytes.length - 2, [0xff, 0xd9])
+  ) {
+    return null
+  }
+
+  let offset = 2
+
+  while (offset + 1 < bytes.length) {
+    if (bytes[offset] !== 0xff) return null
+
+    while (bytes[offset] === 0xff) offset += 1
+
+    const marker = bytes[offset]
+    offset += 1
+
+    if (marker === undefined || marker === 0x00 || marker === 0xd9) return null
+    if (marker === 0xda) return null
+
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+      continue
+    }
+
+    const segmentLength = readUint16(bytes, offset)
+
+    if (segmentLength < 2 || offset + segmentLength > bytes.length) {
+      return null
+    }
+
+    if (isJpegStartOfFrame(marker)) {
+      if (segmentLength < 7) return null
+
+      return {
+        width: readUint16(bytes, offset + 5),
+        height: readUint16(bytes, offset + 3),
+      }
+    }
+
+    offset += segmentLength
+  }
+
+  return null
+}
+
+function isJpegStartOfFrame(marker: number) {
+  return (
+    marker >= 0xc0 && marker <= 0xcf && ![0xc4, 0xc8, 0xcc].includes(marker)
+  )
+}
+
+function readWebpDimensions(bytes: Uint8Array) {
+  if (
+    bytes.length < 26 ||
+    readAscii(bytes, 0, 4) !== 'RIFF' ||
+    readUint32LittleEndian(bytes, 4) !== bytes.length - 8 ||
+    readAscii(bytes, 8, 4) !== 'WEBP'
+  ) {
+    return null
+  }
+
+  let offset = 12
+  let firstChunkType: string | null = null
+  let canvas: { width: number; height: number } | null = null
+  let image: { width: number; height: number } | null = null
+  let imageChunkType: 'VP8 ' | 'VP8L' | null = null
+  let hasAlphaChunk = false
+  let hasIccProfile = false
+  const metadataChunks = new Set<string>()
+
+  while (offset < bytes.length) {
+    if (offset + 8 > bytes.length) return null
+
+    const chunkType = readAscii(bytes, offset, 4)
+    const chunkLength = readUint32LittleEndian(bytes, offset + 4)
+    const payloadOffset = offset + 8
+    const payloadEnd = payloadOffset + chunkLength
+    const paddedEnd = payloadEnd + (chunkLength % 2)
+
+    if (
+      payloadEnd > bytes.length ||
+      paddedEnd > bytes.length ||
+      paddedEnd <= offset ||
+      (chunkLength % 2 === 1 && bytes[payloadEnd] !== 0)
+    ) {
+      return null
+    }
+
+    firstChunkType ??= chunkType
+
+    if (chunkType === 'ANIM' || chunkType === 'ANMF') return null
+
+    if (chunkType === 'VP8X') {
+      if (offset !== 12 || canvas || image || chunkLength !== 10) return null
+      if ((bytes[payloadOffset] & 0x02) !== 0) return null
+
+      canvas = {
+        width: readUint24LittleEndian(bytes, payloadOffset + 4) + 1,
+        height: readUint24LittleEndian(bytes, payloadOffset + 7) + 1,
+      }
+    } else if (chunkType === 'ICCP') {
+      if (!canvas || hasIccProfile || hasAlphaChunk || image) return null
+      hasIccProfile = true
+    } else if (chunkType === 'ALPH') {
+      if (!canvas || hasAlphaChunk || image || chunkLength === 0) return null
+      hasAlphaChunk = true
+    } else if (chunkType === 'VP8 ' || chunkType === 'VP8L') {
+      if (image || (!canvas && offset !== 12)) return null
+      if (chunkType === 'VP8L' && hasAlphaChunk) return null
+
+      image =
+        chunkType === 'VP8 '
+          ? readVp8Dimensions(bytes, payloadOffset, chunkLength)
+          : readVp8lDimensions(bytes, payloadOffset, chunkLength)
+
+      if (!image) return null
+      imageChunkType = chunkType
+    } else if (chunkType === 'EXIF' || chunkType === 'XMP ') {
+      if (!canvas || metadataChunks.has(chunkType)) return null
+      metadataChunks.add(chunkType)
+    }
+
+    offset = paddedEnd
+  }
+
+  if (
+    offset !== bytes.length ||
+    !image ||
+    !imageChunkType ||
+    (hasAlphaChunk && imageChunkType !== 'VP8 ')
+  ) {
+    return null
+  }
+
+  if (!canvas) {
+    return firstChunkType === imageChunkType ? image : null
+  }
+
+  return canvas.width === image.width && canvas.height === image.height
+    ? image
+    : null
+}
+
+function readVp8Dimensions(
+  bytes: Uint8Array,
+  offset: number,
+  chunkLength: number,
+) {
+  if (
+    chunkLength < 10 ||
+    (bytes[offset] & 0x01) !== 0 ||
+    !hasBytes(bytes, offset + 3, [0x9d, 0x01, 0x2a])
+  ) {
+    return null
+  }
+
+  return {
+    width: readUint16LittleEndian(bytes, offset + 6) & 0x3fff,
+    height: readUint16LittleEndian(bytes, offset + 8) & 0x3fff,
+  }
+}
+
+function readVp8lDimensions(
+  bytes: Uint8Array,
+  offset: number,
+  chunkLength: number,
+) {
+  if (chunkLength < 5 || bytes[offset] !== 0x2f) return null
+
+  const bits = readUint32LittleEndian(bytes, offset + 1)
+
+  if (bits >>> 29 !== 0) return null
+
+  return {
+    width: (bits & 0x3fff) + 1,
+    height: ((bits >>> 14) & 0x3fff) + 1,
+  }
+}
+
+function hasAllowedImageDimensions({
+  height,
+  width,
+}: {
+  height: number
+  width: number
+}) {
+  return (
+    Number.isSafeInteger(width) &&
+    Number.isSafeInteger(height) &&
+    width > 0 &&
+    height > 0 &&
+    width <= MAX_IMAGE_DIMENSION &&
+    height <= MAX_IMAGE_DIMENSION &&
+    width * height <= MAX_IMAGE_PIXELS
+  )
 }
 
 function expectedMediaTypeForPath(path: string) {
@@ -419,9 +636,7 @@ function expectedMediaTypeForPath(path: string) {
 
   if (extension === '.png') return 'image/png'
   if (extension === '.jpg' || extension === '.jpeg') return 'image/jpeg'
-  if (extension === '.gif') return 'image/gif'
   if (extension === '.webp') return 'image/webp'
-  if (extension === '.avif') return 'image/avif'
 
   return null
 }
@@ -461,6 +676,24 @@ function readUint32(bytes: Uint8Array, offset: number) {
     bytes[offset + 2] * 0x100 +
     bytes[offset + 3]
   )
+}
+
+function readUint16(bytes: Uint8Array, offset: number) {
+  if (offset < 0 || offset + 2 > bytes.length) return 0
+
+  return bytes[offset] * 0x100 + bytes[offset + 1]
+}
+
+function readUint16LittleEndian(bytes: Uint8Array, offset: number) {
+  if (offset < 0 || offset + 2 > bytes.length) return 0
+
+  return bytes[offset] + bytes[offset + 1] * 0x100
+}
+
+function readUint24LittleEndian(bytes: Uint8Array, offset: number) {
+  if (offset < 0 || offset + 3 > bytes.length) return 0
+
+  return bytes[offset] + bytes[offset + 1] * 0x100 + bytes[offset + 2] * 0x10000
 }
 
 function readUint32LittleEndian(bytes: Uint8Array, offset: number) {

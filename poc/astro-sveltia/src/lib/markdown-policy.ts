@@ -1,7 +1,12 @@
+import remarkParse from 'remark-parse'
+import { unified } from 'unified'
+
 const rawHtmlPattern =
   /<(?:!--[\s\S]*?--|!doctype\b[^>]*|\/?[a-z][a-z0-9:-]*(?:\s[^<>]*?)?\s*\/?>)/i
 
-const mdxModulePattern = /^(?:import|export)\s.+$/m
+export const mdxModulePattern = /^(?:import|export)\s.+$/m
+export const wikiImagePathPattern =
+  /^\/uploads\/wiki\/[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*\.(?:jpe?g|png|webp)$/u
 const dangerousUriPattern = /\b(?:data|javascript|vbscript)\s*:/iu
 const levelOneAtxHeadingPattern = /^(?: {0,3})#(?:[ \t]+|$)/u
 const levelOneSetextHeadingPattern = /^(?: {0,3})=+[ \t]*$/u
@@ -23,10 +28,69 @@ export const assertMarkdownSource = (source: string, id: string): void => {
     )
   }
 
+  assertLocalWikiImages(source, id)
+
   if (containsLevelOneHeading(source)) {
     throw new Error(
       `Level-one headings are reserved for the article title: ${id}`,
     )
+  }
+}
+
+type MarkdownNode = {
+  type?: unknown
+  url?: unknown
+  identifier?: unknown
+  children?: unknown
+}
+
+const assertLocalWikiImages = (source: string, id: string): void => {
+  const tree = unified().use(remarkParse).parse(source) as MarkdownNode
+  const imageUrls: string[] = []
+  const imageReferences: string[] = []
+  const definitions = new Map<string, string>()
+
+  visitMarkdownNodes(tree, (node) => {
+    if (node.type === 'image' && typeof node.url === 'string') {
+      imageUrls.push(node.url)
+    }
+
+    if (node.type === 'imageReference' && typeof node.identifier === 'string') {
+      imageReferences.push(node.identifier)
+    }
+
+    if (
+      node.type === 'definition' &&
+      typeof node.identifier === 'string' &&
+      typeof node.url === 'string' &&
+      !definitions.has(node.identifier)
+    ) {
+      definitions.set(node.identifier, node.url)
+    }
+  })
+
+  for (const identifier of imageReferences) {
+    const url = definitions.get(identifier)
+    if (url) imageUrls.push(url)
+  }
+
+  if (imageUrls.some((url) => !wikiImagePathPattern.test(url))) {
+    throw new Error(`Markdown images must use /uploads/wiki paths: ${id}`)
+  }
+}
+
+const visitMarkdownNodes = (
+  node: MarkdownNode,
+  visitor: (node: MarkdownNode) => void,
+): void => {
+  visitor(node)
+
+  if (!Array.isArray(node.children)) return
+
+  for (const child of node.children) {
+    if (child && typeof child === 'object') {
+      visitMarkdownNodes(child as MarkdownNode, visitor)
+    }
   }
 }
 

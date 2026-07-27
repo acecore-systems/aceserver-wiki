@@ -12,6 +12,8 @@ import {
   CMS_REPOSITORY,
   hasExpectedCmsRepositoryConfig,
   isAllowedCmsWritePath,
+  isCmsMarkdownPath,
+  isCmsMediaPath,
   normalizeCmsPath,
   type CmsRuntimeEnv,
 } from './_cms-policy.ts'
@@ -22,16 +24,18 @@ import {
 } from './_content-validation.ts'
 import {
   GitHubApiError,
-  copyGitHubResponse,
+  type CmsGitTree,
   fetchCmsTree,
   getAllowedCmsBlobShas,
   getGitHubToken,
   githubJson,
   githubRequest,
   isRecord,
+  readGitHubResponseJson,
 } from './_github-api.ts'
 import {
   CmsStateError,
+  authorizeCmsApiAttempt,
   beginCmsMutation,
   completeCmsMutation,
   failCmsMutation,
@@ -62,10 +66,18 @@ class CmsDefinitivePublicationError extends CmsStateError {}
 
 const SHA_PATTERN = /^[a-f0-9]{40}$/iu
 const MAX_GRAPHQL_QUERY_CHARS = 128 * 1024
+const MAX_READ_VARIABLE_BYTES = 64 * 1024
+const MAX_READ_VARIABLE_DEPTH = 64
 const MAX_REQUEST_BYTES = 16 * 1024 * 1024
 const MAX_CHANGE_COUNT = 40
 const MAX_TOTAL_CONTENT_BYTES = 10 * 1024 * 1024
 const MAX_GRAPHQL_BLOB_SIZE = 10 * 1024 * 1024
+export const CMS_PROJECTED_TREE_LIMITS = {
+  maxFiles: 1000,
+  maxContentBytes: 64 * 1024 * 1024,
+  maxMediaBytes: 512 * 1024 * 1024,
+  maxTotalBytes: 512 * 1024 * 1024,
+} as const
 
 export const onRequestPost: PagesFunction<CmsRuntimeEnv> = async ({
   request,
@@ -89,6 +101,12 @@ export const onRequestPost: PagesFunction<CmsRuntimeEnv> = async ({
   }
 
   try {
+    await authorizeCmsApiAttempt({
+      discordId: auth.discordId,
+      env,
+      request,
+    })
+
     const bodyText = await readRequestText(request)
 
     if (bodyText === null) {
@@ -144,6 +162,13 @@ async function handleReadQuery({
   operation: OperationDefinitionNode
   payload: GraphqlPayload
 }) {
+  if (
+    getJsonEncodedSize(payload.variables, MAX_READ_VARIABLE_BYTES, 0) >
+    MAX_READ_VARIABLE_BYTES
+  ) {
+    return json({ message: 'CMS GraphQL query変数が大きすぎます。' }, 413)
+  }
+
   const authorization = validateReadOperation(operation, payload.variables)
 
   if (!authorization) {
@@ -172,8 +197,9 @@ async function handleReadQuery({
     path: '/graphql',
     token,
   })
+  const responseJson = await readGitHubResponseJson(response)
 
-  return copyGitHubResponse(response)
+  return json(sanitizeGraphqlReadResponse(responseJson), response.status)
 }
 
 async function handleCommitMutation({
@@ -214,6 +240,10 @@ async function handleCommitMutation({
     discordRoleIds: auth.discordRoleIds,
     env,
     expectedHeadOid: commitInput.expectedHeadOid,
+    mutationBytes: commitInput.additions.reduce(
+      (total, addition) => total + addition.byteSize,
+      0,
+    ),
     paths: changedPaths,
     request,
   })
@@ -345,6 +375,23 @@ async function handleCommitMutation({
     return json({ message }, 409, {
       'X-Request-ID': reservation.requestId,
     })
+  }
+
+  try {
+    const tree = await fetchCmsTree(token, mainSha)
+
+    assertProjectedCmsTreeWithinLimits(tree, commitInput)
+  } catch (error) {
+    const failure = describeMutationFailure(error)
+
+    await failCmsMutation({
+      env,
+      message: failure.message,
+      reservation,
+      status: failure.status,
+    })
+
+    throw error
   }
 
   try {
@@ -518,6 +565,223 @@ function validateReadOperation(
     : null
 }
 
+function sanitizeGraphqlReadResponse(value: unknown) {
+  if (!isRecord(value) || !isRecord(value.data)) return value
+
+  const repository = value.data.repository
+
+  if (!isRecord(repository)) return value
+
+  const ref = repository.ref
+
+  if (!isRecord(ref) || !isRecord(ref.target)) return value
+
+  const history = ref.target.history
+
+  if (!isRecord(history) || !Array.isArray(history.nodes)) return value
+
+  return {
+    ...value,
+    data: {
+      ...value.data,
+      repository: {
+        ...repository,
+        ref: {
+          ...ref,
+          target: {
+            ...ref.target,
+            history: {
+              ...history,
+              nodes: history.nodes.map(sanitizeHistoryNode),
+            },
+          },
+        },
+      },
+    },
+  }
+}
+
+function sanitizeHistoryNode(value: unknown) {
+  if (value === null) return null
+  if (!isRecord(value)) return {}
+
+  const sanitized: Record<string, unknown> = {}
+
+  if (typeof value.oid === 'string' && SHA_PATTERN.test(value.oid)) {
+    sanitized.oid = value.oid
+  }
+
+  if (typeof value.committedDate === 'string' || value.committedDate === null) {
+    sanitized.committedDate = value.committedDate
+  }
+
+  if (Object.hasOwn(value, 'message')) {
+    sanitized.message = ''
+  }
+
+  if (Object.hasOwn(value, 'author')) {
+    sanitized.author = sanitizeHistoryAuthor(value.author)
+  }
+
+  return sanitized
+}
+
+function sanitizeHistoryAuthor(value: unknown) {
+  if (value === null) return null
+  if (!isRecord(value)) return null
+
+  const sanitized: Record<string, unknown> = {}
+
+  if (Object.hasOwn(value, 'name')) sanitized.name = 'Anonymous'
+  if (Object.hasOwn(value, 'email')) sanitized.email = ''
+  if (Object.hasOwn(value, 'avatarUrl')) sanitized.avatarUrl = ''
+  if (Object.hasOwn(value, 'user')) sanitized.user = null
+
+  return sanitized
+}
+
+function assertProjectedCmsTreeWithinLimits(
+  tree: CmsGitTree,
+  commitInput: CmsCommitInput,
+) {
+  const files = new Map<string, number>()
+
+  for (const item of tree.tree) {
+    if (item.type !== 'blob') continue
+
+    if (
+      files.has(item.path) ||
+      !Number.isSafeInteger(item.size) ||
+      (item.size as number) < 0
+    ) {
+      throw new GitHubApiError(
+        'GitHub treeのfile sizeを安全に確認できません。',
+        502,
+      )
+    }
+
+    files.set(item.path, item.size as number)
+  }
+
+  for (const { path } of commitInput.deletions) {
+    files.delete(path)
+  }
+
+  for (const { byteSize, path } of commitInput.additions) {
+    files.set(path, byteSize)
+  }
+
+  if (files.size > CMS_PROJECTED_TREE_LIMITS.maxFiles) {
+    throw new CmsStateError(
+      `CMS管理対象fileは${CMS_PROJECTED_TREE_LIMITS.maxFiles}件までです。削除してから再試行してください。`,
+      413,
+    )
+  }
+
+  let contentBytes = 0
+  let mediaBytes = 0
+  let totalBytes = 0
+
+  for (const [path, size] of files) {
+    totalBytes += size
+
+    if (
+      !Number.isSafeInteger(totalBytes) ||
+      totalBytes > CMS_PROJECTED_TREE_LIMITS.maxTotalBytes
+    ) {
+      throw new CmsStateError(
+        'CMS管理対象fileの合計は512 MiBまでです。fileを削除してから再試行してください。',
+        413,
+      )
+    }
+
+    if (isCmsMarkdownPath(path)) {
+      contentBytes += size
+
+      if (
+        !Number.isSafeInteger(contentBytes) ||
+        contentBytes > CMS_PROJECTED_TREE_LIMITS.maxContentBytes
+      ) {
+        throw new CmsStateError(
+          'CMS Markdownの合計は64 MiBまでです。記事を削除してから再試行してください。',
+          413,
+        )
+      }
+
+      continue
+    }
+
+    if (!isCmsMediaPath(path)) {
+      throw new GitHubApiError(
+        'GitHub treeにCMS管理対象外のfileが含まれています。',
+        502,
+      )
+    }
+
+    mediaBytes += size
+
+    if (
+      !Number.isSafeInteger(mediaBytes) ||
+      mediaBytes > CMS_PROJECTED_TREE_LIMITS.maxMediaBytes
+    ) {
+      throw new CmsStateError(
+        'CMS画像の合計は512 MiBまでです。画像を削除してから再試行してください。',
+        413,
+      )
+    }
+  }
+}
+
+function getJsonEncodedSize(value: unknown, limit: number, depth: number) {
+  if (depth > MAX_READ_VARIABLE_DEPTH) return limit + 1
+
+  if (value === null) return 4
+  if (value === true) return 4
+  if (value === false) return 5
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? String(value).length : limit + 1
+  }
+
+  if (typeof value === 'string') {
+    if (value.length > limit) return limit + 1
+
+    return new TextEncoder().encode(JSON.stringify(value)).byteLength
+  }
+
+  if (Array.isArray(value)) {
+    let size = 2
+
+    for (const item of value) {
+      if (size > 2) size += 1
+      size += getJsonEncodedSize(item, limit - size, depth + 1)
+
+      if (size > limit) return limit + 1
+    }
+
+    return size
+  }
+
+  if (isRecord(value)) {
+    let size = 2
+
+    for (const [key, item] of Object.entries(value)) {
+      if (size > 2) size += 1
+      size += getJsonEncodedSize(key, limit - size, depth + 1) + 1
+
+      if (size > limit) return limit + 1
+
+      size += getJsonEncodedSize(item, limit - size, depth + 1)
+
+      if (size > limit) return limit + 1
+    }
+
+    return size
+  }
+
+  return limit + 1
+}
+
 function validateRepositorySelection(
   selectionSet: SelectionSetNode,
   variables: Record<string, unknown>,
@@ -537,6 +801,7 @@ function validateRepositorySelection(
 
     if (selection.name.value === 'defaultBranchRef') {
       return (
+        !selection.alias &&
         !selection.arguments?.length &&
         !!selection.selectionSet &&
         validateLeafSelection(selection.selectionSet, ['name'])
@@ -545,6 +810,7 @@ function validateRepositorySelection(
 
     if (selection.name.value === 'ref') {
       return (
+        !selection.alias &&
         !!selection.selectionSet &&
         hasExactArguments(selection, ['qualifiedName']) &&
         argumentMatches(

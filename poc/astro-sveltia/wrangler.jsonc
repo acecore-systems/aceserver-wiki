@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "aceserver-wiki-astro-sveltia-poc",
+  "name": "aceserver-wiki-astro",
   "pages_build_output_dir": "./dist",
   "compatibility_date": "2026-07-26",
   "compatibility_flags": ["nodejs_compat"],
@@ -22,16 +22,6 @@
     "CMS_DISCORD_AUTHORIZATION_MODE": "account",
     "CMS_DISCORD_GUILD_ID": "",
     "CMS_DISCORD_ALLOWED_ROLE_IDS": "",
-  },
-  "secrets": {
-    "required": [
-      "CMS_ACCESS_AUD",
-      "CMS_ACCESS_TEAM_DOMAIN",
-      "CMS_ACCESS_HOSTNAMES",
-      "CMS_GITHUB_APP_CLIENT_ID",
-      "CMS_GITHUB_APP_INSTALLATION_ID",
-      "CMS_GITHUB_APP_PRIVATE_KEY",
-    ],
   },
   "env": {
     "preview": {
@@ -55,9 +45,5 @@
         "CMS_DISCORD_ALLOWED_ROLE_IDS": "",
       },
     },
-  },
-  "observability": {
-    "enabled": true,
-    "head_sampling_rate": 1,
   },
 }

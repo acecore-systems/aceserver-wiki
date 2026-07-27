@@ -69,14 +69,15 @@ for (const article of manifest.articles) {
     new URL(`${article.targetSlug}.md`, contentDirectory),
     'utf8',
   )
-  const parsed = parseMarkdown(source, article.targetSlug)
+  const canonicalSource = source.replace(/\r\n?/gu, '\n')
+  const parsed = parseMarkdown(canonicalSource, article.targetSlug)
 
   assert(
-    Buffer.byteLength(source, 'utf8') === article.markdownBytes,
+    Buffer.byteLength(canonicalSource, 'utf8') === article.markdownBytes,
     `Markdown byte count changed: ${article.targetSlug}`,
   )
   assert(
-    sha256(source) === article.markdownSha256,
+    sha256(canonicalSource) === article.markdownSha256,
     `Markdown SHA-256 changed: ${article.targetSlug}`,
   )
   assert(

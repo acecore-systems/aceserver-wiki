@@ -14,6 +14,7 @@
     "preview": "nuxt preview",
     "generate": "nuxt generate && node scripts/prepare-dist.mjs && node scripts/audit-generated-metadata.mjs",
     "test:seo": "node --test tests/seo.test.mjs tests/legacy-routes.test.mjs tests/image-alt.test.mjs",
+    "test:workflow": "node --test tests/workflows.test.mjs",
     "audit:metadata": "node scripts/audit-generated-metadata.mjs",
     "lint:js": "eslint . --max-warnings=0",
     "lint:prettier": "prettier --check .",

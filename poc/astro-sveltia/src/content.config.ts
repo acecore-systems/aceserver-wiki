@@ -15,7 +15,7 @@ const wiki = defineCollection({
         .string()
         .trim()
         .regex(
-          /^\/uploads\/wiki\/[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*\.(?:avif|gif|jpe?g|png|webp)$/u,
+          /^\/uploads\/wiki\/[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*\.(?:jpe?g|png|webp)$/u,
         )
         .optional(),
       draft: z.boolean().default(false),
