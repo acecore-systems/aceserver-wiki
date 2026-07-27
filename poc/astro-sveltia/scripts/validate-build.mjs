@@ -1,20 +1,21 @@
-import { readFile } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 
 import { parse } from 'parse5'
 import { parse as parseYaml } from 'yaml'
 
 const root = new URL('../', import.meta.url)
 const dist = new URL('dist/', root)
-const manifest = JSON.parse(
-  await readFile(
-    new URL('migration/newt-public-payload-manifest.json', root),
-    'utf8',
-  ),
-)
+const contentDirectory = new URL('src/content/wiki/', root)
 const rootDescription =
   'エースサーバーの公式Wikiです。Minecraftサーバーへの参加方法、基本ルール、Discord連携、コマンドやプラグイン、Hubと各ワールドの遊び方、運営方針、コミュニティ情報をまとめています。初めて参加する方も、プレイ中に仕様や注意点を確認したい方も、必要な記事をカテゴリから探せます。'
 const adsenseSource =
   'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3935803464310919'
+const expectedHeaderLinks = [
+  'https://asv.acecore.net/world-map/',
+  'https://acecore.net',
+  'https://asv.acecore.net',
+]
+const articles = await readPublishedArticles()
 
 const rootDocument = await readHtml('index.html')
 
@@ -35,8 +36,8 @@ assert(
   'AdSense Auto Ads loader is missing from the public root.',
 )
 assert(
-  manifest.links.every(({ href }) => hasAnchorHref(rootDocument, href)),
-  'A migrated header link is missing from the root.',
+  expectedHeaderLinks.every((href) => hasAnchorHref(rootDocument, href)),
+  'A configured header link is missing from the root.',
 )
 
 const searchDocument = await readHtml('search/index.html')
@@ -61,51 +62,75 @@ assert(
   'The 404 page must not load advertising.',
 )
 
-for (const article of manifest.articles) {
-  const document = await readHtml(`article/${article.targetSlug}/index.html`)
-  const markdown = await readFile(
-    new URL(`src/content/wiki/${article.targetSlug}.md`, root),
-    'utf8',
-  )
-  const frontmatter = parseFrontmatter(markdown)
-  const seoTitle = frontmatter.seoTitle ?? frontmatter.title
+for (const article of articles) {
+  const document = await readHtml(`article/${article.slug}/index.html`)
+  const seoTitle = article.data.seoTitle ?? article.data.title
+  const expectedOgImage = article.data.ogImage
+    ? new URL(article.data.ogImage, 'https://asv-wiki.acecore.net').toString()
+    : ''
 
   assert(
     elementText(findElement(document, 'title')) ===
       `${seoTitle}｜エースサーバー公式Wiki`,
-    `Article title differs: ${article.targetSlug}`,
+    `Article title differs: ${article.slug}`,
   )
   assert(
-    metaContent(document, 'name', 'description') === frontmatter.description,
-    `Article description differs: ${article.targetSlug}`,
+    metaContent(document, 'name', 'description') === article.data.description,
+    `Article description differs: ${article.slug}`,
   )
   assert(metaContent(document, 'name', 'robots') === 'index, follow')
   assert(
     linkHref(document, 'canonical') ===
-      `https://asv-wiki.acecore.net/article/${article.targetSlug}/`,
-    `Article canonical differs: ${article.targetSlug}`,
+      new URL(
+        articlePath(article.slug),
+        'https://asv-wiki.acecore.net',
+      ).toString(),
+    `Article canonical differs: ${article.slug}`,
   )
   assert(
     metaContent(document, 'name', 'twitter:card') === 'summary_large_image',
-    `Article Twitter card differs: ${article.targetSlug}`,
+    `Article Twitter card differs: ${article.slug}`,
+  )
+  assert(
+    metaContent(document, 'property', 'og:image') === expectedOgImage,
+    `Article OG image differs: ${article.slug}`,
+  )
+  assert(
+    metaContent(document, 'name', 'twitter:image') === expectedOgImage,
+    `Article Twitter image differs: ${article.slug}`,
   )
   assert(
     hasScriptSource(document, adsenseSource),
-    `Article does not load AdSense: ${article.targetSlug}`,
+    `Article does not load AdSense: ${article.slug}`,
   )
 }
 
-const philosophyDocument = await readHtml('article/rinen/index.html')
-assert(
-  metaContent(philosophyDocument, 'property', 'og:image') ===
-    'https://asv-wiki.acecore.net/uploads/wiki/server-philosophy-og.png',
-  'The migrated article OG image is missing.',
+const builtArticleDirectories = (
+  await readdir(new URL('article/', dist), {
+    withFileTypes: true,
+  })
+)
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .toSorted()
+assertDeepEqual(
+  builtArticleDirectories,
+  articles.map(({ slug }) => slug).toSorted(),
+  'Built article inventory differs from the current published Markdown inventory.',
 )
 
 const searchIndex = JSON.parse(
   await readFile(new URL('search-index.json', dist), 'utf8'),
 )
-assert(searchIndex.length === 15, 'Search index must contain 15 articles.')
+assert(
+  searchIndex.length === articles.length,
+  'Search index count differs from the current published Markdown inventory.',
+)
+assertDeepEqual(
+  searchIndex.map(({ url }) => url).toSorted(),
+  articles.map(({ slug }) => articlePath(slug)).toSorted(),
+  'Search index URLs differ from the current published Markdown inventory.',
+)
 assert(
   searchIndex.every(
     ({ text }) =>
@@ -123,9 +148,18 @@ assert(
 )
 
 const sitemap = await readFile(new URL('sitemap.xml', dist), 'utf8')
-assert(
-  (sitemap.match(/<url>/gu) ?? []).length === 16,
-  'Sitemap must contain the root and 15 articles.',
+const sitemapLocations = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/gu)].map(
+  ([, location]) => location,
+)
+assertDeepEqual(
+  sitemapLocations.toSorted(),
+  [
+    'https://asv-wiki.acecore.net/',
+    ...articles.map(({ slug }) =>
+      new URL(articlePath(slug), 'https://asv-wiki.acecore.net').toString(),
+    ),
+  ].toSorted(),
+  'Sitemap URLs differ from the current published Markdown inventory.',
 )
 assert(!sitemap.includes('<lastmod>'), 'Sitemap must not invent lastmod.')
 assert(
@@ -141,7 +175,7 @@ assert(
 )
 
 console.log(
-  'Validated 18 built pages/endpoints, 15 article canonicals, search index, sitemap, robots, SEO, OG, AdSense, and CSP-compatible search script.',
+  `Validated ${articles.length} current published articles, canonicals, search index, sitemap, robots, SEO, OG, AdSense, and CSP-compatible search script.`,
 )
 
 async function readHtml(path) {
@@ -206,6 +240,41 @@ function parseFrontmatter(source) {
   const match = /^---\r?\n([\s\S]*?)\r?\n---/u.exec(source)
   assert(match, 'Markdown frontmatter is missing.')
   return parseYaml(match[1])
+}
+
+async function readPublishedArticles() {
+  const entries = await readdir(contentDirectory, { withFileTypes: true })
+  const markdownFiles = entries
+    .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
+    .map((entry) => entry.name)
+    .toSorted()
+
+  return (
+    await Promise.all(
+      markdownFiles.map(async (fileName) => {
+        const source = await readFile(
+          new URL(fileName, contentDirectory),
+          'utf8',
+        )
+
+        return {
+          slug: fileName.slice(0, -'.md'.length),
+          data: parseFrontmatter(source),
+        }
+      }),
+    )
+  ).filter(({ data }) => data.draft !== true)
+}
+
+function articlePath(slug) {
+  return `/article/${encodeURIComponent(slug)}/`
+}
+
+function assertDeepEqual(actual, expected, message) {
+  assert(
+    JSON.stringify(actual) === JSON.stringify(expected),
+    `${message}\nExpected: ${JSON.stringify(expected)}\nReceived: ${JSON.stringify(actual)}`,
+  )
 }
 
 function assert(condition, message = 'Build validation failed.') {

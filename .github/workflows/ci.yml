@@ -43,7 +43,7 @@ jobs:
       - name: Audit dependencies
         run: yarn npm audit --all --recursive --severity high
 
-  astro-sveltia-poc:
+  astro-sveltia:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -60,7 +60,7 @@ jobs:
           cache: npm
           cache-dependency-path: poc/astro-sveltia/package-lock.json
 
-      - name: Install PoC dependencies
+      - name: Install Astro dependencies
         run: npm ci
 
       - name: Generate Cloudflare types
@@ -74,14 +74,14 @@ jobs:
       - name: Typecheck Astro and Pages Functions
         run: npm run check
 
-      - name: Test content gateway
+      - name: Run unit tests
         run: npm test
 
-      - name: Build Astro PoC
+      - name: Build and validate Astro Wiki
         run: npm run build
 
       - name: Bundle Pages Functions
         run: npx wrangler pages functions build
 
-      - name: Audit PoC dependencies
+      - name: Audit Astro dependencies
         run: npm audit --audit-level=high
