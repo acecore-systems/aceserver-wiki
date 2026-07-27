@@ -179,5 +179,11 @@ branch previewは`CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretを
 - 既存URL redirect、検索、sitemap、robots、404、SEO、OGP、広告実装を移行済み
 - AdSenseは未審査UGCへ配信しないため全公開ページで無効化済み
 - D1監査、rate limit、BAN、idempotency、rollback workflowを実装済み
-- Discord OAuth→OIDC broker、Cloudflare Access、GitHub App、Pages productionは
-  環境構築後にE2E確認し、custom domainを切り替える
+- Discord OAuth→OIDC broker、Cloudflare Access、GitHub App、Pages productionを
+  接続し、Markdown下書きの保存・公開除外・削除を本番E2E確認済み
+- 2026-07-27に`asv-wiki.acecore.net`を`aceserver-wiki-astro`へ切替済み
+- 旧Pages project `aceserver-wiki`はcustom domainを外して自動deployを停止し、
+  rollback用deploymentとNewt設定を保持中
+
+deployment ID、commit SHA、監査結果、復旧点は
+[`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)に記録しています。
