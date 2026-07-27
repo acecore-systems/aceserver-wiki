@@ -359,6 +359,26 @@ describe('authorization endpoint', () => {
 })
 
 describe('Discord callback and token endpoint', () => {
+  it('never follows redirects for authenticated Discord requests', async () => {
+    const { discordState } = await beginAuthorization()
+    const fetchMock = installDiscordFetchMock()
+    const response = await SELF.fetch(
+      `${ISSUER}/callback?code=discord-code&state=${discordState}`,
+      { redirect: 'manual' },
+    )
+
+    expect(response.status).toBe(303)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    const calls = fetchMock.mock.calls as unknown as Array<
+      [RequestInfo | URL, RequestInit | undefined]
+    >
+    for (const [input, init] of calls) {
+      const redirect =
+        input instanceof Request ? input.redirect : init?.redirect
+      expect(redirect).toBe('manual')
+    }
+  })
+
   it('mints a signed one-time ID token with the Discord snowflake', async () => {
     const code = await completeAuthorization()
     vi.unstubAllGlobals()
@@ -660,6 +680,7 @@ describe('Discord callback and token endpoint', () => {
   )
 
   it.each([
+    [302, 'discord_token_http_3xx'],
     [400, 'discord_token_http_400'],
     [401, 'discord_token_http_401'],
     [403, 'discord_token_http_403'],

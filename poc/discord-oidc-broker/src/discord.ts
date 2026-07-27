@@ -39,6 +39,9 @@ async function withDiscordFailure<T>(
 }
 
 function discordTokenHttpFailure(status: number): Error {
+  if (status >= 300 && status <= 399) {
+    return new Error('discord_token_http_3xx')
+  }
   if (status === 400) {
     return new Error('discord_token_http_400')
   }
@@ -94,7 +97,7 @@ async function exchangeDiscordCode(
         'User-Agent': USER_AGENT,
       },
       method: 'POST',
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.timeout(8000),
     })
   } catch {
@@ -157,7 +160,7 @@ async function fetchDiscordIdentity(
         Authorization: `Bearer ${accessToken}`,
         'User-Agent': USER_AGENT,
       },
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.timeout(8000),
     })
     const payload = await readProviderJson(response)
@@ -198,7 +201,7 @@ async function revokeDiscordToken(
         'User-Agent': USER_AGENT,
       },
       method: 'POST',
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.timeout(8000),
     })
     if (!response.ok) {

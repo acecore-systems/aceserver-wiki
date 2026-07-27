@@ -37,6 +37,7 @@ const CALLBACK_FAILURE_CODES = new Set([
   'authorization_code_write_failed',
   'body_too_large',
   'discord_identity_invalid',
+  'discord_token_http_3xx',
   'discord_token_http_400',
   'discord_token_http_401',
   'discord_token_http_403',
