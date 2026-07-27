@@ -33,6 +33,15 @@ const TOKEN_RATE_LIMIT = 3000
 const OPAQUE_VALUE = /^[\x21-\x7e]+$/u
 const PKCE_CHALLENGE = /^[A-Za-z0-9_-]{43}$/u
 const PKCE_VERIFIER = /^[A-Za-z0-9._~-]{43,128}$/u
+const CALLBACK_FAILURE_CODES = new Set([
+  'authorization_code_write_failed',
+  'body_too_large',
+  'discord_identity_invalid',
+  'discord_token_exchange_failed',
+  'discord_token_metadata_invalid',
+  'discord_token_revocation_failed',
+  'invalid_provider_response',
+])
 const SUPPORTED_OIDC_SCOPES = ['openid', 'email', 'profile']
 const KNOWN_ROUTES = new Set([
   '/.well-known/openid-configuration',
@@ -64,6 +73,19 @@ function logRoute(request: Request): string {
   } catch {
     return 'invalid'
   }
+}
+
+function logCallbackFailure(error: unknown): void {
+  const logCode =
+    error instanceof Error && CALLBACK_FAILURE_CODES.has(error.message)
+      ? error.message
+      : 'callback_processing_failed'
+  console.error(
+    JSON.stringify({
+      error: logCode,
+      event: 'oidc_callback_failed',
+    }),
+  )
 }
 
 function validateOpaque(
@@ -398,7 +420,8 @@ async function handleCallback(
     target.searchParams.set('code', brokerCode)
     target.searchParams.set('state', authorization.access_state)
     return redirectResponse(target.toString())
-  } catch {
+  } catch (error) {
+    logCallbackFailure(error)
     return redirectOAuthError(
       authorization.access_redirect_uri,
       authorization.access_state,
