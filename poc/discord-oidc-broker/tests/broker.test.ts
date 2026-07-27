@@ -73,7 +73,7 @@ function installDiscordFetchMock(options?: {
         : input instanceof URL
           ? input.toString()
           : input
-    if (url === 'https://discord.com/api/v10/oauth2/token') {
+    if (url === 'https://discord.com/api/oauth2/token') {
       if (options?.failureAt === 'token') {
         throw new Error('sensitive-provider-failure')
       }
@@ -103,7 +103,7 @@ function installDiscordFetchMock(options?: {
         verified: options?.emailVerified ?? true,
       })
     }
-    if (url === 'https://discord.com/api/v10/oauth2/token/revoke') {
+    if (url === 'https://discord.com/api/oauth2/token/revoke') {
       if (options?.failureAt === 'revoke') {
         throw new Error('sensitive-provider-failure')
       }
