@@ -10,11 +10,23 @@ const MAX_MARKDOWN_BYTES = 512 * 1024
 const MAX_MEDIA_BYTES = 8 * 1024 * 1024
 const FRONTMATTER_KEYS = new Set([
   'title',
+  'seoTitle',
   'description',
   'category',
   'order',
+  'ogImage',
   'draft',
 ])
+const WIKI_CATEGORIES = new Set([
+  'イントロダクション',
+  '生活鯖について',
+  'その他サーバーについて',
+  'ディスコードについて',
+  'コミュニティ紹介',
+  'その他',
+])
+const WIKI_IMAGE_PATH_PATTERN =
+  /^\/uploads\/wiki\/[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*\.(?:avif|gif|jpe?g|png|webp)$/u
 const BASE64_PATTERN =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u
 const RAW_HTML_PATTERN =
@@ -185,6 +197,25 @@ function validateMarkdown(bytes: Uint8Array) {
     !isBoundedText(frontmatter.category, 1, 60)
   ) {
     return 'title、description、categoryを規定の長さで指定してください。'
+  }
+
+  if (!WIKI_CATEGORIES.has(frontmatter.category as string)) {
+    return 'categoryは公開Wikiの6カテゴリから指定してください。'
+  }
+
+  if (
+    frontmatter.seoTitle !== undefined &&
+    !isBoundedText(frontmatter.seoTitle, 1, 100)
+  ) {
+    return 'seoTitleは1文字以上100文字以下で指定してください。'
+  }
+
+  if (
+    frontmatter.ogImage !== undefined &&
+    (typeof frontmatter.ogImage !== 'string' ||
+      !WIKI_IMAGE_PATH_PATTERN.test(frontmatter.ogImage))
+  ) {
+    return 'ogImageはWiki画像フォルダ内の公開パスで指定してください。'
   }
 
   if (

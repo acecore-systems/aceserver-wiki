@@ -1,14 +1,14 @@
 import { getCollection, type CollectionEntry } from 'astro:content'
+import { HEADER_TITLE, SITE_ORIGIN, WIKI_CATEGORIES } from '../config/wiki'
 import { assertMarkdownSource } from './markdown-policy'
+import { markdownToSearchText, type WikiSearchItem } from './search'
 
-export const SITE_TITLE = 'エースサーバー Wiki'
-export const SITE_ORIGIN = 'https://asv-wiki.acecore.net'
-export const POC_DESCRIPTION =
-  'Git上のMarkdownをAstroで表示する技術検証です。現在公開中のWikiコンテンツは移行していません。'
+export { HEADER_TITLE, SITE_ORIGIN }
 
 export type WikiArticle = CollectionEntry<'wiki'>
 
 export interface WikiCategoryGroup {
+  id: string
   name: string
   articles: WikiArticle[]
 }
@@ -40,17 +40,21 @@ export const getWikiArticles = async (): Promise<WikiArticle[]> => {
 export const groupWikiArticles = (
   articles: WikiArticle[],
 ): WikiCategoryGroup[] => {
-  const categories = new Map<string, WikiArticle[]>()
+  const categoryNames = new Set<string>(WIKI_CATEGORIES.map(({ name }) => name))
+  const unknownCategory = articles.find(
+    (article) => !categoryNames.has(article.data.category),
+  )
 
-  for (const article of articles) {
-    const category = categories.get(article.data.category) ?? []
-    category.push(article)
-    categories.set(article.data.category, category)
+  if (unknownCategory) {
+    throw new Error(
+      `Unknown wiki category "${unknownCategory.data.category}" in ${unknownCategory.id}.`,
+    )
   }
 
-  return Array.from(categories, ([name, categoryArticles]) => ({
+  return WIKI_CATEGORIES.map(({ id, name }) => ({
+    id,
     name,
-    articles: categoryArticles,
+    articles: articles.filter((article) => article.data.category === name),
   }))
 }
 
@@ -62,4 +66,16 @@ export const articlePath = (id: string): string => {
     .join('/')
 
   return `/article/${encodedId}/`
+}
+
+export const getWikiSearchItems = async (): Promise<WikiSearchItem[]> => {
+  const articles = await getWikiArticles()
+
+  return articles.map((article) => ({
+    title: article.data.title,
+    url: articlePath(article.id),
+    text: markdownToSearchText(
+      (article as WikiArticle & { body?: string }).body ?? '',
+    ),
+  }))
 }

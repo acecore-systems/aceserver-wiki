@@ -1,5 +1,10 @@
 ---
-import { SITE_TITLE, articlePath, type WikiCategoryGroup } from '../lib/wiki'
+import {
+  HEADER_TITLE,
+  WIKI_HEADER_LINKS,
+  WIKI_ICON_PATH,
+} from '../config/wiki'
+import { articlePath, type WikiCategoryGroup } from '../lib/wiki'
 
 interface Props {
   categories: WikiCategoryGroup[]
@@ -11,16 +16,33 @@ const { categories, currentId } = Astro.props
 
 <header class="site-header">
   <div class="site-header__inner">
-    <a class="site-title" href="/" aria-label={`${SITE_TITLE} トップ`}>
+    <a class="site-title" href="/" aria-label={`${HEADER_TITLE} トップ`}>
       <span class="site-title__icon" aria-hidden="true">
-        <img src="/logo.svg" alt="" width="24" height="24" />
+        <img src={WIKI_ICON_PATH} alt="" width="24" height="24" />
       </span>
-      <span class="site-title__text">{SITE_TITLE}</span>
+      <span class="site-title__text">{HEADER_TITLE}</span>
     </a>
 
     <nav class="site-links" aria-label="サイトメニュー">
+      {
+        WIKI_HEADER_LINKS.map((link) => (
+          <a href={link.href}>{link.text}</a>
+        ))
+      }
       <a href="/admin/" rel="nofollow">編集</a>
     </nav>
+
+    <form class="site-search" action="/search/" method="get" role="search">
+      <label class="visually-hidden" for="header-search">サイト内検索</label>
+      <input
+        id="header-search"
+        name="q"
+        type="search"
+        placeholder="サイト内検索"
+        autocomplete="off"
+      />
+      <button type="submit">検索</button>
+    </form>
 
     <details class="mobile-menu">
       <summary aria-label="記事メニューを開く">
@@ -30,8 +52,33 @@ const { categories, currentId } = Astro.props
         <nav aria-label="モバイル記事メニュー">
           <ul class="mobile-menu__primary">
             <li><a href="/" aria-current={!currentId ? 'page' : undefined}>トップ</a></li>
+            {
+              WIKI_HEADER_LINKS.map((link) => (
+                <li>
+                  <a href={link.href}>{link.text}</a>
+                </li>
+              ))
+            }
             <li><a href="/admin/" rel="nofollow">編集</a></li>
           </ul>
+
+          <form
+            class="mobile-menu__search"
+            action="/search/"
+            method="get"
+            role="search"
+          >
+            <label for="mobile-search">サイト内検索</label>
+            <div>
+              <input
+                id="mobile-search"
+                name="q"
+                type="search"
+                autocomplete="off"
+              />
+              <button type="submit">検索</button>
+            </div>
+          </form>
 
           {
             categories.map((category) => (

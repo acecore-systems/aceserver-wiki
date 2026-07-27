@@ -90,6 +90,17 @@ a:hover {
   color: #fff;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .skip-link:focus {
   transform: translateY(0);
 }
@@ -161,7 +172,9 @@ a:hover {
 
 .site-links {
   display: none;
+  align-items: center;
   margin-left: 3rem;
+  white-space: nowrap;
 }
 
 .site-links a {
@@ -173,6 +186,50 @@ a:hover {
 
 .site-links a:hover {
   color: var(--color-text);
+}
+
+.site-search {
+  display: none;
+  align-items: center;
+  margin-left: auto;
+}
+
+.site-search input,
+.mobile-menu__search input,
+.search-page__form input {
+  min-width: 0;
+  border: 1px solid #c7c7c7;
+  border-radius: 4px 0 0 4px;
+  background: #fff;
+  color: var(--color-text);
+}
+
+.site-search input {
+  width: 15rem;
+  height: 32px;
+  padding: 4px 9px;
+}
+
+.site-search button,
+.mobile-menu__search button,
+.search-page__form button {
+  border: 1px solid var(--color-link);
+  border-radius: 0 4px 4px 0;
+  background: var(--color-link);
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.site-search button {
+  height: 32px;
+  padding: 4px 9px;
+}
+
+.site-search button:hover,
+.mobile-menu__search button:hover,
+.search-page__form button:hover {
+  background: #0059b8;
 }
 
 .mobile-menu {
@@ -280,6 +337,33 @@ a:hover {
 
 .mobile-menu__primary {
   margin: 20px 0 !important;
+}
+
+.mobile-menu__search {
+  margin: 20px 24px;
+}
+
+.mobile-menu__search label {
+  display: block;
+  margin: 0 0 6px;
+  color: var(--color-muted);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.mobile-menu__search > div {
+  display: flex;
+}
+
+.mobile-menu__search input {
+  height: 38px;
+  flex: 1;
+  padding: 6px 10px;
+}
+
+.mobile-menu__search button {
+  height: 38px;
+  padding: 6px 14px;
 }
 
 .mobile-menu__category {
@@ -441,9 +525,15 @@ a:hover {
   font-weight: 700;
 }
 
-.home__category li > p {
-  margin: 2px 0 0;
-  color: #555;
+.home__category ul:empty {
+  min-height: 1.8em;
+  padding: 8px 12px;
+  border-left: 3px solid var(--color-border);
+}
+
+.home__category ul:empty::after {
+  color: var(--color-muted);
+  content: '現在、公開中の記事はありません。';
 }
 
 .article {
@@ -590,6 +680,62 @@ a:hover {
   margin: 5px 0 24px;
 }
 
+.search-page,
+.not-found {
+  min-width: 0;
+  padding: 84px 24px 52px;
+  flex: 1;
+}
+
+.search-page h1,
+.not-found h1 {
+  margin: 0 0 20px;
+  font-size: 3.2rem;
+  line-height: 1.4;
+}
+
+.search-page__form {
+  display: flex;
+  width: min(100%, 62rem);
+  margin: 0 0 28px;
+}
+
+.search-page__form input {
+  height: 42px;
+  flex: 1;
+  padding: 8px 12px;
+  font-size: 1.6rem;
+}
+
+.search-page__form button {
+  height: 42px;
+  padding: 8px 18px;
+}
+
+.search-results {
+  margin: 0;
+  padding: 0;
+}
+
+.search-results li {
+  margin: 0 0 22px;
+  list-style: none;
+}
+
+.search-results a {
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+.search-results p {
+  margin: 3px 0 0;
+  color: var(--color-muted);
+}
+
+.search-status {
+  color: var(--color-muted);
+}
+
 @media (min-width: 600px) {
   .main {
     display: flex;
@@ -601,6 +747,10 @@ a:hover {
   }
 
   .site-links,
+  .site-search {
+    display: flex;
+  }
+
   .side-navigation {
     display: block;
   }
@@ -610,8 +760,21 @@ a:hover {
   }
 
   .home,
-  .article {
+  .article,
+  .search-page,
+  .not-found {
     padding: 60px 0 52px;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 960px) {
+  .site-links a {
+    padding-right: 7px;
+    padding-left: 7px;
+  }
+
+  .site-search input {
+    width: 11rem;
   }
 }
 

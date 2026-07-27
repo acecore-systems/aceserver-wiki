@@ -1129,7 +1129,7 @@ function commitVariables(expectedHeadOid: string) {
   const markdown = `---
 title: Test
 description: Gateway publication test.
-category: PoC
+category: その他
 order: 10
 draft: false
 ---

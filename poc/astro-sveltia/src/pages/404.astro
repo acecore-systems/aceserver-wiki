@@ -1,0 +1,22 @@
+---
+import { SITE_NAME } from '../config/wiki'
+import WikiLayout from '../layouts/WikiLayout.astro'
+import { getWikiArticles, groupWikiArticles } from '../lib/wiki'
+
+const categories = groupWikiArticles(await getWikiArticles())
+---
+
+<WikiLayout
+  title={`ページが見つかりません｜${SITE_NAME}`}
+  description="指定されたページは見つかりませんでした。"
+  canonicalPath="/404/"
+  categories={categories}
+  robots="noindex, nofollow"
+  showAds={false}
+>
+  <section class="not-found">
+    <h1>ページが見つかりません</h1>
+    <p>URLが変更されたか、ページが削除された可能性があります。</p>
+    <p><a href="/">Wikiトップへ戻る</a></p>
+  </section>
+</WikiLayout>

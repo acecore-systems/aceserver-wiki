@@ -106,3 +106,7 @@ poc/astro-sveltia/worker-configuration.d.ts
 
 # The current root Prettier setup does not include prettier-plugin-astro.
 poc/astro-sveltia/src/**/*.astro
+
+# Migrated CMS content and its source-evidence hashes must remain byte-stable.
+poc/astro-sveltia/migration/
+poc/astro-sveltia/src/content/wiki/

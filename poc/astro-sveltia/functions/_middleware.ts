@@ -1,11 +1,8 @@
+import { ARTICLE_REDIRECTS } from '../src/config/wiki'
+
 const LEGACY_ROOT_TITLES = new Set([
   'メインページ',
   'カテゴリ:メインサーバーについて',
-])
-
-const LEGACY_ARTICLE_REDIRECTS = new Map([
-  ['/article/SurvivalRules', '/article/rule/'],
-  ['/article/SurvivalRules/', '/article/rule/'],
 ])
 
 const ADMIN_CONTENT_SECURITY_POLICY = [
@@ -59,7 +56,22 @@ function getLegacyRedirect(url: URL) {
 
   if (url.pathname === '/index.php' && isLegacyRoot) return '/'
 
-  return LEGACY_ARTICLE_REDIRECTS.get(url.pathname) ?? null
+  let decodedPath: string
+
+  try {
+    decodedPath = decodeURIComponent(url.pathname).normalize('NFC')
+  } catch {
+    return null
+  }
+
+  const redirectPath = ARTICLE_REDIRECTS.get(decodedPath)
+
+  if (!redirectPath) return null
+
+  const destination = new URL(redirectPath, url.origin)
+  destination.search = url.search
+
+  return `${destination.pathname}${destination.search}`
 }
 
 function withSecurityHeaders(response: Response, url: URL) {

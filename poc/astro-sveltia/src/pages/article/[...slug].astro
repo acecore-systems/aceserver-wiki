@@ -1,8 +1,8 @@
 ---
 import { render } from 'astro:content'
 import WikiLayout from '../../layouts/WikiLayout.astro'
+import { SITE_NAME } from '../../config/wiki'
 import {
-  SITE_TITLE,
   articlePath,
   getWikiArticles,
   groupWikiArticles,
@@ -26,7 +26,7 @@ const { article } = Astro.props
 const articles = await getWikiArticles()
 const categories = groupWikiArticles(articles)
 const { Content } = await render(article)
-const title = `${article.data.title}｜${SITE_TITLE}`
+const title = `${article.data.seoTitle ?? article.data.title}｜${SITE_NAME}`
 ---
 
 <WikiLayout
@@ -36,6 +36,7 @@ const title = `${article.data.title}｜${SITE_TITLE}`
   categories={categories}
   currentId={article.id}
   type="article"
+  ogImage={article.data.ogImage}
 >
   <article class="article">
     <h1 class="article__title">{article.data.title}</h1>

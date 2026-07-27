@@ -2,10 +2,13 @@
 import Header from '../components/Header.astro'
 import Navigation from '../components/Navigation.astro'
 import {
+  ADSENSE_CLIENT,
+  BING_SITE_VERIFICATION,
+  SITE_NAME,
   SITE_ORIGIN,
-  SITE_TITLE,
-  type WikiCategoryGroup,
-} from '../lib/wiki'
+  WIKI_ICON_PATH,
+} from '../config/wiki'
+import type { WikiCategoryGroup } from '../lib/wiki'
 import '../styles/global.css'
 
 interface Props {
@@ -15,6 +18,9 @@ interface Props {
   categories: WikiCategoryGroup[]
   currentId?: string
   type?: 'website' | 'article'
+  robots?: 'index, follow' | 'noindex, follow' | 'noindex, nofollow'
+  ogImage?: string
+  showAds?: boolean
 }
 
 const {
@@ -24,9 +30,15 @@ const {
   categories,
   currentId,
   type = 'website',
+  robots = 'index, follow',
+  ogImage,
+  showAds = true,
 } = Astro.props
 
 const canonical = new URL(canonicalPath, Astro.site ?? SITE_ORIGIN).toString()
+const absoluteOgImage = ogImage
+  ? new URL(ogImage, Astro.site ?? SITE_ORIGIN).toString()
+  : undefined
 ---
 
 <!doctype html>
@@ -36,19 +48,39 @@ const canonical = new URL(canonicalPath, Astro.site ?? SITE_ORIGIN).toString()
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="description" content={description} />
-    <meta name="robots" content="noindex, nofollow" />
+    <meta name="robots" content={robots} />
+    <meta name="msvalidate.01" content={BING_SITE_VERIFICATION} />
     <meta name="theme-color" content="#ffffff" />
     <link rel="canonical" href={canonical} />
-    <link rel="icon" href="/logo.svg" type="image/svg+xml" />
+    <link rel="icon" href={WIKI_ICON_PATH} type="image/png" />
     <meta property="og:locale" content="ja_JP" />
     <meta property="og:type" content={type} />
-    <meta property="og:site_name" content={SITE_TITLE} />
+    <meta property="og:site_name" content={SITE_NAME} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta name="twitter:card" content="summary" />
+    {absoluteOgImage && <meta property="og:image" content={absoluteOgImage} />}
+    <meta
+      name="twitter:card"
+      content={type === 'article' ? 'summary_large_image' : 'summary'}
+    />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+    {
+      absoluteOgImage && (
+        <meta name="twitter:image" content={absoluteOgImage} />
+      )
+    }
+    {
+      showAds && (
+        <script
+          is:inline
+          async
+          crossorigin="anonymous"
+          src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
+        />
+      )
+    }
     <title>{title}</title>
   </head>
   <body>

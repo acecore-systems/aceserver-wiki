@@ -10,7 +10,7 @@ import { assertMarkdownSource } from '../src/lib/markdown-policy.ts'
 const VALID_MARKDOWN = `---
 title: Markdown編集PoC
 description: 公開切替を伴わない編集経路の検証記事です。
-category: PoC
+category: その他
 order: 10
 draft: false
 ---

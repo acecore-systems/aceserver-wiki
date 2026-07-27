@@ -1,36 +1,29 @@
 ---
 import WikiLayout from '../layouts/WikiLayout.astro'
 import {
-  POC_DESCRIPTION,
-  SITE_TITLE,
-  articlePath,
+  HEADER_TITLE,
+  ROOT_DESCRIPTION,
+  ROOT_META_TITLE,
+} from '../config/wiki'
+import {
   getWikiArticles,
   groupWikiArticles,
+  articlePath,
 } from '../lib/wiki'
 
 const articles = await getWikiArticles()
 const categories = groupWikiArticles(articles)
-const firstArticle = articles.at(0)
-const title = `Markdown Wiki PoC｜${SITE_TITLE}`
 ---
 
 <WikiLayout
-  title={title}
-  description={POC_DESCRIPTION}
+  title={ROOT_META_TITLE}
+  description={ROOT_DESCRIPTION}
   canonicalPath="/"
   categories={categories}
 >
   <section class="home">
-    <h1>Markdown Wiki PoC</h1>
-    <p class="home__description">{POC_DESCRIPTION}</p>
-
-    {
-      firstArticle && (
-        <a class="home__start" href={articlePath(firstArticle.id)}>
-          検証記事を読む
-        </a>
-      )
-    }
+    <h1>{HEADER_TITLE}</h1>
+    <p class="home__description">{ROOT_DESCRIPTION}</p>
 
     {
       categories.map((category) => (
@@ -40,7 +33,6 @@ const title = `Markdown Wiki PoC｜${SITE_TITLE}`
             {category.articles.map((article) => (
               <li>
                 <a href={articlePath(article.id)}>{article.data.title}</a>
-                <p>{article.data.description}</p>
               </li>
             ))}
           </ul>

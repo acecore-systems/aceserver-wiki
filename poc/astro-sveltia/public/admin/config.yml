@@ -52,19 +52,37 @@ collections:
         label: タイトル
         widget: string
         hint: 新規作成時は、タイトルから記事URL用のファイル名が生成されます。
+      - name: seoTitle
+        label: SEOタイトル
+        widget: string
+        required: false
+        hint: 検索結果用のタイトルを本文タイトルと変えたい場合だけ指定します。
       - name: description
         label: 概要
         widget: text
-        hint: 検索結果や記事一覧に表示する短い説明です。
+        hint: 検索結果やSNS共有に使用する短い説明です。
       - name: category
         label: カテゴリ
-        widget: string
+        widget: select
+        options:
+          - イントロダクション
+          - 生活鯖について
+          - その他サーバーについて
+          - ディスコードについて
+          - コミュニティ紹介
+          - その他
       - name: order
         label: 表示順
         widget: number
         value_type: int
         min: 0
         default: 100
+      - name: ogImage
+        label: OGP画像
+        widget: image
+        required: false
+        choose_url: false
+        hint: 必要な記事だけ指定します。画像はWiki画像フォルダへ保存されます。
       - name: draft
         label: 下書き
         widget: boolean
