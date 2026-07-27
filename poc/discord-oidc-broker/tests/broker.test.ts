@@ -23,6 +23,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
 
 function validAuthorizeParameters(): URLSearchParams {
@@ -539,6 +540,9 @@ describe('Discord callback and token endpoint', () => {
   })
 
   it('rejects an unverified Discord email and still revokes the token', async () => {
+    const errorLog = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
     const { discordState } = await beginAuthorization()
     const fetchMock = installDiscordFetchMock({ emailVerified: false })
     const response = await SELF.fetch(
@@ -553,9 +557,18 @@ describe('Discord callback and token endpoint', () => {
         String(input).includes('/oauth2/token/revoke'),
       ),
     ).toBe(true)
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({
+        error: 'discord_identity_invalid',
+        event: 'oidc_callback_failed',
+      }),
+    )
   })
 
   it('revokes an issued Discord token when token metadata is invalid', async () => {
+    const errorLog = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
     const { discordState } = await beginAuthorization()
     const fetchMock = installDiscordFetchMock({ tokenScope: 'identify' })
     const response = await SELF.fetch(
@@ -570,9 +583,18 @@ describe('Discord callback and token endpoint', () => {
         String(input).includes('/oauth2/token/revoke'),
       ),
     ).toBe(true)
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({
+        error: 'discord_token_metadata_invalid',
+        event: 'oidc_callback_failed',
+      }),
+    )
   })
 
   it('fails closed when Discord token revocation fails', async () => {
+    const errorLog = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
     const { discordState } = await beginAuthorization()
     installDiscordFetchMock({ revokeStatus: 503 })
     const response = await SELF.fetch(
@@ -581,6 +603,12 @@ describe('Discord callback and token endpoint', () => {
     )
     const location = new URL(response.headers.get('Location') ?? '')
     expect(location.searchParams.get('error')).toBe('server_error')
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({
+        error: 'discord_token_revocation_failed',
+        event: 'oidc_callback_failed',
+      }),
+    )
   })
 
   it('requires form encoding and does not expose CORS', async () => {
