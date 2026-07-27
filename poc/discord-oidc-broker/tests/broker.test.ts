@@ -63,6 +63,7 @@ function installDiscordFetchMock(options?: {
   emailVerified?: boolean
   failureAt?: 'identity' | 'revoke' | 'token'
   revokeStatus?: number
+  tokenStatus?: number
   tokenScope?: string
 }): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
@@ -75,6 +76,12 @@ function installDiscordFetchMock(options?: {
     if (url === 'https://discord.com/api/v10/oauth2/token') {
       if (options?.failureAt === 'token') {
         throw new Error('sensitive-provider-failure')
+      }
+      if (options?.tokenStatus !== undefined) {
+        return Response.json(
+          { error: 'sensitive-provider-response' },
+          { status: options.tokenStatus },
+        )
       }
       return Response.json({
         access_token: 'discord-access-token-for-tests',
@@ -622,7 +629,7 @@ describe('Discord callback and token endpoint', () => {
   })
 
   it.each([
-    ['token', 'discord_token_exchange_failed'],
+    ['token', 'discord_token_request_failed'],
     ['identity', 'discord_identity_invalid'],
     ['revoke', 'discord_token_revocation_failed'],
   ] as const)(
@@ -651,6 +658,76 @@ describe('Discord callback and token endpoint', () => {
       )
     },
   )
+
+  it.each([
+    [400, 'discord_token_http_400'],
+    [401, 'discord_token_http_401'],
+    [403, 'discord_token_http_403'],
+    [429, 'discord_token_http_429'],
+    [503, 'discord_token_http_5xx'],
+    [418, 'discord_token_http_unexpected'],
+  ] as const)(
+    'classifies a Discord token HTTP %s without logging its body',
+    async (tokenStatus, expected) => {
+      const errorLog = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined)
+      const { discordState } = await beginAuthorization()
+      installDiscordFetchMock({ tokenStatus })
+      const response = await SELF.fetch(
+        `${ISSUER}/callback?code=discord-code&state=${discordState}`,
+        { redirect: 'manual' },
+      )
+      const location = new URL(response.headers.get('Location') ?? '')
+
+      expect(location.searchParams.get('error')).toBe('server_error')
+      expect(errorLog).toHaveBeenCalledWith(
+        JSON.stringify({
+          error: expected,
+          event: 'oidc_callback_failed',
+        }),
+      )
+      expect(errorLog.mock.calls.flat().join(' ')).not.toContain(
+        'sensitive-provider-response',
+      )
+    },
+  )
+
+  it('cancels an oversized successful Discord token response', async () => {
+    const errorLog = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+    const { discordState } = await beginAuthorization()
+    const cancel = vi.fn()
+    const body = new ReadableStream<Uint8Array>({ cancel })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(body, {
+            headers: {
+              'Content-Length': '32769',
+              'Content-Type': 'application/json',
+            },
+          }),
+      ),
+    )
+
+    const response = await SELF.fetch(
+      `${ISSUER}/callback?code=discord-code&state=${discordState}`,
+      { redirect: 'manual' },
+    )
+    const location = new URL(response.headers.get('Location') ?? '')
+
+    expect(location.searchParams.get('error')).toBe('server_error')
+    expect(cancel).toHaveBeenCalledOnce()
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({
+        error: 'discord_token_response_invalid',
+        event: 'oidc_callback_failed',
+      }),
+    )
+  })
 
   it('requires form encoding and does not expose CORS', async () => {
     const response = await SELF.fetch(`${ISSUER}/token`, {
