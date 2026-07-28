@@ -49,9 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git -C tooling fetch --no-tags origin \
-            "+refs/heads/main:refs/remotes/origin/main"
-          site_commit="$(git -C tooling rev-parse refs/remotes/origin/main)"
+          site_commit="$(git -C tooling rev-parse HEAD)"
 
           if [[ ! "$site_commit" =~ ^[0-9a-f]{40}$ ]]; then
             echo "::error::main commit is not a full Git SHA."
@@ -153,8 +151,12 @@ jobs:
           PUSH_COMMIT: ${{ github.sha }}
         run: |
           set -euo pipefail
-          git -C tooling fetch --no-tags origin \
-            "+refs/heads/main:refs/remotes/origin/main"
+          protected_main_commit="$(git -C tooling rev-parse HEAD)"
+
+          if [[ ! "$protected_main_commit" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::protected main commit is not a full Git SHA."
+            exit 1
+          fi
 
           if [[ "$EVENT_NAME" == "push" ]]; then
             site_commit="$PUSH_COMMIT"
@@ -178,7 +180,7 @@ jobs:
           fi
 
           if ! git -C tooling merge-base --is-ancestor \
-            "$site_commit" refs/remotes/origin/main; then
+            "$site_commit" "$protected_main_commit"; then
             echo "::error::Published commit is not an ancestor of protected main."
             exit 1
           fi

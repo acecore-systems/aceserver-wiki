@@ -55,6 +55,11 @@ test('Vectorize secrets are used only by protected-main sync steps', async () =>
     workflow,
     'Check out protected main tooling',
   )
+  const previewResolve = getStepBlock(workflow, 'Resolve main site commit')
+  const productionResolve = getStepBlock(
+    workflow,
+    'Resolve deployed site commit',
+  )
   const previewSync = getStepBlock(workflow, 'Sync preview Vectorize index')
   const productionSync = getStepBlock(
     workflow,
@@ -64,6 +69,24 @@ test('Vectorize secrets are used only by protected-main sync steps', async () =>
   assert.doesNotMatch(workflow, /pull_request(?:_target)?:/u)
   assert.match(protectedCheckout, /^ {10}ref: refs\/heads\/main$/mu)
   assert.match(protectedCheckout, /^ {10}persist-credentials: false$/mu)
+  assert.equal(workflow.match(/^ {10}ref: refs\/heads\/main$/gmu)?.length, 2)
+  assert.equal(workflow.match(/^ {10}fetch-depth: 0$/gmu)?.length, 2)
+  assert.equal(
+    workflow.match(/^ {10}persist-credentials: false$/gmu)?.length,
+    4,
+  )
+  assert.doesNotMatch(workflow, /persist-credentials: true/u)
+  assert.match(
+    previewResolve,
+    /site_commit="\$\(git -C tooling rev-parse HEAD\)"/u,
+  )
+  assert.match(
+    productionResolve,
+    /protected_main_commit="\$\(git -C tooling rev-parse HEAD\)"/u,
+  )
+  assert.match(productionResolve, /"\$site_commit" "\$protected_main_commit"/u)
+  assert.doesNotMatch(workflow, /git -C tooling fetch/u)
+  assert.doesNotMatch(workflow, /refs\/remotes\/origin\/main/u)
   assert.match(
     previewSync,
     /secrets\.CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN/u,
