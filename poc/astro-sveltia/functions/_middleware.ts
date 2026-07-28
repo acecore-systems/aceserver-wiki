@@ -89,8 +89,14 @@ async function withSecurityHeaders(response: Response, url: URL) {
   }
 
   if (isAdmin) headers.set('Cache-Control', 'no-store')
-  if (url.pathname === '/search-index.json') {
+  if (
+    url.pathname === '/search-index.json' ||
+    url.pathname === '/vector-corpus.json'
+  ) {
     headers.set('X-Robots-Tag', 'noindex')
+  }
+  if (url.pathname === '/.well-known/aceserver-wiki-build.json') {
+    headers.set('Cache-Control', 'no-store')
   }
 
   let body: BodyInit | null = response.body
