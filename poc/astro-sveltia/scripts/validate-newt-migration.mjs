@@ -36,7 +36,7 @@ validateArchivedEvidence()
 if (validateCurrent) {
   const parity = await validateCurrentMigration()
   console.log(
-    `Validated the current 15-article migration: ${parity.nonTableTextMatches}/15 non-table text bodies, ${parity.tableCount} semantic tables, ${parity.links.source} source links (${parity.links.exact} exact, ${parity.links.rewritten} rewritten, ${parity.links.retired} retired with labels preserved), ${parity.links.added} added links, ${parity.images.preserved}/${parity.images.source} preserved article images, 11 hashed stored assets, and four redirects.`,
+    `Validated the current 15-article migration: ${parity.nonTableTextMatches}/15 non-table text bodies, ${parity.tableCount} semantic tables, ${parity.links.source} source links (${parity.links.exact} exact, ${parity.links.rewritten} rewritten, ${parity.links.retired} retired with labels preserved), ${parity.links.added} added links, ${parity.images.preserved}/${parity.images.source} preserved article images, ${parity.search.query} search ${parity.search.source} source/${parity.search.current} current results with no source loss, 11 hashed stored assets, and four redirects.`,
   )
 } else {
   console.log(

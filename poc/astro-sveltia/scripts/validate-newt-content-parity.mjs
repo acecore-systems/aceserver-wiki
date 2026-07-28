@@ -11,6 +11,28 @@ const EXPECTED_RETIRED_LINK_COUNT = 6
 const EXPECTED_ADDED_LINK_COUNT = 3
 const EXPECTED_SOURCE_IMAGE_COUNT = 9
 const EXPECTED_CURRENT_IMAGE_COUNT = 8
+const SEARCH_PARITY_QUERY = 'Discord'
+const EXPECTED_SOURCE_SEARCH_SLUGS = [
+  'hub-intro',
+  'discord-rule',
+  'rule',
+  'discord-roles',
+  'in',
+  'howto',
+  'asutan-kingdom',
+  'promotion',
+]
+const EXPECTED_CURRENT_SEARCH_SLUGS = [
+  'hub-intro',
+  'discord-rule',
+  'rule',
+  'discord-roles',
+  'how-to-discordsrv-link',
+  'in',
+  'howto',
+  'asutan-kingdom',
+  'promotion',
+]
 
 const IGNORED_TEXT_TAGS = new Set([
   'script',
@@ -277,6 +299,7 @@ export async function validateNuxtContentParity({ root, manifest, snapshot }) {
   const currentLinks = []
   const sourceImages = []
   const currentImages = []
+  const sourceSearchSlugs = []
   let tableCount = 0
 
   for (const article of manifest.articles) {
@@ -329,6 +352,14 @@ export async function validateNuxtContentParity({ root, manifest, snapshot }) {
     )
     tableCount += sourceTables.length
 
+    if (
+      `${archived.article.title}\n${legacySearchText(sourceDocument)}`
+        .toLocaleLowerCase()
+        .includes(SEARCH_PARITY_QUERY.toLocaleLowerCase())
+    ) {
+      sourceSearchSlugs.push(article.targetSlug)
+    }
+
     sourceLinks.push(
       ...extractLinks(sourceDocument).map((link) => ({
         slug: article.targetSlug,
@@ -361,6 +392,10 @@ export async function validateNuxtContentParity({ root, manifest, snapshot }) {
     sourceImages,
     currentImages,
   })
+  const searchSummary = await validateSearchParity({
+    root,
+    sourceSearchSlugs,
+  })
 
   return {
     articleCount: EXPECTED_ARTICLE_COUNT,
@@ -368,6 +403,7 @@ export async function validateNuxtContentParity({ root, manifest, snapshot }) {
     tableCount,
     links: linkSummary,
     images: imageSummary,
+    search: searchSummary,
   }
 }
 
@@ -746,6 +782,61 @@ function validateImages({ manifest, sourceImages, currentImages }) {
     altRewritten: EXPECTED_CURRENT_IMAGE_COUNT,
     removedBroken: manifest.removedAssets.length,
   }
+}
+
+async function validateSearchParity({ root, sourceSearchSlugs }) {
+  assertDeepEqual(
+    sourceSearchSlugs,
+    EXPECTED_SOURCE_SEARCH_SLUGS,
+    `Archived search results differ for ${SEARCH_PARITY_QUERY}.`,
+  )
+
+  const searchItems = JSON.parse(
+    await readFile(new URL('dist/search-index.json', root), 'utf8'),
+  )
+  assert(
+    searchItems.length === EXPECTED_ARTICLE_COUNT,
+    'Built search index does not contain all migrated articles.',
+  )
+
+  const normalizedQuery = SEARCH_PARITY_QUERY.toLocaleLowerCase('ja-JP')
+  const currentSearchSlugs = searchItems
+    .filter((item) =>
+      `${item.title}\n${item.text}`
+        .toLocaleLowerCase('ja-JP')
+        .includes(normalizedQuery),
+    )
+    .map((item) => {
+      const match = /^\/article\/(.+)\/$/u.exec(item.url)
+      assert(match, `Unexpected search item URL: ${item.url}`)
+      return decodeURIComponent(match[1])
+    })
+
+  assertDeepEqual(
+    currentSearchSlugs,
+    EXPECTED_CURRENT_SEARCH_SLUGS,
+    `Current search results differ for ${SEARCH_PARITY_QUERY}.`,
+  )
+  assertDeepEqual(
+    currentSearchSlugs.filter((slug) => slug !== 'how-to-discordsrv-link'),
+    sourceSearchSlugs,
+    'A source Discord search result was lost during migration.',
+  )
+
+  return {
+    query: SEARCH_PARITY_QUERY,
+    source: sourceSearchSlugs.length,
+    current: currentSearchSlugs.length,
+    added: ['how-to-discordsrv-link'],
+  }
+}
+
+function legacySearchText(rootNode) {
+  const linkDestinations = findElements(rootNode, 'a')
+    .map((anchor) => getAttribute(anchor, 'href'))
+    .join('\n')
+
+  return `${elementText(rootNode)}\n${linkDestinations}`
 }
 
 function extractLinks(rootNode) {
