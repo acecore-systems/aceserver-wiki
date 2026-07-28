@@ -1,9 +1,0 @@
-{
-  "version": 1,
-  "include": [
-    "/index.php",
-    "/article/SurvivalRules",
-    "/article/SurvivalRules/"
-  ],
-  "exclude": []
-}

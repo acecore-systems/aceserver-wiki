@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://asv-wiki.acecore.net/sitemap.xml

@@ -17,8 +17,8 @@ Cloudflare Pagesで運用するための手順です。公開コンテンツの�
 - CMS状態: D1 binding `CMS_DATABASE`
 
 Pagesは必ずGitHub連携で作成し、Direct Uploadを本番経路にしません。
-rootのYarn projectと独立してnpm installするため、Wrangler varsの
-`SKIP_DEPENDENCY_INSTALL=1`でPagesの自動installを止めます。
+build commandが`npm ci`を明示しているため、Wrangler varsの
+`SKIP_DEPENDENCY_INSTALL=1`でPagesの重複した自動installを止めます。
 production以外では`CMS_PUBLICATION_MODE=disabled`とし、GitHub AppとAccessの
 secretを登録しません。
 
@@ -250,10 +250,13 @@ deployment成功まで確認します。
 
 ### custom domain rollback
 
+この手順は旧Pages projectの退役前だけ使用できます。
 切替前に、旧Pages project `aceserver-wiki`のactive deployment ID、commit SHA、
 custom domain状態と確認時刻を運用記録へ残します。重大な障害が起きた場合は、
 `asv-wiki.acecore.net`を新projectから外して旧projectへ戻し、custom domainが
 activeになってからトップ、代表記事、旧URL redirectを再確認します。
 
-切替後も旧Pages projectとNewt設定はrollback window中は削除しません。
-Astro版の安定確認後にだけ旧project、Newt token、旧build経路を整理します。
+切替後は旧Pages projectとNewt設定を当初のrollback window中だけ保持しました。
+2026-07-28の完全移行監査と明示承認後、repositoryの旧build経路、Newt token、
+旧projectの順で退役します。実施状態と削除後の復旧境界は
+[`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)へ記録します。

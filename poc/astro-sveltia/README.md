@@ -133,7 +133,7 @@ stock Sveltiaはgateway独自のPR URLや未マージ状態を表示しません
 
 ## ローカル検証
 
-repository rootのNode.js 24.18.0を使用します。
+Node.js 24.18.0を使用します。
 
 ```bash
 cd poc/astro-sveltia
@@ -147,14 +147,10 @@ npm run test:migration:current
 npx wrangler pages functions build
 ```
 
-`snapshot:newt-public`は、記録済みrollback deploymentで公開されているNuxt/Newt
-payloadを取得し、15記事の本文を復元可能なJSONとして保存する保全コマンドです。
-rootと各記事の公開payload原文も保存するため、旧Pages停止後もpayload SHA-256を
-文字列から再計算できます。同じdeploymentから再取得した場合は同一file hashに
-なるよう、取得時刻にはpayloadの`prerenderedAt`を使用します。
-既定では`https://bba3fffa.aceserver-wiki.pages.dev`だけを読み、Newt tokenは
-使用・保存しません。取得元を変える場合だけ、HTTPS originを
-`NEWT_MIGRATION_SOURCE_ORIGIN`で指定します。
+旧Nuxt/Newtの公開payloadは、退役前に復元可能なJSONとしてrepositoryへ保全
+しました。rootと各記事の公開payload原文を含むため、旧Pages停止後もpayload
+SHA-256を保存文字列から再計算できます。旧deploymentへ依存するlive snapshot
+コマンドは、取得元の退役に合わせて削除しています。
 
 移行証跡は用途を分けて保存します。
 
@@ -188,7 +184,7 @@ manifestとの全件突合結果は`MIGRATION-PARITY-2026-07-28.md`へ記録し�
 
 ## Cloudflare Pagesでの公開
 
-Direct Uploadは使いません。現行Wikiとは別の移行先Pages project
+Direct Uploadは使いません。現行Pages project
 `aceserver-wiki-astro`へGitHub repository
 `acecore-systems/aceserver-wiki`を接続します。
 
@@ -197,8 +193,8 @@ Direct Uploadは使いません。現行Wikiとは別の移行先Pages project
 - Build output: `dist`
 - Production branch: `main`
 
-rootのYarn projectと独立したnpm projectとしてbuildするため、Wrangler varsの
-`SKIP_DEPENDENCY_INSTALL=1`でPagesの自動installを止めます。
+build commandが`npm ci`を明示しているため、Wrangler varsの
+`SKIP_DEPENDENCY_INSTALL=1`でPagesの重複した自動installを止めます。
 
 Git Provider、source repository、GitHub push deployment、preview domainを
 確認してから検証します。mainへAstro実装が入る前の初回deployment失敗は
@@ -217,8 +213,10 @@ branch previewは`CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretを
 - Discord OAuth→OIDC broker、Cloudflare Access、GitHub App、Pages productionを
   接続し、Markdown下書きの保存・公開除外・削除を本番E2E確認済み
 - 2026-07-27に`asv-wiki.acecore.net`を`aceserver-wiki-astro`へ切替済み
-- 旧Pages project `aceserver-wiki`はcustom domainを外して自動deployを停止し、
-  rollback用deploymentとNewt設定を保持中
+- 2026-07-28の完全移行監査で15記事・11画像・URL・検索・SEOの移行を確認済み
+- 同日に旧系削除が承認され、rootの旧Nuxt/Newt build経路を撤去中
+- 旧Newt tokenと旧Pages project `aceserver-wiki`はcleanup PR merge後の
+  production再確認が終わるまで変更せず、最後に失効・削除する
 
 deployment ID、commit SHA、監査結果、復旧点は
 [`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)に記録しています。

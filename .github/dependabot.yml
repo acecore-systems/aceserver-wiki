@@ -1,7 +1,7 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    directory: /
+    directory: /poc/astro-sveltia
     schedule:
       interval: weekly
       day: monday
@@ -9,7 +9,7 @@ updates:
       timezone: Asia/Tokyo
     open-pull-requests-limit: 5
     groups:
-      npm-minor-patch:
+      astro-npm-minor-patch:
         patterns:
           - '*'
         update-types:
@@ -20,7 +20,7 @@ updates:
       - dependency-name: '@types/node'
         update-types:
           - version-update:semver-major
-      # typescript-eslint does not support TypeScript 7 yet.
+      # Keep the Astro typecheck stack on its currently validated major.
       - dependency-name: typescript
         update-types:
           - version-update:semver-major

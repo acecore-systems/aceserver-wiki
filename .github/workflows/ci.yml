@@ -14,42 +14,6 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  validate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version-file: .node-version
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install dependencies
-        run: yarn install --immutable
-
-      - name: Lint
-        run: yarn lint
-
-      - name: Typecheck
-        run: yarn typecheck
-
-      - name: Test
-        run: yarn test:seo
-
-      - name: Test workflow safety invariants
-        run: yarn test:workflow
-
-      - name: Build
-        run: yarn build
-
-      - name: Audit dependencies
-        run: yarn npm audit --all --recursive --severity high
-
   astro-sveltia:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -63,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version-file: .node-version
+          node-version-file: poc/astro-sveltia/.node-version
           cache: npm
           cache-dependency-path: poc/astro-sveltia/package-lock.json
 
@@ -84,7 +48,10 @@ jobs:
       - name: Run unit tests
         run: npm test
 
-      - name: Verify archived Nuxt/Newt migration evidence
+      - name: Test workflow safety invariants
+        run: node --test ../../tests/workflows.test.mjs
+
+      - name: Verify archived migration evidence
         run: npm run test:migration
 
       - name: Build and validate Astro Wiki
