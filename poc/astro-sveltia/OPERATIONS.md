@@ -102,7 +102,7 @@ top-level `sub`をDiscord IDとして使用しません。
 Wiki専用Appを`aceserver-wiki`だけへinstallし、権限を次に限定します。
 
 - Contents: Read and write
-- Pull requests: Read and write
+- Pull requests: No access
 - Metadata: Read（GitHubが必須化する既定権限）
 
 Webhook、GitHub OAuth callback、他repositoryへのinstallは不要です。
@@ -127,6 +127,9 @@ previewはpreview専用D1だけをbindingし、publication modeを`disabled`に�
 PagesのWrangler設定は`secrets.required`をサポートしないため、上表のsecretは
 Pages dashboardまたはAPIからproduction環境だけへ登録します。初回公開時と
 secret更新後は、productionのsecret名一覧とpreviewにsecretがないことを確認します。
+publication modeを`disabled`にするだけでは、preview branch内の任意コードによる
+secret読取を防げません。`CMS_GITHUB_APP_PRIVATE_KEY`がPreview environmentに
+存在しないことをCloudflare APIまたはdashboardで必ず別途確認します。
 
 ## CSPとFunctions経路
 

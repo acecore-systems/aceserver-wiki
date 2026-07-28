@@ -85,6 +85,20 @@ describe('CMS content validation', () => {
       ),
     ],
     [
+      'numeric entity whitespace in dangerous URI',
+      VALID_MARKDOWN.replace(
+        '本文は **Markdown** で保存します。',
+        '[開く](java&#x09;script:alert(1))\n[開く](java&#13;script:alert(1))',
+      ),
+    ],
+    [
+      'named entity whitespace in dangerous URI',
+      VALID_MARKDOWN.replace(
+        '本文は **Markdown** で保存します。',
+        '[開く](java&Tab;script:alert(1))\n[開く](java&NewLine;script:alert(1))',
+      ),
+    ],
+    [
       'YAML alias',
       VALID_MARKDOWN.replace(
         'title: Markdown編集PoC',

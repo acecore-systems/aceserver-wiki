@@ -88,12 +88,10 @@ secretsへ登録します。認可・公開modeとrole IDはdeployment varsで�
 
 ## 保存モード
 
-`CMS_PUBLICATION_MODE` は次の2モードです。
+`CMS_PUBLICATION_MODE` は `direct` だけを許可します。expected HEADが一致するときだけ
+`main`へ直接commitし、それ以外の値は503で拒否します。
 
-- `direct`（本番既定）: expected HEADが一致するときだけ`main`へ直接commitする。
-- `review`: 短期branchへ1 commitを作り、PRを開く。
-
-不明な値は503で拒否します。`direct`なら編集者の保存がそのままGit pushとなり、
+編集者の保存がそのままGit pushとなり、
 Pagesの再ビルド後に公開されます。D1によるrate limit、BAN、永続監査、
 idempotency、応答消失時の再照合を行い、安全に完了を確定できない保存は
 成功レスポンスを返しません。
@@ -101,11 +99,6 @@ idempotency、応答消失時の再照合を行い、安全に完了を確定で
 direct publishの対象はgateway allowlist内のWiki Markdownと画像だけです。
 source code、Astro schema、CMS設定、Pages Functions、workflowは作業branchから
 PRを作り、CIを通して`main`へ反映します。
-
-stock Sveltiaはgateway独自のPR URLや未マージ状態を表示しません。そのため
-`review` は管理者向けの補助モードであり、一般編集者向けの既定にはしません。
-保存後の再読込では未マージ内容がmainから再取得され、同じ内容のPRを重ねて
-作成できるため、公開利用にはidempotencyと未処理PR上限が別途必要です。
 
 ## gatewayの境界
 

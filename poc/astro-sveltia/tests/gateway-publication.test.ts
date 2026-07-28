@@ -29,7 +29,10 @@ import {
   beginCmsMutation,
   completeCmsMutation,
 } from '../functions/admin/api/_cms-state.ts'
-import type { CmsRuntimeEnv } from '../functions/admin/api/_cms-policy.ts'
+import {
+  CMS_REPOSITORY,
+  type CmsRuntimeEnv,
+} from '../functions/admin/api/_cms-policy.ts'
 
 const MAIN_SHA = 'a'.repeat(40)
 const ACCESS_ISSUER = 'https://test-suite.cloudflareaccess.com'
@@ -119,7 +122,7 @@ describe('CMS publication modes', () => {
       request: graphqlRequest({
         ...commitVariables('b'.repeat(40)),
       }),
-      env: testEnv('review'),
+      env: testEnv('direct'),
     } as Parameters<typeof onRequestPost>[0])
 
     expect(response.status).toBe(409)
@@ -444,160 +447,23 @@ describe('CMS publication modes', () => {
     ).toBe(true)
   })
 
-  it('publishes review mode through a deterministic branch and pull request', async () => {
-    const calls: Array<{ url: string; method: string; body: unknown }> = []
-    let reviewBranch = ''
-    let reviewBranchSha: string | null = null
-
-    mockFetch(async (url, init) => {
-      const method = init.method || 'GET'
-      const body = typeof init.body === 'string' ? JSON.parse(init.body) : null
-
-      calls.push({ url, method, body })
-
-      if (url.endsWith('/git/ref/heads/main')) {
-        return jsonResponse({ object: { sha: MAIN_SHA } })
-      }
-
-      if (isProjectionTreeUrl(url)) return projectionTreeResponse()
-
-      if (method === 'GET' && url.includes('/git/ref/heads/cms/pending/')) {
-        return reviewBranchSha
-          ? jsonResponse({ object: { sha: reviewBranchSha } })
-          : jsonResponse({ message: 'Not Found' }, 404)
-      }
-
-      if (url.endsWith('/git/refs') && method === 'POST') {
-        const value = body as { ref: string; sha: string }
-
-        reviewBranch = value.ref.replace('refs/heads/', '')
-        reviewBranchSha = value.sha
-        return jsonResponse({ ref: value.ref, object: { sha: value.sha } }, 201)
-      }
-
-      if (url.endsWith('/graphql')) {
-        reviewBranchSha = '7'.repeat(40)
-        return commitResponse('7')
-      }
-
-      if (url.includes('/pulls?') && method === 'GET') {
-        return jsonResponse([])
-      }
-
-      if (url.endsWith('/pulls') && method === 'POST') {
-        return jsonResponse(
-          {
-            number: 42,
-            html_url:
-              'https://github.com/acecore-systems/aceserver-wiki/pull/42',
-          },
-          201,
-        )
-      }
-
-      throw new Error(`Unexpected request: ${url}`)
+  it('rejects disabled and legacy review publication modes before GitHub access', async () => {
+    let githubCalled = false
+    mockFetch(async () => {
+      githubCalled = true
+      throw new Error('GitHub must not be called')
     })
 
-    const response = await onRequestPost({
-      request: graphqlRequest(commitVariables(MAIN_SHA)),
-      env: testEnv('review'),
-    } as Parameters<typeof onRequestPost>[0])
-    const result = (await response.json()) as CmsResponse
+    for (const publicationMode of ['disabled', 'review'] as const) {
+      const response = await onRequestPost({
+        request: graphqlRequest(commitVariables(MAIN_SHA)),
+        env: testEnv(publicationMode),
+      } as Parameters<typeof onRequestPost>[0])
 
-    expect(response.status).toBe(200)
-    expect(reviewBranch).toMatch(/^cms\/pending\/[a-f0-9]{64}$/u)
-    expect(result.extensions.cms).toMatchObject({
-      branch: reviewBranch,
-      mode: 'review',
-      pull_request: {
-        number: 42,
-      },
-    })
-    expect(
-      calls.some(
-        ({ method, url }) =>
-          method === 'DELETE' && url.includes('/git/refs/heads/cms/pending/'),
-      ),
-    ).toBe(false)
-  })
+      expect(response.status).toBe(503)
+    }
 
-  it('retains a deterministic review branch for reconciliation when PR creation fails', async () => {
-    const calls: Array<{ url: string; method: string; body: unknown }> = []
-    let reviewBranch = ''
-    let reviewBranchSha: string | null = null
-
-    mockFetch(async (url, init) => {
-      const method = init.method || 'GET'
-      const body = typeof init.body === 'string' ? JSON.parse(init.body) : null
-
-      calls.push({ url, method, body })
-
-      if (url.endsWith('/git/ref/heads/main')) {
-        return jsonResponse({ object: { sha: MAIN_SHA } })
-      }
-
-      if (isProjectionTreeUrl(url)) return projectionTreeResponse()
-
-      if (method === 'GET' && url.includes('/git/ref/heads/cms/pending/')) {
-        return reviewBranchSha
-          ? jsonResponse({ object: { sha: reviewBranchSha } })
-          : jsonResponse({ message: 'Not Found' }, 404)
-      }
-
-      if (url.endsWith('/git/refs') && method === 'POST') {
-        reviewBranch = (body as { ref: string }).ref.replace('refs/heads/', '')
-        expect(reviewBranch).toMatch(/^cms\/pending\/[a-f0-9]{64}$/u)
-        reviewBranchSha = MAIN_SHA
-
-        return jsonResponse(
-          { ref: `refs/heads/${reviewBranch}`, object: { sha: MAIN_SHA } },
-          201,
-        )
-      }
-
-      if (url.endsWith('/graphql')) {
-        const variables = (body as GraphqlRequestBody).variables
-
-        expect(variables.input.branch.branchName).toBe(reviewBranch)
-        reviewBranchSha = 'd'.repeat(40)
-        return commitResponse('d')
-      }
-
-      if (url.includes('/pulls?') && method === 'GET') {
-        return jsonResponse([])
-      }
-
-      if (url.endsWith('/pulls')) {
-        const pullRequest = body as { body: string }
-
-        expect(pullRequest.body).toContain('CMS-Idempotency-Key:')
-        expect(pullRequest.body).toContain('Request ID:')
-        expect(pullRequest.body).not.toContain(DISCORD_ID)
-        return jsonResponse({ message: 'test PR failure' }, 500)
-      }
-
-      throw new Error(`Unexpected request: ${url}`)
-    })
-
-    const response = await onRequestPost({
-      request: graphqlRequest(commitVariables(MAIN_SHA)),
-      env: testEnv('review'),
-    } as Parameters<typeof onRequestPost>[0])
-
-    expect(response.status).toBe(500)
-    expect(reviewBranch).not.toBe('')
-    expect(
-      calls.some(
-        ({ method, url }) =>
-          method === 'DELETE' && url.includes('/git/refs/heads/cms/pending/'),
-      ),
-    ).toBe(false)
-
-    const mutation = await env.CMS_DATABASE.prepare(
-      `SELECT state FROM cms_mutations LIMIT 1`,
-    ).first<{ state: string }>()
-
-    expect(mutation?.state).toBe('unknown')
+    expect(githubCalled).toBe(false)
   })
 
   it('rejects a projected CMS tree above one thousand files before commit', async () => {
@@ -968,6 +834,26 @@ describe('CMS mutation controls', () => {
     expect(state?.state).toBe('unknown')
   })
 
+  it('rejects a marker-bearing recovery commit whose blob differs from the submitted content', async () => {
+    mockCommitResponseLossThenRecovery('5', MAIN_SHA, true)
+    const variables = commitVariables(MAIN_SHA)
+    const first = await onRequestPost({
+      request: graphqlRequest(variables),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+    const second = await onRequestPost({
+      request: graphqlRequest(variables),
+      env: testEnv('direct'),
+    } as Parameters<typeof onRequestPost>[0])
+    const state = await env.CMS_DATABASE.prepare(
+      `SELECT state FROM cms_mutations LIMIT 1`,
+    ).first<{ state: string }>()
+
+    expect(first.status).toBe(502)
+    expect(second.status).toBe(409)
+    expect(state?.state).toBe('unknown')
+  })
+
   it('deletes bounded batches of expired rate, replay, and unknown rows while retaining audits', async () => {
     await env.CMS_DATABASE.prepare(
       `
@@ -1291,6 +1177,7 @@ describe('GitHub App authentication', () => {
         return jsonResponse({
           token: 'pkcs1-installation-token',
           expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          permissions: { contents: 'write', metadata: 'read' },
         })
       },
     )
@@ -2199,9 +2086,18 @@ function mockFetch(
       }
 
       if (url === INSTALLATION_TOKEN_URL) {
+        expect(JSON.parse(String(init.body))).toMatchObject({
+          permissions: { contents: 'write' },
+          repositories: [CMS_REPOSITORY.name],
+        })
+        expect(JSON.parse(String(init.body)).permissions).not.toHaveProperty(
+          'pull_requests',
+        )
+
         return jsonResponse({
           token: 'test-installation-token',
           expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+          permissions: { contents: 'write', metadata: 'read' },
         })
       }
 
@@ -2313,11 +2209,13 @@ function mockProjectionOnly(
 function mockCommitResponseLossThenRecovery(
   marker: string,
   parentSha = MAIN_SHA,
+  mismatchedBlob = false,
 ) {
   const calls: Array<{ url: string; method: string; body: unknown }> = []
   let mainSha = MAIN_SHA
   let publicationBranchSha: string | null = null
   let commitMessage = ''
+  let committedContents = ''
   const commitSha = marker.repeat(40)
 
   mockFetch(async (url, init) => {
@@ -2350,6 +2248,9 @@ function mockCommitResponseLossThenRecovery(
         body as {
           variables: {
             input: {
+              fileChanges: {
+                additions: Array<{ contents: string; path: string }>
+              }
               message: { body: string }
             }
           }
@@ -2357,6 +2258,7 @@ function mockCommitResponseLossThenRecovery(
       ).variables
 
       commitMessage = variables.input.message.body
+      committedContents = variables.input.fileChanges.additions[0].contents
       publicationBranchSha = commitSha
       throw new Error('simulated response loss after GitHub commit')
     }
@@ -2368,6 +2270,37 @@ function mockCommitResponseLossThenRecovery(
         committer: { date: '2026-07-27T00:00:00Z' },
         parents: [{ sha: parentSha }],
       })
+    }
+
+    if (
+      url.endsWith(`/commits/${commitSha}?per_page=100`) &&
+      method === 'GET'
+    ) {
+      return jsonResponse({
+        sha: commitSha,
+        files: [
+          {
+            filename: 'poc/astro-sveltia/src/content/wiki/test.md',
+            status: 'modified',
+          },
+        ],
+      })
+    }
+
+    if (
+      url.includes(`/git/trees/${commitSha}?recursive=1`) &&
+      method === 'GET'
+    ) {
+      return projectionTreeResponse([
+        {
+          mode: '100644',
+          path: 'poc/astro-sveltia/src/content/wiki/test.md',
+          sha: mismatchedBlob
+            ? 'f'.repeat(40)
+            : await gitBlobOid(committedContents),
+          type: 'blob',
+        },
+      ])
     }
 
     if (url.endsWith('/git/refs/heads/main') && method === 'PATCH') {
@@ -2403,7 +2336,7 @@ function mutationStartArgs(bodyText: string) {
 }
 
 function testEnv(
-  publicationMode: 'direct' | 'review',
+  publicationMode: 'direct' | 'review' | 'disabled',
   overrides: Partial<CmsRuntimeEnv> = {},
 ) {
   return {
@@ -2742,6 +2675,23 @@ function projectionTreeResponse(
 
 function encodeUtf8(value: string) {
   return encodeBytes(new TextEncoder().encode(value))
+}
+
+async function gitBlobOid(contents: string) {
+  const bytes = Uint8Array.from(atob(contents), (character) =>
+    character.charCodeAt(0),
+  )
+  const header = new TextEncoder().encode(`blob ${bytes.byteLength}\0`)
+  const object = new Uint8Array(header.byteLength + bytes.byteLength)
+
+  object.set(header)
+  object.set(bytes, header.byteLength)
+
+  const digest = await crypto.subtle.digest('SHA-1', object)
+
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('')
 }
 
 function encodeBytes(bytes: Uint8Array) {

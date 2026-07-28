@@ -326,6 +326,7 @@ async function handleCommitMutation({
     try {
       const recovered = await reconcilePublication({
         changedPaths,
+        commitInput,
         publicationMode,
         reservation,
         token,
@@ -1519,7 +1520,7 @@ async function ensurePublicationCommit({
   reservation: CmsMutationReservation
   token: string
 }) {
-  let state = await inspectPublicationBranch(reservation, token)
+  let state = await inspectPublicationBranch(reservation, commitInput, token)
 
   if (state.kind === 'missing') {
     try {
@@ -1548,7 +1549,7 @@ async function ensurePublicationCommit({
         throw error
       }
 
-      state = await inspectPublicationBranch(reservation, token)
+      state = await inspectPublicationBranch(reservation, commitInput, token)
 
       if (state.kind === 'missing') {
         throw new GitHubApiError(
@@ -1576,6 +1577,7 @@ async function ensurePublicationCommit({
 
 async function inspectPublicationBranch(
   reservation: CmsMutationReservation,
+  commitInput: CmsCommitInput,
   token: string,
 ): Promise<PublicationBranchState> {
   const ref = await getOptionalGitRef(reservation.publicationBranch, token)
@@ -1604,6 +1606,13 @@ async function inspectPublicationBranch(
     )
   }
 
+  if (!(await verifyPublicationCommit(ref, commitInput, token))) {
+    throw new CmsStateError(
+      'CMS保存用branchのcommit内容をpathとblob SHAで照合できません。',
+      409,
+    )
+  }
+
   const committedDate =
     isRecord(commit.committer) && typeof commit.committer.date === 'string'
       ? commit.committer.date
@@ -1614,6 +1623,140 @@ async function inspectPublicationBranch(
     commitOid: ref,
     result: recoveredCommitResult(ref, committedDate),
   }
+}
+
+async function verifyPublicationCommit(
+  commitOid: string,
+  commitInput: CmsCommitInput,
+  token: string,
+) {
+  const details = await githubJson<unknown>({
+    path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/commits/${commitOid}?per_page=100`,
+    token,
+  })
+
+  if (
+    !isRecord(details) ||
+    details.sha !== commitOid ||
+    !Array.isArray(details.files)
+  ) {
+    throw new GitHubApiError('GitHub commit responseが不正です。', 502)
+  }
+
+  const actualPaths = new Set<string>()
+
+  for (const file of details.files) {
+    if (
+      !isRecord(file) ||
+      typeof file.filename !== 'string' ||
+      normalizeCmsPath(file.filename) !== file.filename
+    ) {
+      throw new GitHubApiError('GitHub commit files responseが不正です。', 502)
+    }
+
+    actualPaths.add(file.filename)
+
+    if (file.status === 'renamed') {
+      if (
+        typeof file.previous_filename !== 'string' ||
+        normalizeCmsPath(file.previous_filename) !== file.previous_filename
+      ) {
+        throw new GitHubApiError(
+          'GitHub renamed file responseが不正です。',
+          502,
+        )
+      }
+
+      actualPaths.add(file.previous_filename)
+    }
+  }
+
+  const expectedPaths = new Set([
+    ...commitInput.additions.map(({ path }) => path),
+    ...commitInput.deletions.map(({ path }) => path),
+  ])
+
+  if (
+    actualPaths.size !== expectedPaths.size ||
+    Array.from(expectedPaths).some((path) => !actualPaths.has(path))
+  ) {
+    return false
+  }
+
+  const tree = await fetchCmsTree(token, commitOid)
+  const blobShas = new Map(
+    tree.tree
+      .filter((item) => item.type === 'blob')
+      .map((item) => [item.path, item.sha]),
+  )
+
+  for (const addition of commitInput.additions) {
+    if (blobShas.get(addition.path) !== (await getGitBlobOid(addition))) {
+      return false
+    }
+  }
+
+  return commitInput.deletions.every(({ path }) => !blobShas.has(path))
+}
+
+async function getGitBlobOid(addition: ValidatedCmsAddition) {
+  const header = new TextEncoder().encode(`blob ${addition.byteSize}\0`)
+  const object = new Uint8Array(header.byteLength + addition.byteSize)
+
+  object.set(header)
+  decodeBase64Into(addition.contents, object, header.byteLength)
+
+  const digest = await crypto.subtle.digest('SHA-1', object)
+
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('')
+}
+
+function decodeBase64Into(
+  value: string,
+  destination: Uint8Array,
+  offset: number,
+) {
+  let accumulator = 0
+  let bitCount = 0
+  let outputIndex = offset
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index)
+
+    if (code === 61) break
+
+    const decoded = decodeBase64Char(code)
+
+    if (decoded < 0) {
+      throw new GitHubApiError('CMS base64 dataが不正です。', 400)
+    }
+
+    accumulator = (accumulator << 6) | decoded
+    bitCount += 6
+
+    if (bitCount < 8) continue
+
+    bitCount -= 8
+    destination[outputIndex] = (accumulator >> bitCount) & 0xff
+    outputIndex += 1
+    accumulator &= (1 << bitCount) - 1
+  }
+
+  if (outputIndex !== destination.byteLength) {
+    throw new GitHubApiError('CMS base64 sizeが不正です。', 400)
+  }
+}
+
+function decodeBase64Char(code: number) {
+  if (code >= 65 && code <= 90) return code - 65
+  if (code >= 97 && code <= 122) return code - 71
+  if (code >= 48 && code <= 57) return code + 4
+  if (code === 43) return 62
+  if (code === 47) return 63
+
+  return -1
 }
 
 async function getOptionalGitRef(branch: string, token: string) {
@@ -1638,16 +1781,18 @@ async function getOptionalGitRef(branch: string, token: string) {
 
 async function reconcilePublication({
   changedPaths,
+  commitInput,
   publicationMode,
   reservation,
   token,
 }: {
   changedPaths: string[]
+  commitInput: CmsCommitInput
   publicationMode: PublicationMode
   reservation: CmsMutationReservation
   token: string
 }) {
-  const staged = await inspectPublicationBranch(reservation, token)
+  const staged = await inspectPublicationBranch(reservation, commitInput, token)
 
   if (staged.kind !== 'commit') {
     return { kind: 'retry' as const }
@@ -2098,7 +2243,6 @@ function getCommitOid(result: Record<string, unknown>) {
 function getPublicationMode(value: string | undefined): PublicationMode | null {
   const normalized = value?.trim().toLowerCase()
 
-  if (normalized === 'review') return 'review'
   if (normalized === 'direct') return 'direct'
 
   return null
