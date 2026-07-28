@@ -1,0 +1,1238 @@
+{
+  "skip": 0,
+  "limit": 1000,
+  "total": 32,
+  "items": [
+    {
+      "_id": "6a585343d2c46e306ca40722",
+      "_sys": {
+        "raw": {
+          "createdAt": "2026-07-16T03:42:59.269Z",
+          "updatedAt": "2026-07-18T14:50:53.877Z",
+          "firstPublishedAt": "2026-07-18T14:50:53.877Z",
+          "publishedAt": "2026-07-18T14:50:53.877Z"
+        },
+        "customOrder": 32,
+        "createdAt": "2026-07-16T03:42:59.269Z",
+        "updatedAt": "2026-07-18T14:50:53.877Z"
+      },
+      "title": "その他サーバーについて",
+      "slug": "other-server",
+      "meta": {
+        "title": "その他サーバーについて",
+        "description": "その他サーバーについて解説します",
+        "ogImage": null
+      },
+      "body": "<style>\n#h2{\nbackground-color:#f0f0f0;\n border-left: 6px double #000;\npadding:0.2em;\n}\n</style>\n<h2 id=\"h2\">シーズン鯖</h2>\n<ol>\n  <li>シーズンサーバーは常時基本的にサーバーが2台設置されます。<br>\n  それぞれのサーバーの仕様は以下の通りです。\n    <ul>\n      <li>アップデート：メジャー1バージョン\n      <li>継続期間：メジャー2バージョン\n    </ul>\n</ol>\n<h2 id=\"h2\">コンセプト鯖</h2>\n<ol>\n  <li>コンセプト鯖提案の部屋で賛成多数（5人目安）の場合にチケットを発行し、該当メッセージのメッセージリンクを運営に送信した後、認証された場合に作られるサーバーです。\n  <li>MOD鯖やプラグイン鯖など、お好きな用途で提案・利用いただけます。他の人も参加してみたいと思うようなサーバーを提案してみましょう。\n  <li>実質無料でサーバーを貸し出すサービスのようなものです。\n</ol>\n<h2 id=\"h2\">イベント鯖</h2>\n<ol>\n  <li>単発イベントなどを行う時はこちらのサーバーを使用します。\n  <li>イベント開催の相談をしていただければ、運営側で用意する場合もあります。\n  <li><b>常時開いているわけではない点をご了承ください。</b>\n</ol>\n<h2 id=\"h2\">コンテンツ鯖</h2>\n<ol>\n  <li><b>現在準備中のサーバーです。</b>\n  <li>ミニゲームや、エンターテイメントを主としたバニラとは離れた仕様のサーバーです。\n</ol>\n<h2 id=\"h2\">rpg鯖</h2>\n<ol>\n  <li><b>現在準備中のサーバーです。</b>\n  <li>ストーリーや戦闘、レベルアップなどの要素を想定しています。\n</ol>\n",
+      "category": {
+        "_id": "635d007306cfd5386b36f752",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:29:07.085Z",
+            "updatedAt": "2026-07-18T14:58:57.312Z",
+            "firstPublishedAt": "2022-10-29T10:29:34.954Z",
+            "publishedAt": "2026-07-18T14:58:57.312Z"
+          },
+          "customOrder": 6,
+          "createdAt": "2022-10-29T10:29:07.085Z",
+          "updatedAt": "2026-07-18T14:58:57.312Z"
+        },
+        "name": "生活鯖について",
+        "sortOrder": 20
+      },
+      "sortOrder": 0
+    },
+    {
+      "_id": "6a578bb7d2c46e306ca21a78",
+      "_sys": {
+        "raw": {
+          "createdAt": "2026-07-15T13:31:35.871Z",
+          "updatedAt": "2026-07-18T14:51:00.174Z",
+          "firstPublishedAt": "2026-07-18T14:51:00.174Z",
+          "publishedAt": "2026-07-18T14:51:00.174Z"
+        },
+        "customOrder": 31,
+        "createdAt": "2026-07-15T13:31:35.871Z",
+        "updatedAt": "2026-07-18T14:51:00.174Z"
+      },
+      "title": "hub紹介",
+      "slug": "hub-intro",
+      "meta": {
+        "title": "hub紹介",
+        "description": "hub紹介について解説します",
+        "ogImage": null
+      },
+      "body": "<style>\nh2{\npadding:0.2em 0em 0em 1.5em;\n}\n#h3 {\n  position: relative;\n  display: inline-block;\n  padding: 0.2rem 1rem 0.2rem 2rem;\n  color: #fff;\n  border-radius: 100vh 0 0 100vh;\n  background: #fa4141;\n}\n\n#h3:before {\n  position: absolute;\n  top: calc(50% - 3.5px);\n  left: 10px;\n  width: 7px;\n  height: 7px;\n  content: '';\n  border-radius: 50%;\n  background: #fff;\n}\na{\n  font-weight:bold;//太字にする\n}\na:visited{\n  color:#6600ff;//既クリックの色\n}\na:hover{//カーソルをリンクの上に乗せてるときの設定\n  color:#ff0099;//色\n  text-decoration:underline;//下線を引く\n}\na:active{\n  color:#3300cc;//クリックしたときの色\n}\n</style>\n<h2><li>エースタウン</h2>\n<h3 id=\"h3\"> 解説</h3> \n<p>メインワールドの「初期スポーン地点」にスポーンします。<br>\nワールド内で最も発展し、人口が密集している場所です。<br>\n公益施設や、トラップタワーなどもこの付近に多く配置されています。<br>\n※施設案内ページにて詳細解説<br></p>\n<h3 id=\"h3\"> 利用条件</h3>\n* Discordサーバーに参加し、自己紹介チャンネルで自己紹介をお願いします。 \n* <a href=\"https://asv-wiki.acecore.net/article/how%20to%20discordsrv%20link\">Discord連携</a>をお願いします。（詳細は参加方法のページに記載）\n<h2 id=\"h2\"><li>資源サーバー</h2>\n<h3 id=\"h3\">解説</h3>\n<p>定期的にリセットされる資源用サーバーです。<br><br>\nこのワールドではウィザー召喚や爆発物の仕様などが認められています。<br></p>\n<h3 id=\"h3\">利用条件</h3>\n<p>すべてのプレイヤーがはじめから利用可能です。コマンド<code>/sigen</code>でも入れます。<br></p>\n",
+      "category": {
+        "_id": "635d007306cfd5386b36f752",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:29:07.085Z",
+            "updatedAt": "2026-07-18T14:58:57.312Z",
+            "firstPublishedAt": "2022-10-29T10:29:34.954Z",
+            "publishedAt": "2026-07-18T14:58:57.312Z"
+          },
+          "customOrder": 6,
+          "createdAt": "2022-10-29T10:29:07.085Z",
+          "updatedAt": "2026-07-18T14:58:57.312Z"
+        },
+        "name": "生活鯖について",
+        "sortOrder": 20
+      },
+      "sortOrder": 0
+    },
+    {
+      "_id": "67d56f2d1c808a95b68259e1",
+      "_sys": {
+        "raw": {
+          "createdAt": "2025-03-15T12:14:37.470Z",
+          "updatedAt": "2025-03-15T12:15:55.868Z",
+          "firstPublishedAt": "2025-03-15T12:15:55.868Z",
+          "publishedAt": "2025-03-15T12:15:55.868Z"
+        },
+        "customOrder": 30,
+        "createdAt": "2025-03-15T12:14:37.470Z",
+        "updatedAt": "2025-03-15T12:15:55.868Z"
+      },
+      "title": "各ロールの説明",
+      "slug": "discord-roles",
+      "meta": {
+        "title": "ディスコードのロールについて",
+        "description": "ディスコードのロールについて説明する",
+        "ogImage": null
+      },
+      "body": "<h2>運営陣（運営・サポーター）</h2>\n<p>基本的にボランティアである。</p>\n<h2>イベントサポーター</h2>\n<p>基本的にボランティアである。</p>\n<ul>\n<li>部分的なサーバーの運営補助を行う役職。<br>\n　└　広報やイベントの企画運営、サーバーの改善提案など</li>\n<li>大規模なイベントを開催するメンバーの代表者(臨時)に付与。(イベントサーバーを使う際)</li>\n<li>イベントを積極的、定期的に開催するメンバーに付与。(希望制・依頼制)</li>\n<li>積極的な広報活動や、サーバー改善のアドバイス/作業補佐。</li>\n<li>イベントに用いるDiscordサーバーの招待URL投稿が可能。</li>\n<li>臨時付与時に複数のメンバーが存在する際は、代表者1名にイベントサポーターを付与し、その他のメンバーには一時的にイベントスタッフを付与する。</li>\n</ul>\n<h2>権限</h2>\n<ul>\n<li>お知らせへの書き込み権限(運営陣に内容の確認を行った上で書き込みを行ってください)</li>\n<li>イベントスタッフ用のチャットカテゴリ使用権限(部屋の作成や閲覧できるユーザの管理)</li>\n<li>イベントサーバー1の優先使用権限</li>\n<li>イベントサーバーでのOP権限</li>\n<li>メインサーバーでのOP使用や、Discord上で特定の権限を必要とする行為をサポーターに依頼(決定判断権を持った運営陣のうちだれか一人が適切と判断したときに、運営陣が代行)</li>\n<li>公式TwitterやWikiなどへのアクセス権(運営陣に内容の確認を行った上で書き込みを行ってください)</li>\n</ul>\n<h2>レギュラー</h2>\n<ul>\n<li>Minecraftの参加率、またはDiscordでの参加率によって運営陣によってメンバーを選出(目安:1か月)</li>\n<li>チャットでのURL投稿可能</li>\n<li>コミュニティの申請可能</li>\n</ul>\n",
+      "category": {
+        "_id": "67c9514e33281c1d6502bd9e",
+        "_sys": {
+          "raw": {
+            "createdAt": "2025-03-06T07:39:58.839Z",
+            "updatedAt": "2025-03-06T07:42:40.692Z",
+            "firstPublishedAt": "2025-03-06T07:42:40.692Z",
+            "publishedAt": "2025-03-06T07:42:40.692Z"
+          },
+          "customOrder": 10,
+          "createdAt": "2025-03-06T07:39:58.839Z",
+          "updatedAt": "2025-03-06T07:42:40.692Z"
+        },
+        "name": "ディスコードについて",
+        "sortOrder": 22
+      },
+      "sortOrder": 1
+    },
+    {
+      "_id": "67d56eb21c808a95b6824af7",
+      "_sys": {
+        "raw": {
+          "createdAt": "2025-03-15T12:12:34.175Z",
+          "updatedAt": "2025-03-15T12:16:00.157Z",
+          "firstPublishedAt": "2025-03-15T12:16:00.157Z",
+          "publishedAt": "2025-03-15T12:16:00.157Z"
+        },
+        "customOrder": 29,
+        "createdAt": "2025-03-15T12:12:34.175Z",
+        "updatedAt": "2025-03-15T12:16:00.157Z"
+      },
+      "title": "ルール",
+      "slug": "discord-rule",
+      "meta": {
+        "title": "ディスコードのルール",
+        "description": "ディスコードのルールについて説明する",
+        "ogImage": null
+      },
+      "body": "<h2>基本ルール</h2>\n<ul>\n<li>原則、「宣伝の部屋」「発狂の部屋」以外でのDiscord招待URLは投稿禁止です。<br>\n　└　コミュニティリーダーに限り、「専用の部屋」へDiscord招待URLの投稿が可能です。</li>\n<li>以下の特定カテゴリ・チャンネル以外へ、サイトURLを投稿することは禁止です。<br>\n　＜特定カテゴリ・チャンネル＞<br>\n　レコメンド、宣伝の部屋、発狂の部屋、</li>\n<li>DMを (初めて) 送る際は、双方合意のもと行ってください。</li>\n<li>運営/サポーターへの意見、要望、対応依頼等は「⁠#チケットの部屋 」「#⁠スタッフへの質問、問合せ 」「 @#フィードバックを送信 のDM 」を利用し、DM連絡は行わないでください。</li>\n</ul>\n",
+      "category": {
+        "_id": "67c9514e33281c1d6502bd9e",
+        "_sys": {
+          "raw": {
+            "createdAt": "2025-03-06T07:39:58.839Z",
+            "updatedAt": "2025-03-06T07:42:40.692Z",
+            "firstPublishedAt": "2025-03-06T07:42:40.692Z",
+            "publishedAt": "2025-03-06T07:42:40.692Z"
+          },
+          "customOrder": 10,
+          "createdAt": "2025-03-06T07:39:58.839Z",
+          "updatedAt": "2025-03-06T07:42:40.692Z"
+        },
+        "name": "ディスコードについて",
+        "sortOrder": 22
+      },
+      "sortOrder": 0
+    },
+    {
+      "_id": "67c98735395b530d642e4a86",
+      "_sys": {
+        "raw": {
+          "createdAt": "2025-03-06T11:29:57.912Z",
+          "updatedAt": "2025-03-06T11:29:57.912Z",
+          "firstPublishedAt": null,
+          "publishedAt": null
+        },
+        "customOrder": 28,
+        "createdAt": "2025-03-06T11:29:57.912Z",
+        "updatedAt": "2025-03-06T11:29:57.912Z"
+      },
+      "title": "コミュニケーション",
+      "slug": "Communication",
+      "meta": {
+        "title": "コミュニケーションについて",
+        "description": "コミュニケーションについて説明する",
+        "ogImage": null
+      },
+      "body": "",
+      "category": {
+        "_id": "635cac9d06cfd5386b36b3dc",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T04:31:25.870Z",
+            "updatedAt": "2022-10-29T04:33:40.644Z",
+            "firstPublishedAt": "2022-10-29T04:31:25.870Z",
+            "publishedAt": "2022-10-29T04:33:40.644Z"
+          },
+          "customOrder": 5,
+          "createdAt": "2022-10-29T04:31:25.870Z",
+          "updatedAt": "2022-10-29T04:33:40.644Z"
+        },
+        "name": "コミュニティについて",
+        "sortOrder": 40
+      },
+      "sortOrder": 2
+    },
+    {
+      "_id": "67c9553333281c1d6508140f",
+      "_sys": {
+        "raw": {
+          "createdAt": "2025-03-06T07:56:35.810Z",
+          "updatedAt": "2026-07-18T14:52:17.882Z",
+          "firstPublishedAt": "2025-03-06T07:58:29.737Z",
+          "publishedAt": null
+        },
+        "customOrder": 27,
+        "createdAt": "2025-03-06T07:56:35.810Z",
+        "updatedAt": "2026-07-18T14:52:17.882Z"
+      },
+      "title": "資源鯖",
+      "slug": "Reset",
+      "meta": {
+        "title": "資源サーバーについて",
+        "description": "資源サーバーについて説明する",
+        "ogImage": null
+      },
+      "body": "<h1>概要</h1>\nメインサーバーの運営交易所前にある噴水に入ると入ることができます。\n資源収集のためのサーバーです。\n定期的にワールドがリセットされるため建築などはメイン鯖で行うことをお勧めします。\nエリトラなどの1ワールドにある数に限りがあるアイテムもリセットのたびに回収することができます。\nまた、メインワードで禁止されているウィザー召喚やTNT爆破採掘なども可能になっています。\n<h1>プラグイン一覧</h1>\n導入されているプラグインは、メインサーバーと同じです。",
+      "category": {
+        "_id": "67c94e6c395b530d64ff9669",
+        "_sys": {
+          "raw": {
+            "createdAt": "2025-03-06T07:27:40.481Z",
+            "updatedAt": "2025-03-06T07:42:43.624Z",
+            "firstPublishedAt": "2025-03-06T07:42:43.624Z",
+            "publishedAt": "2025-03-06T07:42:43.624Z"
+          },
+          "customOrder": 9,
+          "createdAt": "2025-03-06T07:27:40.481Z",
+          "updatedAt": "2025-03-06T07:42:43.624Z"
+        },
+        "name": "その他サーバーについて",
+        "sortOrder": 21
+      },
+      "sortOrder": 2
+    },
+    {
+      "_id": "67c952cc395b530d64002c05",
+      "_sys": {
+        "raw": {
+          "createdAt": "2025-03-06T07:46:20.931Z",
+          "updatedAt": "2026-07-18T14:51:53.622Z",
+          "firstPublishedAt": "2025-03-06T07:49:34.703Z",
+          "publishedAt": null
+        },
+        "customOrder": 26,
+        "createdAt": "2025-03-06T07:46:20.931Z",
+        "updatedAt": "2026-07-18T14:51:53.622Z"
+      },
+      "title": "アズカバン",
+      "slug": "Azkaban",
+      "meta": {
+        "title": "アズカバン(実験サーバー)について",
+        "description": "アズカバン(実験サーバー)について説明する",
+        "ogImage": null
+      },
+      "body": "<p><img src=\"https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/2c8452ac-7ba8-45e4-abf3-b0c53717ec6b%2Funknown.png\" alt=\"unknown.png\"></p>\n<style>\n.p{\ncolor: #ff0000; \n}\n</style>\n<h1>概要 (overview)</h1>\nアナーキーサーバーです。\nマイクラ内では自由ですが、直接サーバーへ攻撃することは禁止です。\nメインサーバーとアイテム連携されるので、注意してください。\n<p>Anarchy server.<br>\nYou are free in Minecraft, but attacking the server directly is prohibited.<br>\nPlease note that items will be linked with the main server.</p>\n<div class=\"p\"><h2>ここで何があっても運営は一切対応しません。</h2></div>\n<div class=\"p\"><h2>No matter what happens here, the management will not respond at all.</h2></div>\n<h1>プラグイン紹介</h1>\n<table>\n<thead>\n<tr>\n<th>プラグイン名</th>\n<th>説明</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/ender-dragon-reimagined.111075/\">Ender Dragon Reimagined</a></td>\n<td>エンダードラゴンをより強力に！？</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/infernal-mobs.2156/\">InfernalMobs</a></td>\n<td>特殊な強いmobを倒すと強いツールや装備が手に入ります！！！</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/levelledmobs.74304/\">LevelledMobs</a></td>\n<td>mobをより強く！</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/morph.8846/\">Morph</a></td>\n<td>倒したmobにへ～んしん！できるらしい。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/slime-growth.110304/\">SlimeGrowth</a></td>\n<td>スライム最強。戦わないで！</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/custom-ore-generator-%E3%80%8E1-8-1-20-1%E3%80%8F.64339/\">custom-ore-generator</a></td>\n<td>鉱石ブロックの量を増加させています。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/gsit-modern-sit-seat-and-chair-lay-and-crawl-plugin-1-13-1-20.62325/\">GSit</a></td>\n<td>座れます。そんな余裕ないかも？</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/marriage-master-mc-1-7-1-20.19273/\">MarriageMaster</a></td>\n<td>結婚ができるらしい。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/mysql-inventory-bridge.7849/\">MysqlInventoryBridge</a></td>\n<td>メインサーバーとアイテム連携されます。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/%E2%9A%94-mythicmobs-free-version-%E2%96%BAthe-1-custom-mob-creator%E2%97%84.5702/\">MythicMobs</a></td>\n<td>特殊mob未作成です。</td>\n</tr>\n</tbody>\n</table>\n",
+      "category": {
+        "_id": "67c94e6c395b530d64ff9669",
+        "_sys": {
+          "raw": {
+            "createdAt": "2025-03-06T07:27:40.481Z",
+            "updatedAt": "2025-03-06T07:42:43.624Z",
+            "firstPublishedAt": "2025-03-06T07:42:43.624Z",
+            "publishedAt": "2025-03-06T07:42:43.624Z"
+          },
+          "customOrder": 9,
+          "createdAt": "2025-03-06T07:27:40.481Z",
+          "updatedAt": "2025-03-06T07:42:43.624Z"
+        },
+        "name": "その他サーバーについて",
+        "sortOrder": 21
+      },
+      "sortOrder": 1
+    },
+    {
+      "_id": "641a68535297515063afd957",
+      "_sys": {
+        "raw": {
+          "createdAt": "2023-03-22T02:30:43.334Z",
+          "updatedAt": "2025-03-06T07:42:36.230Z",
+          "firstPublishedAt": "2023-04-11T08:16:55.451Z",
+          "publishedAt": "2025-03-06T07:42:36.230Z"
+        },
+        "customOrder": 25,
+        "createdAt": "2023-03-22T02:30:43.334Z",
+        "updatedAt": "2025-03-06T07:42:36.230Z"
+      },
+      "title": "運営陣について",
+      "slug": "About management team",
+      "meta": {
+        "title": "",
+        "description": "",
+        "ogImage": null
+      },
+      "body": "<p>以下に示していることは運営陣のために守ってほしいことです。<br>\nよく読んでください。</p>\n<h2>無料で提供していること</h2>\n<p>エースサーバーで遊ぶのにお金はいりません。<br>\nしかし、当然サーバーの維持費などはかかっています。<br>\n無料で遊ばせてもらっているということを忘れないようにしましょう。</p>\n<h2>運営陣はボランティアであること</h2>\n<p>運営陣の仕事はボランティアであって対価はありません。<br>\nまた、それぞれ私生活もあります。<br>\nそのため、特に昼間や深夜は対応が遅れます。<br>\n対応が遅かったとしても辛抱強く待ってください。<br>\n運営陣への連絡は可能な限りチケットを使用していただき、DMでの問い合わせや頻繁なメンションはお控えください。</p>\n<h2>運営陣も参加者であること</h2>\n<p>運営陣もディスコードで話したりします。<br>\nお知らせや案内、チケット以外での発言は運営陣としての立場が関係ないあくまで個人的な発言としてとらえてください。</p>\n<h2>運営陣の取り組み方</h2>\n<p>ルール等の取り決めは運営陣が様々な観点を考慮して作成しています。<br>\n意見要望については聞きますが叶えられないことが多く、理由についても回答できないことがあります。あらかじめご了承ください。<br>\n<br>\n以上の内容をよく理解しておいてほしいです。<br>\nまた、内容は予告なく変更する場合があります。</p>\n",
+      "category": {
+        "_id": "61e936ac8b1cc500187ad308",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-01-20T10:17:16.705Z",
+            "updatedAt": "2022-10-29T04:33:22.757Z",
+            "firstPublishedAt": "2022-01-20T10:17:16.705Z",
+            "publishedAt": "2022-10-29T04:33:22.757Z"
+          },
+          "createdAt": "2022-01-20T10:17:16.705Z",
+          "updatedAt": "2022-10-29T04:33:22.757Z"
+        },
+        "name": "その他",
+        "sortOrder": 50
+      },
+      "sortOrder": 10
+    },
+    {
+      "_id": "6416a306b836a015edcee1b0",
+      "_sys": {
+        "raw": {
+          "createdAt": "2023-03-19T05:52:06.956Z",
+          "updatedAt": "2025-03-15T12:26:07.138Z",
+          "firstPublishedAt": "2023-03-19T11:39:51.050Z",
+          "publishedAt": null
+        },
+        "customOrder": 24,
+        "createdAt": "2023-03-19T05:52:06.956Z",
+        "updatedAt": "2025-03-15T12:26:07.138Z"
+      },
+      "title": "ログインパスワードについて",
+      "slug": "LoginPassword",
+      "meta": {
+        "title": "ログインパスワードについて",
+        "description": "ログインパスワードについて",
+        "ogImage": null
+      },
+      "body": "<style>\n#h1{\npadding:0px 0px 0px 1.3em;\n  border-left: 6px double #000;\n  background: #f0f0f0;\n}\n.table-wrap{\n  overflow-x:scroll;\n}\n.table {\n  width:100%;\nvertical-align:middle;\n  border-collapse:collapse;\n  white-space:nowrap;\n}\n.table th,\n.table td {\n  border:2px solid #eee;\n  padding:4px 8px;\n}\n</style>\n<ol><h1 id=\"h1\"><li> 概要</h1></li>\nメインサーバーと資源サーバーに<a herf=\"https://www.spigotmc.org/resources/loginsecurity.19362/\">LoginSecurityプラグイン</a>を導入しています。<br>\nなりすましや乗っ取りを防ぎます。\n<h1 id=\"h1\"><li>初登録</h1></li>\nパスワードが未登録の場合、以下の画像のようにメッセージが表示されます。\n<img src=\"https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/8f553592-b8d5-4581-b752-5efd617ceae1%2FLoginSecurity_register.png\">\nパスワードは4文字以上32文字までで設定してください。<br>\nユーザ名から「@」 や「 #」 などの特殊文字を削除されます。<br>\nユーザ名が3文字から32文字までログインができます。<br>\nしかし、一定時間内にパスワード登録できなかった場合、キックされます。<br>\nキックされた場合、再度ログインしてパスワード設定してください。\n<h1 id=\"h1\"><li>コマンド紹介</h1></li>\n<div class=\"table-wrap\">\n <table class=\"table\">\n    <tr bgcolor=\"#f5f5f5\">\n      <th width=\"50%\"><b><center>コマンド</th>\n      <th><b><center>説明</th>\n    </tr>\n<tr><td>/register \"password\"</td><td>パスワード登録</td>\n<tr><td>/login \"password\"</td><td>ログインする。(ログアウト状態を解除する。)</td>\n<tr><td> /changepass \"oldpassword\" \"newpassword\"</td><td>パスワードを変更する。</td>\n<tr><td>/logout</td><td>ログアウトする。(サーバーから切断されるわけではない。)</td>\n</table></div>\n<h1 id=\"h1\"><li>注意事項</li></h1>\nログイン時のパスワード入力で10回間違えると、<br>\n以下の画像のようにメッセージが表示されてキックされます。<br>\n<img src=\"https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/cac5710f-19ce-4154-a5bb-77431261a2af%2FLoginSecurity_passlimit.png\">\nもしパスワードを忘れた場合は、<br>\nチケットを発行してパスワードリセット依頼をしてください。<br>\nチケット以外では対応しませんので、ご承知おきください。<br>\nパスワードをリセットしますので、再ログインしてパスワードの再登録してください。<br>\n現時点のペナルティは、<br>\n草ポイントの現・累計ポイントをゼロにするなど減点を考えています。<br>\n※ペナルティは変更することがあります。\n",
+      "category": {
+        "_id": "635d007306cfd5386b36f752",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:29:07.085Z",
+            "updatedAt": "2026-07-18T14:58:57.312Z",
+            "firstPublishedAt": "2022-10-29T10:29:34.954Z",
+            "publishedAt": "2026-07-18T14:58:57.312Z"
+          },
+          "customOrder": 6,
+          "createdAt": "2022-10-29T10:29:07.085Z",
+          "updatedAt": "2026-07-18T14:58:57.312Z"
+        },
+        "name": "生活鯖について",
+        "sortOrder": 20
+      },
+      "sortOrder": 20
+    },
+    {
+      "_id": "64166697b836a015edbf22da",
+      "_sys": {
+        "raw": {
+          "createdAt": "2023-03-19T01:34:15.641Z",
+          "updatedAt": "2025-03-15T12:21:05.709Z",
+          "firstPublishedAt": "2025-03-06T07:16:19.172Z",
+          "publishedAt": null
+        },
+        "customOrder": 23,
+        "createdAt": "2023-03-19T01:34:15.641Z",
+        "updatedAt": "2025-03-15T12:21:05.709Z"
+      },
+      "title": "各種申請方法",
+      "slug": "Application method",
+      "meta": {
+        "title": "",
+        "description": "",
+        "ogImage": null
+      },
+      "body": "<style>\n#h2{\nbackground-color:#f0f0f0;\nborder-left: 6px double #000;\npadding:0.2em 0.5em;\n}\n</style>\n<h2 id=\"h2\">建築申請</h2>\n<h2 id=\"h2\">露天掘り申請</h2>\n<h2 id=\"h2\">コミュニティ申請</h2>\n<h2 id=\"h2\"\">村人申請</h2>\n",
+      "category": {
+        "_id": "61e92e9f616290001858f8a4",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-01-20T09:42:55.742Z",
+            "updatedAt": "2023-03-12T13:16:37.919Z",
+            "firstPublishedAt": "2022-01-20T09:42:55.742Z",
+            "publishedAt": "2023-03-12T13:16:37.919Z"
+          },
+          "createdAt": "2022-01-20T09:42:55.742Z",
+          "updatedAt": "2023-03-12T13:16:37.919Z"
+        },
+        "name": "イントロダクション",
+        "sortOrder": 10
+      },
+      "sortOrder": 60
+    },
+    {
+      "_id": "6406fcb64279ec68fbbc4bf2",
+      "_sys": {
+        "raw": {
+          "createdAt": "2023-03-07T08:58:30.026Z",
+          "updatedAt": "2026-07-18T14:48:46.430Z",
+          "firstPublishedAt": "2023-03-08T09:40:31.267Z",
+          "publishedAt": "2026-07-18T14:48:46.430Z"
+        },
+        "customOrder": 22,
+        "createdAt": "2023-03-07T08:58:30.026Z",
+        "updatedAt": "2026-07-18T14:48:46.430Z"
+      },
+      "title": "ディスコード連携のやり方",
+      "slug": "how to discordsrv link",
+      "meta": {
+        "title": "",
+        "description": "",
+        "ogImage": null
+      },
+      "body": "<h6>当鯖ではディスコードのアカウントと</h6>\n<h6>マイクラのアカウントを連携させることで遊べるようになります。</h6>\n<h6>以下の手順にそってアカウント連携を行ってください。</h6>\n<h2>ディスコードに参加するXXX（XXXのとこにディスコードリンクを埋め込み）</h2>\n<h6>【📚ルール認証】のチャンネルでルールを確認したうえで画像の「A」のリアクションを一度だけ押す</h6>\n<p><img src=\"https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/e1507a8e-4ed9-41fa-b5e7-2d8c53ef1f9c/image_2026-07-15_095728508.png\" alt=\"image_2026-07-15_095728508.png\"></p>\n<h6>【👍ディスコ―ド連携】のチャンネルに行き説明に従い連携を完了させる　BE版の方は先頭の_BE_は必要ありません。除いたものをご入力ください</h6>\n<h2>鯖を追加する</h2>\n<h6>javaの方は最初の画面のマルチプレイと言うボタンを押した後左側の画像の通りに作業を進めてください</h6>\n<h6>統合版の方は最初の画面からプレイを選択し鯖の項目を選択した後次の画像のとおりに作業を進めてください</h6>\n<p><img src=\"https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/89922600-767f-4d8d-9318-e92f2879511a/E3FA5126-3C9F-48A9-A08E-6DBFFC93E8BF.png\" alt=\"E3FA5126-3C9F-48A9-A08E-6DBFFC93E8BF.png\"></p>\n",
+      "category": {
+        "_id": "635d007306cfd5386b36f752",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:29:07.085Z",
+            "updatedAt": "2026-07-18T14:58:57.312Z",
+            "firstPublishedAt": "2022-10-29T10:29:34.954Z",
+            "publishedAt": "2026-07-18T14:58:57.312Z"
+          },
+          "customOrder": 6,
+          "createdAt": "2022-10-29T10:29:07.085Z",
+          "updatedAt": "2026-07-18T14:58:57.312Z"
+        },
+        "name": "生活鯖について",
+        "sortOrder": 20
+      },
+      "sortOrder": 1
+    },
+    {
+      "_id": "640521c30bc1cc52f761ec40",
+      "_sys": {
+        "raw": {
+          "createdAt": "2023-03-05T23:12:03.963Z",
+          "updatedAt": "2025-03-15T12:20:56.081Z",
+          "firstPublishedAt": "2023-06-30T01:05:28.363Z",
+          "publishedAt": null
+        },
+        "customOrder": 21,
+        "createdAt": "2023-03-05T23:12:03.963Z",
+        "updatedAt": "2025-03-15T12:20:56.081Z"
+      },
+      "title": "よくある問い合わせ",
+      "slug": "Q&A",
+      "meta": {
+        "title": "",
+        "description": "",
+        "ogImage": null
+      },
+      "body": "<style>\n#h2{\nbackground-color:#f0f0f0;\nborder-left: 6px double #000;\npadding:0.2em 0.5em;\n}\n.qa-006 {\n    max-width: 500px;\n    margin-bottom: 5px;\n    border-bottom: 2px solid #d6dde3;\n}\n\n.qa-006 summary {\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    position: relative;\n    padding: 1em 2em 1em 3em;\n    color: #333333;\n    font-weight: 600;\n    cursor: pointer;\n}\n\n.qa-006 summary::before,\n.qa-006 p::before {\n    position: absolute;\n    left: 1em;\n    font-weight: 600;\n    font-size: 1.3em;\n}\n\n.qa-006 summary::before {\n    color: #75bbff;\n    content: \"Q\";\n}\n\n.qa-006 summary::after {\n    transform: translateY(-25%) rotate(45deg);\n    width: 7px;\n    height: 7px;\n    margin-left: 10px;\n    border-bottom: 3px solid #333333b3;\n    border-right: 3px solid #333333b3;\n    content: '';\n    transition: transform .5s;\n}\n\n.qa-006[open] summary::after {\n    transform: rotate(225deg);\n}\n\n.qa-006 p {\n    position: relative;\n    transform: translateY(-10px);\n    opacity: 0;\n    margin: 0;\n    padding: .3em 3em 1.5em;\n    color: #333;\n    transition: transform .5s, opacity .5s;\n}\n\n.qa-006[open] p {\n    transform: none;\n    opacity: 1;\n}\n\n.qa-006 p::before {\n    color: #ff8d8d;\n    line-height: 1.2;\n    content: \"A\";\n}\n</style>\n<details class=\"qa-006\">\n<summary>discord連携とはなんですか？</summary>\n<p>マイクラのアカウントとdiscordアカウントの連携をすることで運営、管理がしやすくするものです。</p></details>\n<details class=\"qa-006\">\n<summary>discord連携のやり方を教えてください。</summary>\n<p><ol><li>マイクラ内のメインのゲートに入る。\n<li>4桁の数字がメッセージに表示される。\n<li>4桁の数字をDiscordの「メイン(survival)」BOTにDMする。\n<br>※BOTに送信する際は、4桁の数字のみで大丈夫です\n<li>Discordの名前が変更され、メインのゲートに入れるようになります</ol></p></details>\n<details class=\"qa-006\">\n<summary>レギュラーになるにはどうしたいいですか？</summary>\n<p>たくさん参加してください。そうすればいつの間にかなっています。</p></details>\n<details class=\"qa-006\">\n<summary>BE版(統合版)だけが入れないときはどうすればいいですか？</summary>\n<p>申し訳ありませんがプラグインが最新バージョンに対応されるのをお待ちください。\n<br>バージョンアップが原因でない場合は運営にお問い合わせください。</p></details>\n<details class=\"qa-006\">\n<summary>サーバーに入れませんどうしたらいいですか？</summary>\n<p>サーバーアドレス・ポート番号は間違っていませんか？確認してみてください。それでも入れない場合はDiscordの質問の部屋やスタッフへの質問のチャンネルを活用してください。</p>\n</details>\n<details class=\"qa-006\">\n<summary>エースサーバーでプレイしているところを配信したいです。どうすればいですか？</summary>\n<p>Discordのスタッフへの質問の部屋やチケットで運営にお問い合わせください。</p></details>\n<details class=\"qa-006\">\n<summary>ウィザーをメインサーバーで召喚できませんがバグでしょうか？</summary>\n<p>バグではありません。メインサーバーではウィザーを召喚することができません。もしウィザー討伐をする場合は資源サーバーで行ってください。</p></details>\n<details class=\"qa-006\">\n<summary>ビーコンの使用制限について、光の柱が出なければカウントされませんか？</summary>\n<p>はい。光の柱が出ない状態であればご自由にお使いください。</p></details>\n<details class=\"qa-006\">\n<summary>ビーコンのルール表記に関して、「人が多い所」「大量設置」の定義はなんですか？</summary>\n<p>「人が多い所」とは中心地から近いところ、コミュニティなどで発展している土地のこと。「大量設置」とは視界を遮るレベルを指します。</p></details>\n<details class=\"qa-006\">\n<summary>整地中に採掘したブロックは拾わずに放置してもいいですか？</summary>\n<p>ダメです。拾う or 火打ち石やマグマで燃やす or チェストに入れる の3つのどれかで対応してください。</p></details>\n<details class=\"qa-006\">\n<summary>草とは何ですか？</summary>\n<p>エースサーバーでの活動に応じてたまるポイントのことです。</p></details>\n<details class=\"qa-006\">\n<summary>草はどうやって入手できますか？</summary>\n<p>草は、/kusaというコマンドを入力することで入手できます。</p></details>\n<details class=\"qa-006\">\n<summary>草ポイントのランキングを見たいですどうしたらいいですか？</summary>\n<p>/kusa rank　と打ってください。そうすると自分のランクが見えます。<br>\nまた、/kusa rank3と入力することでその時点での累計ポイントランキングTop3を見ることができます。</p></details>\n<details class=\"qa-006\">\n<summary>草ポイントはどうしたら使えますか？</summary>\n<p>草を作業台でクラフトすることで使用できます。レシピはDiscordサーバーのエース鯖独自レシピというチャンネルをごらんください。</p></details>\n<details class=\"qa-006\">\n<summary>草でクラフトすると岩盤や強化された深層岩(強化ディープスレート)が手に入ります。<br>これらは壊せませんが、設置してもいいのですか？</summary>\n<p>極力設置しないでください。誰にも迷惑が掛からなければご自由に設置ください。</p></details>\n<details class=\"qa-006\">\n<summary>石化ハーフブロックとは何ですか？</summary>\n<p>木のハーフブロックの見た目ですが適正ツールはつるはしのハーフブロックです。燃えませんのでご安心ください。</p></details>\n<details class=\"qa-006\">\n<summary> エースサーバーでやりたいことがないんですがどうすればいいですか？</summary>\n<p>コミュニティに参加するのはどうでしょうか。大きな目標に向かって活動する仲間がいることで充実したマイクラライフが送れるはずです。</p></details>\n<details class=\"qa-006\">\n<summary>建築申請はどうすればいいですか？</summary>\n<p>Discordの申請チャンネルからテンプレートに沿って記入してください。\n<details class=\"qa-006\">\n<summary>荒らされました。どうすればいいですか</summary>\n<p>Discordの要望・調査依頼チャンネルでチケットを発行し、荒らされたことを書き込んでください。荒らされた範囲や時間、当時の状況などを書き込んでくださるとスムーズに調査することができます。</p></details>\n<details class=\"qa-006\">\n<summary>このサーバーで起きた個人間のトラブルはどうすればいいですか？</summary>\nA:なるべく個人間での話し合いで解決してください。それでも解決できない場合には運営に相談してください。相応の対応をします。</p></details>\n<details class=\"qa-006\">\n<summary>A鯖掲示板はどのように活用すればいいですか？</summary>\n<p>A鯖で活動したことを好きなように書いてみてください。わかりやすく言うならA鯖内でのツイッターみたいなものです。</p></details>\n<details class=\"qa-006\">\n<summary>サーバーに荒らしが来た場合どうすればいいですか？</summary>\n<p>ただちに運営またはサポーターにメンションしてください。迅速に対応します。</p></details>\n<details class=\"qa-006\">\n<summary>ルールに一か月ログインしないと建物の所有権が運営になってしまうと書いてあるのですが、一か月間どうしても入れない場合どうすればいいですか？</summary>\n<p>運営に申請してください。または、誰かに所有権を一時的に預ける等の対応をしてください。</p></details>",
+      "category": {
+        "_id": "61e92e9f616290001858f8a4",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-01-20T09:42:55.742Z",
+            "updatedAt": "2023-03-12T13:16:37.919Z",
+            "firstPublishedAt": "2022-01-20T09:42:55.742Z",
+            "publishedAt": "2023-03-12T13:16:37.919Z"
+          },
+          "createdAt": "2022-01-20T09:42:55.742Z",
+          "updatedAt": "2023-03-12T13:16:37.919Z"
+        },
+        "name": "イントロダクション",
+        "sortOrder": 10
+      },
+      "sortOrder": 40
+    },
+    {
+      "_id": "63c6641ef6bd29a2e7b03c03",
+      "_sys": {
+        "raw": {
+          "createdAt": "2023-01-17T09:02:22.030Z",
+          "updatedAt": "2023-12-14T03:07:51.267Z",
+          "firstPublishedAt": "2023-01-17T09:46:44.227Z",
+          "publishedAt": "2023-12-14T03:07:51.267Z"
+        },
+        "customOrder": 20,
+        "createdAt": "2023-01-17T09:02:22.030Z",
+        "updatedAt": "2023-12-14T03:07:51.267Z"
+      },
+      "title": "あすたん王国",
+      "slug": "Asutan　Kingdom",
+      "body": "<style>\np {\nline-height:1.5em;\n}\n.table-wrap{\n  overflow-x:scroll;\n}\n.table {\n  width:100%;\nvertical-align:middle;\n  border-collapse:collapse;\n  white-space:nowrap;\n}\n.table th,\n.table td {\n  border:2px solid #eee;\n  padding:4px 8px;\n}\nsummary  {\n  font-size:15px;\n  left:4px;\n    padding: 10px;\n    background-color: #ededed;\n    font-weight: bold;\n}\ndetails p  {\n    margin-left: 26px;\n}\ndetails[open] {\n}\n\n</style>\n<h3>概要</h3>\n<p>あすたん（BE:Asuta pad 385,Java:asutarisucu）が王女として治める王国のコミュニティ。<br>\n数多くの装置が設置してあり、資材の供給に勤しんでいる。</p>\n<h3>施設一覧</h3>\n<div class=\"table-wrap\">\n <table class=\"table\">\n    <tr bgcolor=\"#f5f5f5\">\n      <th width=\"30%\"><b><center>施設名</th>\n      <th><b><center>説明</th>\n    </tr>\n    <tr>\n      <td >経験値貯蔵庫</td>\n      <td>かまどに自動で経験値を貯めることで修繕を一瞬ですることができます！</td>\n    </tr>\n    <tr>\n      <td>襲撃者トラップ</td>\n      <td>安全かつ高効率な襲撃者トラップです！</td>\n    </tr>\n    <tr>\n      <td>あすたんTT</td>\n      <td>巨大かつ芸術的な天空トラップタワーです。</td>\n    </tr>\n    <tr>\n      <td>ビーコンバイオーム</td>\n      <td>あすたん王国の国土ではビーコンによって常に移動速度が上昇します。</td>\n    </tr>\n    <tr>\n      <td>前哨基地トラップ</td>\n      <td>高効率な前哨基地トラップです。<br>襲撃者トラップとネザーゲートで繋がっています。 </td>\n    </tr>\n    <tr>\n      <td>スケルトントラップ</td>\n      <td>スケルトンスポナーを利用しています。骨と矢には困りません。</td>\n    </tr>\n    <tr>\n      <td>原木製造機</td>\n      <td>短時間で200ほどの原木を製造することができます。 </td>\n    </tr>\n    <tr>\n      <td>マルチファーム </td>\n      <td>南瓜、西瓜、サトウキビ、竹、ネザーウォートを製造しています。</td>\n    </tr>\n</tr>\n  <tr>\n    <td>ゴールドファーム </td>\n    <td>ネザーの岩盤上に巨大な装置を作成しました。<br>回収を経て毎時4000以上の金が手に入るようになりました。</td>\n</tr>\n<tr>\n<td>ビーコンレインボー</td>\n<td>ビーコンを大量に使って虹を作成しました。</td>\n</tr>\n<td>黒曜石製造機</td>\n<td>溶岩製造機が付いて簡単に黒曜石を回収できます。</td>\n</tr><tr>\n<td>はちみつ製造機</td>\n<td>コンパクトで高効率なはちみつ製造機です。</td>\n</tr><tr>\n<td>アイアンファーム</td>\n<td>11000/hの鉄インゴットが手に入る、超高効率なアイアンファームです。</td>\n</tr>\n  </table></div>\n<h3>製造予定施設一覧</h3>\n<div class=\"table-wrap\">\n <table class=\"table\">\n</tr>\n    <tr bgcolor=\"#f5f5f5\">\n    <td width=\"30%\"><b><center>製造予定施設</td>\n    <td><b><center>説明</td>\n<tr>\n    <td>製氷機</td>\n    <td>氷を高速で作る装置です。</td>\n</tr>\n<tr>\n    <td>倉庫</td>\n    <td>全アイテムを収納できる倉庫です。</td>\n</tr>\n<tr>\n    <td>スライムトラップ</td>\n    <td>スライムブロックを大呂に入手できる高効率なものを建設予定です。</td>\n</tr>\n<tr>\n    <td>あすたん王国ショップ</td>\n    <td>王国で生産した資材を配布するためのショップを建設します。</td>\n</tr>\n</table></div>\n<h3>活動内容・目標</h3>\n<p>エースサーバーでの縁の下の力持ちになることが目標！<br>\n主な活動として自動製造装置や便利な装置を建設しています。<br>\n活動してくれる人には、ダイヤツールやシュルカーボックスなどの便利なアイテムを支給させていただきます！</p>\n<h3>募集要項・参加方法</h3>\n<p>誰でも歓迎です。<br><br>\n興味のある人はDiscordサーバーから参加してください！</p>\n<h3>活動年表</h3>\n<div class=\"nenpyou\">\n<ul>\n<details>\n    <summary>2022年12月18日　あすたん王国設立</summary>\n    <p>一度コミュニティ申請を却下されましたがメンバーを集めてもう一度申請しました。<br>\nコミュニティ申請をしてから2週間ものあいだ保留にされたことは忘れません。<br>\n初期メンバーは3名でした。</p>\n</details>\n<details>\n    <summary>2023年1月3日　瀬賀帝国と統合</summary>\n    <p>瀬賀帝国というコミュニティのリーダーと話し合った結果、統合することに。<br>\n国土などは変わらずにメンバーと資材が増えたので王国の発展に期待が膨らむ。</p>\n</details>\n<details>\n    <summary>2023年2月22日　瀬賀帝国脱退</summary>\n    <p>瀬賀帝国というコミュニティのリーダーと話し合った結果、脱退することに。<br>\n</p>\n</details>\n<details>\n    <summary>2023年2月22日　くわ王国へ参入</summary>\n    <p>くわ王国というコミュニティと手を組む<br>\nくわ王国はスカウト制なのであすたん王国にいてもくわ王国には関わらない人もいます。\n</p>\n</details>\n<details>\n    <summary>2023年8月1日　あすたん王国ショップ　建設着工</summary>\n    <p>あすたん王国ショップを建設することを決め、建設を開始しました。<br>\nあすたん王国の資材力の集大成として総ブロック数64万の巨大な建築物をネザーに作成中です。\n</p>\n</details>\n</ul></div>\n<script>\nconsole.log(\"最終更新日2023年9月29日\");\n</script>",
+      "category": {
+        "_id": "635cac9d06cfd5386b36b3dc",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T04:31:25.870Z",
+            "updatedAt": "2022-10-29T04:33:40.644Z",
+            "firstPublishedAt": "2022-10-29T04:31:25.870Z",
+            "publishedAt": "2022-10-29T04:33:40.644Z"
+          },
+          "customOrder": 5,
+          "createdAt": "2022-10-29T04:31:25.870Z",
+          "updatedAt": "2022-10-29T04:33:40.644Z"
+        },
+        "name": "コミュニティについて",
+        "sortOrder": 40
+      },
+      "sortOrder": 30
+    },
+    {
+      "_id": "63629edfb48748bdc780b9de",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-11-02T16:46:23.185Z",
+          "updatedAt": "2025-03-15T12:26:57.477Z",
+          "firstPublishedAt": "2022-11-02T16:46:23.185Z",
+          "publishedAt": null
+        },
+        "customOrder": 21,
+        "createdAt": "2022-11-02T16:46:23.185Z",
+        "updatedAt": "2025-03-15T12:26:57.477Z"
+      },
+      "title": "ロビーサーバー",
+      "slug": "Lobby",
+      "meta": {
+        "title": "ロビーサーバーについて",
+        "description": "ロビーサーバーについて説明する",
+        "ogImage": null
+      },
+      "body": "<h1>概要</h1>\nロビーサーバーです。\nサーバーに入ると一番最初に入るワールドです。\n<p>いろんなワールドにアクセスできる玄関のようなワールドになっています。<br>\n大きな木の根元にあるカラフルなところがメインサーバーへ繋がっているゲートになっています。<br>\n※メインサーバーに入るにはディスコード連携をする必要があります。</p>\n",
+      "category": {
+        "_id": "67c94e6c395b530d64ff9669",
+        "_sys": {
+          "raw": {
+            "createdAt": "2025-03-06T07:27:40.481Z",
+            "updatedAt": "2025-03-06T07:42:43.624Z",
+            "firstPublishedAt": "2025-03-06T07:42:43.624Z",
+            "publishedAt": "2025-03-06T07:42:43.624Z"
+          },
+          "customOrder": 9,
+          "createdAt": "2025-03-06T07:27:40.481Z",
+          "updatedAt": "2025-03-06T07:42:43.624Z"
+        },
+        "name": "その他サーバーについて",
+        "sortOrder": 21
+      },
+      "sortOrder": 0
+    },
+    {
+      "_id": "63628c7db48748bdc77e6f61",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-11-02T15:27:57.069Z",
+          "updatedAt": "2022-11-02T16:27:54.648Z",
+          "firstPublishedAt": "2022-11-02T15:34:00.911Z",
+          "publishedAt": "2022-11-02T16:27:54.648Z"
+        },
+        "customOrder": 20,
+        "createdAt": "2022-11-02T15:27:57.069Z",
+        "updatedAt": "2022-11-02T16:27:54.648Z"
+      },
+      "title": "くわ王国",
+      "slug": "Hoe Kingdom",
+      "body": "<h2>概要</h2>\n<p>「中心地から離れたところに佇む巨大な王国」を作るコミュニティ。</p>\n<h2>活動内容・目標</h2>\n<p>みんなが住みやすく、街並みやお城などの景観も兼ね備えた王国を作ることを目指しています。</p>\n<h2>募集要項・参加方法</h2>\n<p>誰でも歓迎ですが、建築勢や作業勢は特に歓迎です。</p>\n",
+      "category": {
+        "_id": "635cac9d06cfd5386b36b3dc",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T04:31:25.870Z",
+            "updatedAt": "2022-10-29T04:33:40.644Z",
+            "firstPublishedAt": "2022-10-29T04:31:25.870Z",
+            "publishedAt": "2022-10-29T04:33:40.644Z"
+          },
+          "customOrder": 5,
+          "createdAt": "2022-10-29T04:31:25.870Z",
+          "updatedAt": "2022-10-29T04:33:40.644Z"
+        },
+        "name": "コミュニティについて",
+        "sortOrder": 40
+      },
+      "sortOrder": 27
+    },
+    {
+      "_id": "635e74f0e069d0741c37c397",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-30T12:58:24.372Z",
+          "updatedAt": "2026-07-18T14:48:53.299Z",
+          "firstPublishedAt": "2022-10-30T12:58:24.372Z",
+          "publishedAt": "2026-07-18T14:48:53.299Z"
+        },
+        "customOrder": 19,
+        "createdAt": "2022-10-30T12:58:24.372Z",
+        "updatedAt": "2026-07-18T14:48:53.299Z"
+      },
+      "title": "コマンドについて",
+      "slug": "SurvivalCommand",
+      "meta": {
+        "title": "コマンドについて",
+        "description": "使用できるコマンドの使い方を説明する。",
+        "ogImage": null
+      },
+      "body": "<style>\n#p{\nline-height:2em;\n}\n.table-wrap {\n  overflow-x: scroll;\n}\ntable {\n  width: 100%;\n  border-collapse: collapse;\n  white-space: nowrap;\n  overflow-x: scroll;\n}\ntable th{\nvertical-align:middle;\n  border: 2px solid #eee;\n  padding: 4px 8px;\nbackground-color:#f0f0f0;\n}\ntable td {\nvertical-align:middle;\n  border: 2px solid #eee;\n  padding: 4px 8px;\n}\n</style>\n<h2>通常のMinecraftに存在するコマンド</h2>\n<p id=\"p\">プラグインの入っていない通常のMinecraftでも存在するコマンドの内、エースサーバーでも使用可能なもの。</p>\n<table>\n<thead>\n<tr>\n<th>コマンド</th>\n<th>説明</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>/help</td>\n<td>コマンドのヘルプを表示する。</td>\n</tr>\n<tr>\n<td>/msg<br>/w<br>/tell</td>\n<td>プライベートメッセージを送信する。</td>\n</tr>\n</tbody>\n</table>\n<p>Core Protectのコマンド</p>\n<p id=\"p\">Core protectではブロックの設置・破壊、チェストでのアイテム入れ替えなどのログを確認することができます。</p>\n<div class=\"table-wrap\">\n  <table>\n<th>コマンド</th>\n<th>説明</th>\n<th>使用方法\n<tr><td>/co i\n<td rowspan=\"2\">インスペクターモードのON、OFFの切り替え\n<td rowspan=\"2\"><ol type=1><li>/co iまたは/co inspectと打ってインスペクターモードを有効にする。\n<li>ログを確認したいブロックを右クリックするか、確認したい空間にブロックを設置することでログを表示することができます。\n<li>ログが複数ページに渡る場合、/co l <ページ番号>と入力することで指定したページに移動することができます。\n<li>確認が終了したら再度/coiと入力してインスペクターモードを無効にしてください。\n<tr><td>/co inspect\n  </table></div>\n<p>LWCのコマンド</p>\n<p id=\"p\">チェストなどを保護して勝手にアイテムを持ち出せないようにしたり破壊を防ぐことができます。<br>\nまた、ホッパーによる流出も防ぐことができます。<br>\nチェストなどは設置時に自動で保護がかかります。</p>\n<div class=\"table-wrap\">\n  <table>\n<th>コマンド</th>\n<th>説明</th>\n<th>使用方法\n<tr><td>/cprivate\n<td rowspan=\"2\">対象のブロックを保護します。\n<td rowspan=\"2\">コマンドを入力した後、対象となるブロックを左クリックすることで保護できます。\n<tr><td>/lock\n<tr><td>/cremove\n<td rowspan=\"2\">対象のブロックの保護を解除する。\n<td rowspan=\"2\">コマンドを入力した後、対象となるブロックを左クリックすることで保護を解除できる。<br>自分保護したブロック以外の保護は解除できない。\n<tr><td>/unlock\n<tr><td>/cmodify\n<td rowspan=\"2\">個人保護にメンバーを追加する。\n<td rowspan=\"2\">/cmodify <メンバーの名前>、または/cmodify @<メンバーの名前>と入力する。<br>コマンドを入力した後、対象となるブロックを左クリックすることで保護にメンバーを追加することができる。<br>チェストの保護にメンバーを追加することで中身の出し入れは行えるが破壊はできない。\n<tr><td>/cmodify @\n<tr><td>/cmodify -\n<td>保護に追加したメンバーを削除する\n<td>/cmodify -<メンバーの名前>と入力した後、対象のブロックを左クリックする。\n<tr><td>/cdonation\n<td>チェストへのアイテムの預け入れのみを許可する\n<td rowspan=\"2\">コマンドを入力した後、対象のチェストを左クリックする。\n<tr><td>/cpublic\n<td>チェストへのアイテムの出し入れを許可する。（なお破壊は不可）\n<tr><td>/chopper\n<td>ホッパーによるアイテムの移動を許可/不許可とする。\n<td>/chopper onもしくは/chopper offと入力した後、対象のチェストを左クリックする。\n<tr><td>/cnolock\n<td>一時的に設置時の自動保護を無効化する。\n<td>コマンドを入力することで再度入力するか再ログインまで設置時に自動的に付与される保護を無効化できる。\n<tr><td>/cpersist\n<td>連続してLWCコマンドを使用する。\n<td>コマンドを入力後、連続使用したいコマンドを入力すると連続使用モードになる。<br>再度/cpersistと打つと連続使用モードは解除される。\n<tr><td>/cpassword\n<td>パスワード保護をする。\n<td>/cpassword [パスワード]と入力し、保護解除されたブロックを左クリックすると保護できる。\n<tr><td>/unlock\n<td>パスワード解除\n<td>パスワードのかかったチェストをクリックするとパスワードを求められるので/unlock [パスワード]と入力する。<br>一度パスワードを解除すると次回ログインまでは再入力不要になる。\n<tr><td>/cautoclose\n<td>扉が3秒後に自動で閉まるようになる\n<td>/cautoclose onと入力して扉に左クリックすることで有効にできる。<br>/cautoclose offと入力しても無効にできる。\n</table></div><br>\n<p>Gsitのコマンド</p>\n<p id=\"p\">Gsitではプレイヤーの様々な動作を可能にしてくれます。<br>\n紹介するコマンドの他にカーペット、階段、ハーフブロック、プレイヤーを何も持っていない状態で右クリックすることで座ることができます。</p>\n<div class=\"table-wrap\">\n  <table>\n<th>コマンド</th>\n<th>説明</th>\n<th>備考\n<tr><td>/sit\n<td>その場で座ることができる。\n<td>\n<tr><td>/lay\n<td>その場で仰向きに寝ることができる。\n<td>統合版の人はうまく動作しない場合がある。\n<tr><td>/bellyflop\n<td>その場にうつ伏せに倒れることができる。\n<td>\n<tr><td>/crawl\n<td>その場でクロールをすることができる。\n<td>\n<tr><td>/spin\n<td>その場で縦方向に硬直してスピンすることができる。\n<td>激流のエンチャントがついたトライデントを投げたときのような動作をする。<br>統合版の人はうまく動作しない場合がある。\n</table></div><br>\n<p>LunaChatのコマンド</p>\n<p id=\"p\">LunaChatはローマ字入力を自動で日本語にするなどのチャット補助を行います。</p>\n<div class=\"table-wrap\">\n  <table>\n<th>コマンド</th>\n<th>説明</th>\n<th>使用方法h</th>\n<tr><td>/jp\n<td>自動日本語変換のON、OFFの切り替え\n<td>/jp onで自動日本語変換を有効化。\n<br>/jp offで自動日本語変換を無効化。<br>文章の初めに#（ハッシュタグ）をつけることで、その文章でのみ自動日本語変換を無効化できる。\n</table></div>\n<p>エースサーバー独自プラグイン</p>\n<div class=\"table-wrap\"><table><th>コマンド</th><th>説明</th>\n<tr><td>/BeaconInfo</td><td>所有するティア2以上（効果レベル2以上）のビーコンの場所を表示する。</td>\n",
+      "category": {
+        "_id": "635d007306cfd5386b36f752",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:29:07.085Z",
+            "updatedAt": "2026-07-18T14:58:57.312Z",
+            "firstPublishedAt": "2022-10-29T10:29:34.954Z",
+            "publishedAt": "2026-07-18T14:58:57.312Z"
+          },
+          "customOrder": 6,
+          "createdAt": "2022-10-29T10:29:07.085Z",
+          "updatedAt": "2026-07-18T14:58:57.312Z"
+        },
+        "name": "生活鯖について",
+        "sortOrder": 20
+      },
+      "sortOrder": 2
+    },
+    {
+      "_id": "635d1cb3350db340aac57fc5",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-29T12:29:39.646Z",
+          "updatedAt": "2025-03-06T07:58:36.217Z",
+          "firstPublishedAt": "2022-10-29T12:29:39.646Z",
+          "publishedAt": null
+        },
+        "customOrder": 17,
+        "createdAt": "2022-10-29T12:29:39.646Z",
+        "updatedAt": "2025-03-06T07:58:36.217Z"
+      },
+      "title": "概要",
+      "slug": "ResetOverview",
+      "meta": {
+        "title": "リセット鯖の概要",
+        "description": "リセット鯖の概要",
+        "ogImage": null
+      },
+      "body": "<p>メインサーバーの運営交易所前にある噴水に入ると入ることができます。<br>\n資源収集のためのサーバーです。<br>\n定期的にワールドがリセットされるため建築などはメイン鯖で行うことをお勧めします。<br>\nエリトラなどの1ワールドにある数に限りがあるアイテムもリセットのたびに回収することができます。<br>\nまた、メインワードで禁止されているウィザー召喚やTNT爆破採掘なども可能になっています。</p>\n",
+      "category": {
+        "_id": "635d02e606cfd5386b3720de",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:39:34.721Z",
+            "updatedAt": "2025-03-06T07:58:47.272Z",
+            "firstPublishedAt": "2022-10-29T10:39:34.721Z",
+            "publishedAt": null
+          },
+          "customOrder": 8,
+          "createdAt": "2022-10-29T10:39:34.721Z",
+          "updatedAt": "2025-03-06T07:58:47.272Z"
+        },
+        "name": "資源サーバー",
+        "sortOrder": 26
+      },
+      "sortOrder": 10
+    },
+    {
+      "_id": "635d1277350db340aac3d4b1",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-29T11:45:59.944Z",
+          "updatedAt": "2025-03-15T12:26:13.087Z",
+          "firstPublishedAt": "2022-10-29T11:45:59.944Z",
+          "publishedAt": null
+        },
+        "customOrder": 16,
+        "createdAt": "2022-10-29T11:45:59.944Z",
+        "updatedAt": "2025-03-15T12:26:13.087Z"
+      },
+      "title": "施設案内",
+      "slug": "SurvivalGuideFacility",
+      "meta": {
+        "title": "エース鯖(メイン鯖)の施設案内",
+        "description": "エース鯖(メイン鯖)の施設を案内する。",
+        "ogImage": null
+      },
+      "body": "<style>\nh3{\n  background-color:#f0f0f0;\n}\na{\n  font-weight:bold;//太字にする\n  text-decoration:none;//テキストの装飾をなくす\n}\na:link{\n  color:#0000ff;//未クリックの色\n}\na:visited{\n  color:#6600ff;//既クリックの色\n}\na:hover{//カーソルをリンクの上に乗せてるときの設定\n  color:#ff0099;//色\n  text-decoration:underline;//下線を引く\n}\na:active{\n  color:#3300cc;//クリックしたときの色\n}\n</style>\n<h3>運営交易所　X96 Y62 Z26</h3>\n<p>特別な村人が年中無休で働いてくれています。<br>\n取引上限がなかったり、物によってはお安くなっているのが嬉しいところ。</p>\n<h3>叡凜(エイリン)ゲート　X220 Y64 Z-105</h3>\n<p>元：叡凜会（現：ソラノヤマ）のビル近くにあるネザーゲートです。待ち合わせにもよく使われます。</p>\n<h3>モノレール（サーバー中央駅）</h3>\n<p>メインワールドに張り巡らされている公共交通機関です。<br>\nトロッコを借りた後は返却を。</p>\n<h3>大型交易所（りんごさんの交易所）　X300 Y79 Z200</h3>\n<p>現在、負荷対策で村人の数が減りましたが、「ダイヤ防具」や「ダイヤツール」などを販売している村人がいます。</p>\n<h3>中型交易所（タイボンさんの交易所）　X330 Y64 Z0</h3>\n<p>安さが自慢の司書さんがたくさん。運営交易所よりも安く売っている司書さんもいます。<br>\n司書以外には、「武器」「ツール」「防具鍛冶」がそれぞれ一人ずついます。</p>\n<h3>巨大畑　X200 Y63 Z-20</h3>\n<p>食糧不足はここで解決。収穫した作物を取引して、エメラルドをたくさん手に入れることもできます。<br>\n「ジャガイモ」「ニンジン」「小麦」の収穫ができます。/<br>\n※収穫後は、植え直しもお願いします。</p>\n<h3>天空経験値TT　X560 Y200 Z190</h3>\n<p>ホッパータイマーを用いた、一般的な「経験値トラップタワー」です。<br>\n初期の経験値集めや、ちょっとした修繕、火薬や骨粉などを集めたい時に便利です。</p>\n<h3>Moon天空　X210 Y63 Z-1345</h3>\n<p>こちらも同じく「経験値トラップタワー」です。中央からは少し遠いですが、ネザーの道が整備されてます。<br>\n河に造られているので、ドラウンドも落ちてきます。「トライデント」や「オウムガイ」が欲しい方や、ご自身の拠点から近い場合に、おすすめのトラップタワーです。</p>\n<h3>ゴーレムトラップ　X380 Y67 Z-230</h3>\n<p>ネザーゲート式の「ゴーレムトラップ」です。アイテムは現世に溜まる親切設計。<br>\n1回の使用(その場を離れるまで)につき「金インゴット5個」の使用料が必要です。</p>\n<h3>エンダーマントラップ　エンドX290 Y48 Z0</h3>\n<p>経験値トラップといえばこれ！レバーでON/OFFができます。<br>\nゴミ箱、金床、エンチャント台もあります。</p>\n<h3>マーケット　X100 Y71 Z60</h3>\n<p>レアアイテムの販売や、新規さん向けのレンタル装備、無料食料や装備なんかも用意されています。<br>\n「レンタル装備」、「無料配布装備」があるので、周りの注意書きやレンタル方法などを<br>\nよく読んでご利用下さい。</p>\n<h3>ルミシア地区　Ｙ460　Ｚ-960付近</h3>\n<li>LuMiSIAドーム　PVPリーグLuMiSIAの本拠地。PVPや倉庫、ライブなどで利用可能。\n<li>ルミシアサーキット　氷上ボートレース場。LuMiSIAドームの奥にあります。\n<li>A悠ボートレース場　たまに、開催。エメラルドでの賭博ができます\n<h3>あすたん王国　X-200 Z-400</h3>\n<p>上記のものとは別に様々な施設が設置されている。<br>\n詳細は<a href=\"https://aceserver-wiki.acecore.systems/article/Asutan%E3%80%80Kingdom\">あすたん王国</a>ページを参照。</p>\n<h3>その他の施設・トラップ</h3>\n<p><strong>植林場</strong>　X315 Y62 Z-165</p>\n<p><strong>Mink Bar</strong>　X270 Y71 Z50　優しい店主による、いい雰囲気のBAR。カジノも製作中だとか。</p>\n<p><strong>ガーディアントラップ</strong>　X1110 Y72 Z1440　現在リニューアル中</p>\n<p><strong>ブレイズトラップ</strong>　ネザーX170 Y62 Z-230</p>\n",
+      "category": {
+        "_id": "635d007306cfd5386b36f752",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:29:07.085Z",
+            "updatedAt": "2026-07-18T14:58:57.312Z",
+            "firstPublishedAt": "2022-10-29T10:29:34.954Z",
+            "publishedAt": "2026-07-18T14:58:57.312Z"
+          },
+          "customOrder": 6,
+          "createdAt": "2022-10-29T10:29:07.085Z",
+          "updatedAt": "2026-07-18T14:58:57.312Z"
+        },
+        "name": "生活鯖について",
+        "sortOrder": 20
+      },
+      "sortOrder": 30
+    },
+    {
+      "_id": "635d1140350db340aac3584f",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-29T11:40:48.696Z",
+          "updatedAt": "2025-03-06T07:44:45.416Z",
+          "firstPublishedAt": "2022-10-29T11:42:51.445Z",
+          "publishedAt": null
+        },
+        "customOrder": 15,
+        "createdAt": "2022-10-29T11:40:48.696Z",
+        "updatedAt": "2025-03-06T07:44:45.416Z"
+      },
+      "title": "ルール",
+      "slug": "SurvivalRules",
+      "meta": {
+        "title": "エース鯖(メイン鯖)のルール",
+        "description": "エース鯖(メイン鯖)のルールを説明する。",
+        "ogImage": null
+      },
+      "body": "<img src=\"https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/bf936ca1-2f07-46bb-ad23-9e2a6290ad25%2Fshaking-hands.jpg\">\nみなさんが、楽しくこのサーバーで遊んでいただく為のルールになります。<br>\nルールを守って、楽しく遊んでくださいね。\n<h1>コミュニケーション</h1>\n<ul>\n<li>他の参加者へなるべく迷惑を掛けないよう心がけましょう。</li>\n<li>人種差別、宗教的発言、政治的発言、犯罪を助長する発言、脅し行為、性的発言、嫌がらせ行為、価値観の押し付けは禁止されています。</li>\n<li>何事も最初が肝心です。あらぬ疑いを掛けられぬように、挨拶をすることをおすすめします。</li>\n<li>乱暴で汚い言葉遣いや命令口調など、言動には十分に気をつけましょう。</li>\n</ul>\n<h1>BAN条件</h1>\n<ul>\n<li>他の参加者のアイテムを盗む行為、奪う行為</li>\n<li>自分、他人、MOBに拘わらず暴言を吐く行為</li>\n<li>ログ荒らし、デスメセージの意図的な乱用</li>\n<li>アイテムや施設などでバグを悪用する行為</li>\n<li>他の参加者への迷惑行為</li>\n<li>下記、<strong>許可されているクライアント以外</strong>を使用した場合</li>\n<li>OptiFine、Forge、Fabric、Lunar、Badlion</li>\n<li>その他、運営が不適切と判断した場合</li>\n</ul>\n<h1>モブ（村人・ペット・家畜）</h1>\n<ul>\n<li>村人の飼育は一人につき<strong>12人まで</strong>です。</li>\n<li>家畜、ペットは<strong>合わせて40匹まで</strong>飼育できます。</li>\n</ul>\n<h6>家畜＝名前に関係なく飼育している牛、羊、鶏、ヤギ、ミツバチ、ロバ、ラバ、ラマ、アレイ</h6>\n<h6>ペット＝敵モブを含む名前をつけているモブ</h6>\n<ul>\n<li>家畜を多数囲い飼いする場合は、一頭あたり9ブロックの空間を用意して、家畜に十分な広さを与えてください。</li>\n<li>家畜は必要な時に増やしても良いですが、必ずログアウトする時に間引いてください。</li>\n<li>敵モブを飼う場合は、必ず被害が出ないようにしてください。</li>\n</ul>\n<h1>建築</h1>\n<ul>\n<li>他参加者の建築物へ、断り無く侵入してはいけません。</li>\n<li>建築をする場合、隣の建築物とは最低でも2ブロック空間を開けてください。</li>\n</ul>\n<h6>お隣さんの同意を得た場合はその限りではありません。</h6>\n<ul>\n<li>大型の建築（32*32ブロック以上）をする場合、隣の建築物とは最低3ブロック空間を開けてください。</li>\n<li>更に大型の建築（64*64ブロック以上）をする場合、隣の建築物とは最低4ブロック空間を開けてください。</li>\n<li>プレイヤーを殺す目的などの建築物を禁止しています。</li>\n<li>一ヶ月間ログインが無いプレイヤーの建築物は、運営側の管轄になります。</li>\n<li>景観を明らかに損ねる物、不快感を与える物は警告なく消去する場合があります。</li>\n<li>建築物の建築者は、その地下をY座標34まで優先的に使用することができます。</li>\n<li>地下建築物には優先順位があります。住居＝露天建築＞通路＞ブランチマイニングの順です。</li>\n<li>ただし、Y座標0～-20の範囲では住居＝露天建築＝通路＞ブランチマイニングとなる、地下鉄推奨ゾーンとなります。</li>\n<li>建築物には、管理者のMCIDと建築年月日(yyyy/mm/dd)を記載した看板を設置してください。</li>\n<li>大型の建築物には、四隅に看板を設置してください。</li>\n</ul>\n<h1>土地（整地・露天掘り）</h1>\n<ul>\n<li>整地は露天掘り等でアイテム化したブロックは放置しないでください。</li>\n<li>整地の定義として、Y座標63以上に地面の高さを揃える事を指します。</li>\n<li>地面を底上げ目的のみで底上げする場合、空洞を作らないようにしてください。</li>\n<li>整地をする場合、大きな段差を作らないようにしてください。</li>\n<li>露天掘りをする場合は下記の申請方法に従って、範囲、時期等を運営に申請してください。</li>\n<li>露天掘りの定義として、Y座標63以下に地面を掘る事とします。</li>\n<li>露天掘りをする場合、他の参加者が誤って落ちないよう柵を設置するなどの工夫をしてください。</li>\n<li>露天掘り途中で地下通路などに当たった場合、通路を破壊しないように避けて掘ってください。</li>\n<li>採集が目的の露天掘りは、メインサーバーで行わないでください。</li>\n<li>建築目的の露天掘りをする場合は、必ず申請をしてください。</li>\n<li>大型の建築物を立てる場合、申請して頂く事が可能です。申請して頂いた建築物は土地のトラブルを避けるための処置を致します。</li>\n<li>申請するには［開始終了の座標］［MCID］［初回参加日付］［建築内容］の4つが必要になります。</li>\n<li>詳しくはDiscord内の［露天掘り・申請］のページを参照してください。</li>\n</ul>\n<h1>トラップ・回路</h1>\n<ul>\n<li>レッドストーン回路や、モンスタートラップには必ずON/OFFできるスイッチを取り付けましょう。また、サーバーから退出する時はOFFにしましょう。</li>\n<li>チャンクローダー、およびチャンクを読み込み続ける機構を持った装置は、全面禁止しています。</li>\n<li>ゴーレムトラップを立てる場合、20チャンク以内に他のゴーレムトラップが無い事を確認してください。もしある場合は建てないでください。</li>\n<li>メインサーバー内でエンダーマントラップとシュルカートラップの作成は禁止されています。エンダーマントラップについては公共施設の物が既にありますので、そちらをご利用ください。</li>\n<li>ピストンは同時に20個までしか動かさないでください。</li>\n<li>規模が大きな自動回収装置など建築する場合は、運営に一声かけてください。</li>\n<li>0Tickパルサー等を使ったアイテムの無限化は禁止されています。</li>\n<li>エースサーバーでは放置していると20分でキックされます。トラップの放置もその範囲であれば問題ありません。</li>\n</ul>\n<h1>ビーコン</h1>\n<ul>\n<li>光の筋を出さないビーコンに関する制限はありません。</li>\n<li>光の筋を出すビーコンは<strong>一人につき6つまで設置</strong>できます。</li>\n<li>建築に光の筋つきのビーコンを使用したい場合は、役職がレギュラー以上かつ効果レベルが最低の物の場合、許可します。ただし、人が多い場所での大量設置は許可されません。</li>\n</ul>\n<h1>配信や動画</h1>\n<ul>\n<li>運営宛に、動画や配信で使用する事を連絡してください。</li>\n<li>当サイトのURL、エースサーバーの概要を説明する内容の文章を概要欄等に記載してください。</li>\n</ul>\n<div class=\"address\"style=\"border:solid;\">\nサーバー名：エースサーバー<br>\n参加方法：https://aceserver-wiki.acecore.systems/article/in/<br>\nDiscord：https://discord.gg/acsv<br>\n</div>\n",
+      "category": {
+        "_id": "635d007306cfd5386b36f752",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:29:07.085Z",
+            "updatedAt": "2026-07-18T14:58:57.312Z",
+            "firstPublishedAt": "2022-10-29T10:29:34.954Z",
+            "publishedAt": "2026-07-18T14:58:57.312Z"
+          },
+          "customOrder": 6,
+          "createdAt": "2022-10-29T10:29:07.085Z",
+          "updatedAt": "2026-07-18T14:58:57.312Z"
+        },
+        "name": "生活鯖について",
+        "sortOrder": 20
+      },
+      "sortOrder": 3
+    },
+    {
+      "_id": "635d082a06cfd5386b37a26c",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-29T11:02:02.190Z",
+          "updatedAt": "2025-03-06T07:49:38.539Z",
+          "firstPublishedAt": "2022-10-29T11:24:42.006Z",
+          "publishedAt": null
+        },
+        "customOrder": 13,
+        "createdAt": "2022-10-29T11:02:02.190Z",
+        "updatedAt": "2025-03-06T07:49:38.539Z"
+      },
+      "title": "概要 (overview)",
+      "slug": "AzkabanOverview",
+      "meta": {
+        "title": "アズカバン概要",
+        "description": "アズカバン概要を説明する",
+        "ogImage": null
+      },
+      "body": "<p><img src=\"https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/2c8452ac-7ba8-45e4-abf3-b0c53717ec6b%2Funknown.png\" alt=\"unknown.png\"></p>\n<style>\n.p{\ncolor: #ff0000; \n}\n</style>\n<p>アナーキーサーバーです。<br>\nマイクラ内では自由ですが、直接サーバーへ攻撃することは禁止です。<br>\nメインサーバーとアイテム連携されるので、注意してください。</p>\n<p>Anarchy server.<br>\nYou are free in Minecraft, but attacking the server directly is prohibited.<br>\nPlease note that items will be linked with the main server.</p>\n<div class=\"p\"><h2>ここで何があっても運営は一切対応しません。</h2></div>\n<div class=\"p\"><h2>No matter what happens here, the management will not respond at all.</h2></div>\n",
+      "category": {
+        "_id": "635d016906cfd5386b370c3e",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:33:13.204Z",
+            "updatedAt": "2025-03-06T07:54:22.038Z",
+            "firstPublishedAt": "2022-10-29T10:33:13.204Z",
+            "publishedAt": null
+          },
+          "customOrder": 7,
+          "createdAt": "2022-10-29T10:33:13.204Z",
+          "updatedAt": "2025-03-06T07:54:22.038Z"
+        },
+        "name": "アズカバンサーバー",
+        "sortOrder": 29
+      },
+      "sortOrder": 10
+    },
+    {
+      "_id": "635be0c506cfd5386b2fee26",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-28T14:01:41.675Z",
+          "updatedAt": "2025-03-06T07:49:42.067Z",
+          "firstPublishedAt": "2022-10-28T15:39:51.306Z",
+          "publishedAt": null
+        },
+        "customOrder": 12,
+        "createdAt": "2022-10-28T14:01:41.675Z",
+        "updatedAt": "2025-03-06T07:49:42.067Z"
+      },
+      "title": "プラグイン一覧",
+      "slug": "AzkabanPluginsList",
+      "meta": {
+        "title": "アズカバン(実験サバ)のプラグイン一覧",
+        "description": "アズカバン(実験サバ)のプラグイン一覧の紹介",
+        "ogImage": null
+      },
+      "body": "<table>\n<thead>\n<tr>\n<th>プラグイン名</th>\n<th>説明</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/ender-dragon-reimagined.111075/\">Ender Dragon Reimagined</a></td>\n<td>エンダードラゴンをより強力に！？</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/infernal-mobs.2156/\">InfernalMobs</a></td>\n<td>特殊な強いmobを倒すと強いツールや装備が手に入ります！！！</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/levelledmobs.74304/\">LevelledMobs</a></td>\n<td>mobをより強く！</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/morph.8846/\">Morph</a></td>\n<td>倒したmobにへ～んしん！できるらしい。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/slime-growth.110304/\">SlimeGrowth</a></td>\n<td>スライム最強。戦わないで！</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/custom-ore-generator-%E3%80%8E1-8-1-20-1%E3%80%8F.64339/\">custom-ore-generator</a></td>\n<td>鉱石ブロックの量を増加させています。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/gsit-modern-sit-seat-and-chair-lay-and-crawl-plugin-1-13-1-20.62325/\">GSit</a></td>\n<td>座れます。そんな余裕ないかも？</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/marriage-master-mc-1-7-1-20.19273/\">MarriageMaster</a></td>\n<td>結婚ができるらしい。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/mysql-inventory-bridge.7849/\">MysqlInventoryBridge</a></td>\n<td>メインサーバーとアイテム連携されます。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/%E2%9A%94-mythicmobs-free-version-%E2%96%BAthe-1-custom-mob-creator%E2%97%84.5702/\">MythicMobs</a></td>\n<td>特殊mob未作成です。</td>\n</tr>\n</tbody>\n</table>\n",
+      "category": {
+        "_id": "635d016906cfd5386b370c3e",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:33:13.204Z",
+            "updatedAt": "2025-03-06T07:54:22.038Z",
+            "firstPublishedAt": "2022-10-29T10:33:13.204Z",
+            "publishedAt": null
+          },
+          "customOrder": 7,
+          "createdAt": "2022-10-29T10:33:13.204Z",
+          "updatedAt": "2025-03-06T07:54:22.038Z"
+        },
+        "name": "アズカバンサーバー",
+        "sortOrder": 29
+      },
+      "sortOrder": 30
+    },
+    {
+      "_id": "635bdd2b06cfd5386b2f3c46",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-28T13:46:19.643Z",
+          "updatedAt": "2025-03-06T07:58:39.332Z",
+          "firstPublishedAt": "2022-10-28T13:55:43.682Z",
+          "publishedAt": null
+        },
+        "customOrder": 11,
+        "createdAt": "2022-10-28T13:46:19.643Z",
+        "updatedAt": "2025-03-06T07:58:39.332Z"
+      },
+      "title": "プラグイン一覧",
+      "slug": "ResetServerPluginsList",
+      "meta": {
+        "title": "リセット鯖(資源鯖)",
+        "description": "資源サバのプラグイン一覧",
+        "ogImage": null
+      },
+      "body": "<p>導入されているプラグインは、メインサーバーと同じです。</p>\n",
+      "category": {
+        "_id": "635d02e606cfd5386b3720de",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:39:34.721Z",
+            "updatedAt": "2025-03-06T07:58:47.272Z",
+            "firstPublishedAt": "2022-10-29T10:39:34.721Z",
+            "publishedAt": null
+          },
+          "customOrder": 8,
+          "createdAt": "2022-10-29T10:39:34.721Z",
+          "updatedAt": "2025-03-06T07:58:47.272Z"
+        },
+        "name": "資源サーバー",
+        "sortOrder": 26
+      },
+      "sortOrder": 20
+    },
+    {
+      "_id": "635966e2f8dd31b69e7a6ccb",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-26T16:57:06.846Z",
+          "updatedAt": "2026-07-18T14:48:29.329Z",
+          "firstPublishedAt": "2022-10-26T17:11:05.895Z",
+          "publishedAt": "2026-07-18T14:48:29.329Z"
+        },
+        "customOrder": 10,
+        "createdAt": "2022-10-26T16:57:06.846Z",
+        "updatedAt": "2026-07-18T14:48:29.329Z"
+      },
+      "title": "プラグイン一覧",
+      "slug": "SurvivalPluginsList",
+      "meta": {
+        "title": "エース鯖(メイン鯖)のプラグイン一覧",
+        "description": "エース鯖(メイン鯖)のプラグイン一覧を紹介する。",
+        "ogImage": null
+      },
+      "body": "<h2>プラグイン一覧</h2>\n<div class=\"table\">\n<table>\n<thead>\n<tr>\n<th>プラグイン名</th>\n<th>説明</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/coreprotect.8631/\">CoreProtect</a></td>\n<td>ブロックの設置や破壊などのログを記録します。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/gsit-modern-sit-seat-and-chair-lay-and-crawl-plugin-1-13-x-1-19-x.62325/\">GSit</a></td>\n<td>ハーフブロックや階段に座れます。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/lockettepro-for-1-14-1-15-1-16.74354/\">LockettePro</a></td>\n<td>チェストに鍵を掛けます。</td>\n</tr>\n<tr>\n<td><a href=\"https://luckperms.net/\">LuckPerms</a></td>\n<td>コマンド権限を管理します。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/lunachat.82293/\">LunaChat</a></td>\n<td>ローマ字発言を自動日本語化するなどチャットを補助します。</td>\n</tr>\n<tr>\n<td><a href=\"https://dev.bukkit.org/projects/openinv\">OpenInv</a></td>\n<td>管理者がチェストやインベントリを確認します。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/%E2%98%84%EF%B8%8F-rhleafdecay-fast-and-smooth-leaf-decay-1-13-x-1-19-x.83581/\">RHLeafDecay</a></td>\n<td>破壊した原木にくっついていた葉を自動で破壊します。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/%E2%8D%9F-simple-portals-%E2%8D%9F-effective-regional-portals-bungeecord-compatible.56772/\">SimplePortals</a></td>\n<td>サーバー間で移動できるゲートを作成します。</td>\n</tr>\n<tr>\n<td><a href=\"https://dev.bukkit.org/projects/worldedit\">worldedit</a></td>\n<td>大規模な地形操作をします。</td>\n</tr>\n<tr>\n<td><a href=\"https://www.spigotmc.org/resources/worldeditselectionvisualizer-1-7-10-1-19.17311/\">WorldEditSelectionVisualizer</a></td>\n<td>「worldedit」の操作を補助します。</td>\n</tr>\n<tr>\n<td><a href=\"https://dev.bukkit.org/projects/worldguard\">worldguard</a></td>\n<td>地形を保護します。</td>\n</tr>\n<tr>\n<td><a href=\"https://dev.bukkit.org/projects/recipemanager\">RecipeManager</a></td>\n<td>レシピを追加します。</td>\n</tr>\n</tbody>\n</table>\n</div>\n",
+      "category": {
+        "_id": "635d007306cfd5386b36f752",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:29:07.085Z",
+            "updatedAt": "2026-07-18T14:58:57.312Z",
+            "firstPublishedAt": "2022-10-29T10:29:34.954Z",
+            "publishedAt": "2026-07-18T14:58:57.312Z"
+          },
+          "customOrder": 6,
+          "createdAt": "2022-10-29T10:29:07.085Z",
+          "updatedAt": "2026-07-18T14:58:57.312Z"
+        },
+        "name": "生活鯖について",
+        "sortOrder": 20
+      },
+      "sortOrder": 3
+    },
+    {
+      "_id": "634d364c5466d2023bf0fcf1",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-17T11:02:36.185Z",
+          "updatedAt": "2026-07-18T14:53:02.325Z",
+          "firstPublishedAt": "2022-10-29T13:29:10.471Z",
+          "publishedAt": null
+        },
+        "createdAt": "2022-10-17T11:02:36.185Z",
+        "updatedAt": "2026-07-18T14:53:02.325Z"
+      },
+      "title": "コミュニティ紹介",
+      "slug": "community",
+      "meta": {
+        "title": "",
+        "description": "",
+        "ogImage": null
+      },
+      "body": "<style>\na{\n  font-weight:bold;//太字にする\n  text-decoration:none;//テキストの装飾をなくす\n}\na:link{\n  color:#000;//未クリックの色\n}\na:visited{\n  color:#000;//既クリックの色\n}\na:hover{//カーソルをリンクの上に乗せてるときの設定\n  color:#000;//色\n  text-decoration:underline;//下線を引く\n}\na:active{\n  color:#000;//クリックしたときの色\n}\n</style>\n<p>なんらかの目標に向けて活動したり、協力したりする「コミュニティ」の紹介</p>\n<h2>between-tower</h2>\n<h3>概要</h3>\n<p>地図絵　ピクセルアートの制作</p>\n<h3>募集要項・参加方法</h3>\n<p>興味ある方はMaster_YinfeのDMまで</p>\n<h2><a href=\"https://aceserver-wiki.acecore.systems/article/Hoe%20Kingdom\">くわ王国</a></h2>\n<h3>概要</h3>\n<p>「中心地から離れたところに佇む巨大な王国」を作るコミュニティ。</p>\n<h3>活動内容・目標</h3>\n<p>みんなが住みやすく、街並みやお城などの景観も兼ね備えた王国を作ることを目指しています。</p>\n<h3>募集要項・参加方法</h3>\n<p>誰でも歓迎ですが、建築勢や作業勢は特に歓迎です。</p>\n<h2>西木野帝国(瀬賀帝国)</h2>\n<h3>概要</h3>\n<p>西木野帝国及び瀬賀帝国を発展させながら常にエース鯖を牽引し続けるコミュニティであることを願って<br>\n勢いとノリでやっている古参コミュニティ</p>\n<h2><a href=\"https://aceserver-wiki.acecore.systems/article/Asutan%E3%80%80Kingdom\">あすたん王国</a></h2>\n<h3>概要</h3>\n<p>あすたん（asutarisucu）が王女として治める王国のコミュニティ<br>\n数多くの装置が設置してあり、資材の供給に勤しんでいる。<br>\n現在はくわ王国と協力関係にある。</p>\n<h3>活動内容・目標</h3>\n<p>エースサーバーでの縁の下の力持ちになること！<br>\nそのために巨大なショップを建設中</p>\n<h3>募集要項・参加方法</h3>\n<p>誰でも歓迎です！ディスコードのコミュニティチャンネルから専用ディスコードサーバーへ入ることができます。</p>\n<h2>（名称未定）</h2>\n<h3>概要</h3>\n<p>メンバー共有の資材集めまた拠点付近にいろいろな装置や施設を作る。<br>\n全員に開放されたトラップ等の制作などなど</p>\n<h3>募集要項・参加方法</h3>\n<p>興味ある方はMoon_666のDMまで</p>\n<p>##エースラボ　~月神の村・RPG制作部同盟~</p>\n<h3>概要</h3>\n<p>コンテンツを作りまくるラボです！</p>\n<h2>自由の国</h2>\n<h3>概要</h3>\n<p>作業、建築、装置作成、杏仁豆腐作り。基本まったりです。</p>\n<h3>活動内容・目標</h3>\n<p>自由の国はあなたを受け入れます。自由の国に王はいません。一人一人が平等です😉💗<br>\nツール、素材何でもあります。初心者から上級者まで大歓迎です！</p>\n<h3>募集要項・参加方法</h3>\n<p>興味ある方は椛とCP_sinzinにDMを！</p>\n<h2>エースモノレール竹式会社</h2>\n<h3>概要</h3>\n<p>社員：エースサーバーの中枢交通網、『エースモノレール』(高架鉄道)の管理・運営事業<br>\nユーザー：エースモノレールの情報共有、お問い合わせなど</p>\n<h3>募集要項・参加方法</h3>\n<p>※2023/09/24現在、新入社員の募集はしていません。ユーザーのみの募集となります。</p>\n",
+      "category": {
+        "_id": "635cac9d06cfd5386b36b3dc",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T04:31:25.870Z",
+            "updatedAt": "2022-10-29T04:33:40.644Z",
+            "firstPublishedAt": "2022-10-29T04:31:25.870Z",
+            "publishedAt": "2022-10-29T04:33:40.644Z"
+          },
+          "customOrder": 5,
+          "createdAt": "2022-10-29T04:31:25.870Z",
+          "updatedAt": "2022-10-29T04:33:40.644Z"
+        },
+        "name": "コミュニティについて",
+        "sortOrder": 40
+      },
+      "sortOrder": 1
+    },
+    {
+      "_id": "634532eed2720e3d2d580a91",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-11T09:10:06.280Z",
+          "updatedAt": "2025-03-15T12:18:28.179Z",
+          "firstPublishedAt": "2022-10-11T09:10:06.280Z",
+          "publishedAt": null
+        },
+        "createdAt": "2022-10-11T09:10:06.280Z",
+        "updatedAt": "2025-03-15T12:18:28.179Z"
+      },
+      "title": "メンバー紹介",
+      "slug": "member",
+      "meta": {
+        "title": "メンバー紹介",
+        "description": "メンバー紹介",
+        "ogImage": null
+      },
+      "body": "<p><img src=\"https://cdn.pixabay.com/photo/2020/05/18/16/17/social-media-5187243_960_720.png\" alt=\"社会的なメディア, 社交, マーケティング, インターネット, モバイル, メディア, ネットワーキング\"></p>\n<style>\nselect{\nwidth:200px;\nheight:50px;\nfont-size:2em\n}\n</style>\n<p>画面がうまく表示されない場合は再度読み込んでください。</p>\n<h2>運営</h2>\n<p>エースサーバーの運営をしている人たち<br><br>\n忙しいのであまり急かさないように<br><br></p>\n <select id=\"unei\" onchange=\"changeA();\">\n    <option value=\"1\">グイ</option>\n    <option value=\"2\">はっ</option>\n    <option value=\"3\">あすたん</option>\n    <option value=\"4\">yanyan</option>\n    <option value=\"5\">sou</option>\n  </select><br><br>\n  <p id=\"txt1\"><b>グイ</b><br>\n担当 : サーバー主、システム関係、アズカバン<br>\n趣味 : 将棋したい</p>\n  <p id=\"txt2\" style=\"display:none\"><b>はっ</b><br>\n担当 : トラブル全般<br>\n趣味 : 絵</p>\n<p id=\"txt3\" style=\"display:none\"><b>あすたん</b><br>\n担当 :システム関係、トラブル全般 <br>\n趣味 : マイクラ、人と話すこと</p>\n<p id=\"txt4\" style=\"display:none\"><b>yanyan</b><br>\n担当 : システム関係<br>\n趣味 :ゲーム・脱出ゲーム </p>\n<p id=\"txt5\" style=\"display:none\"><b>sou</b><br>\n担当 : discord, plugin<br>\n趣味 : Rainbow Six Siege</p>\n<script>\nfunction changeA() {\n  if (document.getElementById(\"unei\")) {\n    uneiValue = document.getElementById(\"unei\").value;\n    if (uneiValue == \"1\") {\n      //文字1を表示\n      document.getElementById(\"txt1\").style.display = \"\";\n      //文字2を非表示\n      document.getElementById(\"txt2\").style.display = \"none\";\n      //文字3を非表示\n      document.getElementById(\"txt3\").style.display = \"none\";\n      //文字4を非表示\n      document.getElementById(\"txt4\").style.display = \"none\";\n      //文字5を非表示\n      document.getElementById(\"txt5\").style.display = \"none\";\n}\n else if (uneiValue == \"2\") {\n      document.getElementById(\"txt2\").style.display = \"\";\n      document.getElementById(\"txt1\").style.display = \"none\";\n      document.getElementById(\"txt3\").style.display = \"none\";\n      document.getElementById(\"txt4\").style.display = \"none\";\n      document.getElementById(\"txt5\").style.display = \"none\";\n}\nelse if (uneiValue == \"3\") {\n      document.getElementById(\"txt3\").style.display = \"\";\n      document.getElementById(\"txt1\").style.display = \"none\";\n      document.getElementById(\"txt2\").style.display = \"none\";\n      document.getElementById(\"txt4\").style.display = \"none\";\n      document.getElementById(\"txt5\").style.display = \"none\";\n}\nelse if (uneiValue == \"4\") {\n      document.getElementById(\"txt4\").style.display = \"\";\n      document.getElementById(\"txt1\").style.display = \"none\";\n      document.getElementById(\"txt2\").style.display = \"none\";\n      document.getElementById(\"txt3\").style.display = \"none\";\n      document.getElementById(\"txt5\").style.display = \"none\";\n}\nelse if (uneiValue == \"5\") {\n      document.getElementById(\"txt5\").style.display = \"\";\n      document.getElementById(\"txt1\").style.display = \"none\";\n      document.getElementById(\"txt2\").style.display = \"none\";\n      document.getElementById(\"txt3\").style.display = \"none\";\n      document.getElementById(\"txt4\").style.display = \"none\";\n  }\n}\n}\n</script>\n<h2>サポーター</h2>\n<p>運営からの依頼で、運営の補助を行ってもらう。<br>\n基本的には他参加者と変わりはないが、場合によっては他参加者のフォローを行う事もあり。<br><br></p>\n <select id=\"sapo\" onchange=\"changeB();\">\n    <option value=\"1\">枝豆</option>\n    <option value=\"2\">ゆっけ</option>\n    <option value=\"3\">hana</option>\n    <option value=\"4\">ゆり（悠）</option>\n    <option value=\"5\">Master_Yinfe</option>\n    <option value=\"6\">メル</option>\n    <option value=\"7\">ミンク</option>\n  </select><br><br>\n  <p id=\"txtA\"><b>枝豆</b><br>\n担当：ユーザーサポーター<br>\n趣味：\n</p>\n<p id=\"txtB\" style=\"display:none\"><b>ゆっけ</b><br>\n担当：ユーザーサポーター\n趣味：\n</p>\n<p id=\"txtC\" style=\"display:none\"><b>hana</b><br>\n担当：運営サポーター<br>\n趣味：\n</p>\n<p id=\"txtD\" style=\"display:none\"><b>ゆり（悠）</b><br>\n担当：運営サポーター<br>\n趣味：動画編集・デザイン・サーキット制作・web関係\n</p>\n<p id=\"txtE\" style=\"display:none\"><b>Master_Yinfe</b><br>\n担当：ユーザーサポーター\n趣味：\n</p>\n<p id=\"txtF\" style=\"display:none\"><b>メル</b><br>\n担当：ユーザーサポーター\n趣味：\n</p>\n<p id=\"txtG\" style=\"display:none\"><b>ミンク</b><br>\n担当：ユーザーサポーター\n趣味：\n</p>\n<script>\nfunction changeB() {\n  if (document.getElementById(\"sapo\")) {\n   sapoValue = document.getElementById(\"sapo\").value;\n    if (sapoValue == \"1\") {\n      //文字1を表示\n      document.getElementById(\"txtA\").style.display = \"\";\n      //文字2を非表示\n      document.getElementById(\"txtB\").style.display = \"none\";\n      //文字3を非表示\n      document.getElementById(\"txtC\").style.display = \"none\";\n      //文字4を非表示\n      document.getElementById(\"txtD\").style.display = \"none\";\n      //文字5を非表示\n      document.getElementById(\"txtE\").style.display = \"none\";\n      //文字5を非表示\n      document.getElementById(\"txtF\").style.display = \"none\";\n      //文字5を非表示\n      document.getElementById(\"txtG\").style.display = \"none\";\n}\n else if (sapoValue == \"2\") {\n      document.getElementById(\"txtB\").style.display = \"\";\n      document.getElementById(\"txtA\").style.display = \"none\";\n      document.getElementById(\"txtC\").style.display = \"none\";\n      document.getElementById(\"txtD\").style.display = \"none\";\n      document.getElementById(\"txtE\").style.display = \"none\";\n      document.getElementById(\"txtF\").style.display = \"none\";\n      document.getElementById(\"txtG\").style.display = \"none\";\n}\nelse if (sapoValue == \"3\") {\n      document.getElementById(\"txtC\").style.display = \"\";\n      document.getElementById(\"txtA\").style.display = \"none\";\n      document.getElementById(\"txtB\").style.display = \"none\";\n      document.getElementById(\"txtD\").style.display = \"none\";\n      document.getElementById(\"txtE\").style.display = \"none\";\n      document.getElementById(\"txtF\").style.display = \"none\";\n      document.getElementById(\"txtG\").style.display = \"none\";\n}\nelse if (sapoValue == \"4\") {\n      document.getElementById(\"txtD\").style.display = \"\";\n      document.getElementById(\"txtA\").style.display = \"none\";\n      document.getElementById(\"txtB\").style.display = \"none\";\n      document.getElementById(\"txtC\").style.display = \"none\";\n      document.getElementById(\"txtE\").style.display = \"none\";\n      document.getElementById(\"txtF\").style.display = \"none\";\n      document.getElementById(\"txtG\").style.display = \"none\";\n}\nelse if (sapoValue == \"5\") {\n      document.getElementById(\"txtE\").style.display = \"\";\n      document.getElementById(\"txtA\").style.display = \"none\";\n      document.getElementById(\"txtB\").style.display = \"none\";\n      document.getElementById(\"txtC\").style.display = \"none\";\n      document.getElementById(\"txtD\").style.display = \"none\";\n      document.getElementById(\"txtF\").style.display = \"none\";\n      document.getElementById(\"txtG\").style.display = \"none\";\n  }\nelse if (sapoValue == \"6\") {\n      document.getElementById(\"txtF\").style.display = \"\";\n      document.getElementById(\"txtA\").style.display = \"none\";\n      document.getElementById(\"txtB\").style.display = \"none\";\n      document.getElementById(\"txtC\").style.display = \"none\";\n      document.getElementById(\"txtD\").style.display = \"none\";\n      document.getElementById(\"txtE\").style.display = \"none\";\n      document.getElementById(\"txtG\").style.display = \"none\";\n  }\nelse if (sapoValue == \"7\") {\n      document.getElementById(\"txtG\").style.display = \"\";\n      document.getElementById(\"txtA\").style.display = \"none\";\n      document.getElementById(\"txtB\").style.display = \"none\";\n      document.getElementById(\"txtC\").style.display = \"none\";\n      document.getElementById(\"txtD\").style.display = \"none\";\n      document.getElementById(\"txtE\").style.display = \"none\";\n      document.getElementById(\"txtF\").style.display = \"none\";\n  }\n}\n}\n</script>\n<h2>レギュラー</h2>\n<p>サーバーへの貢献度が高い方<br>\n月に一回のペースで更新</p>\n<p>アクティブな場合が多いのでわからないことがあれば気軽に聞いてみましょう</p>\n",
+      "category": {
+        "_id": "61e936ac8b1cc500187ad308",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-01-20T10:17:16.705Z",
+            "updatedAt": "2022-10-29T04:33:22.757Z",
+            "firstPublishedAt": "2022-01-20T10:17:16.705Z",
+            "publishedAt": "2022-10-29T04:33:22.757Z"
+          },
+          "createdAt": "2022-01-20T10:17:16.705Z",
+          "updatedAt": "2022-10-29T04:33:22.757Z"
+        },
+        "name": "その他",
+        "sortOrder": 50
+      },
+      "sortOrder": 60
+    },
+    {
+      "_id": "634532c6d2720e3d2d5801f3",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-11T09:09:26.426Z",
+          "updatedAt": "2023-05-01T13:41:06.968Z",
+          "firstPublishedAt": "2022-10-11T09:09:26.426Z",
+          "publishedAt": "2023-05-01T13:41:06.968Z"
+        },
+        "createdAt": "2022-10-11T09:09:26.426Z",
+        "updatedAt": "2023-05-01T13:41:06.968Z"
+      },
+      "title": "宣伝に利用させていただいているサービス",
+      "slug": "promotion",
+      "meta": {
+        "title": "プロモーション",
+        "description": "プロモーション情報",
+        "ogImage": null
+      },
+      "body": "<style>\n#h1{\n  border-left: 6px double #000;\n  background: #f0f0f0;\npadding:0px 0px 0px 10px;\n}\n#h2{\n  border-bottom:3px double #000;\n  background: #f0f0f0;\n}\n</style>\n<img src=\"https://cdn.pixabay.com/photo/2020/03/22/15/25/fetch-4957501_1280.jpg\">\n<h2>概要</h2>\n<p>参加者の皆様に楽しんでいただくためにも、エースサーバーをさらに盛り上げる必要があります。<br><br>\nそのためエースサーバーでは複数のサービス上で、宣伝させていただいております。<br><br>\nこちらで、利用させていただいているサービスを紹介させていただきます。<br><br>\nまた、参加者の皆様もTwitterや口コミなどで、広めていただけると幸いです。<br></p>\n<h2 id=\"h2\">タイムライン形式</h2>\n<ul><li><a href=\"https://twitter.com/AceCoreS\">Twitter</a>\n<li><a href=\"https://bbs.whotwi.com/\">Twitter フォロワー募集掲示板</a>\n<li><a href=\"https://game8.jp/minecraft/216448\">Game8 マイクラ（マインクラフト）攻略Wiki</a></ul>\n<h2 id=\"h2\">スレッド</h2>\n<ul><li>Mixi</li>\n<ol><li><a href=\"https://mixi.jp/show_profile.pl?id=67710957&from=account_menu\">プロフィール</a>\n<li><a href=\"https://mixi.jp/view_community.pl?id=5396830&from=cross_search\">Mine Craft 【マインクラフト 】</a>\n<li><a href=\"https://mixi.jp/view_community.pl?id=5243448&conversion_from=login\">Minecraft</a>\n<li><a href=\"https://mixi.jp/view_community.pl?id=6065938\">マインクラフトPE</a></ol>\n<li>FRESTU\n<ol><li><a href=\"https://frestu.com/accounts/AceCoreS\">プロフィール</a>\n<li><a href=\"https://frestu.com/boards/discord_friends/posts\">Discordフレンド募集</a>\n<li><a href=\"https://frestu.com/boards/game_friends/posts\">ゲーム友達募集</a></ol>\n<li>Yay!\n<ol><li><a href=\"https://yay.space/user/7156119\">プロフィール</a>\n<li><a href=\"https://yay.space/group/140455\">スマホでマインクラフト♡☆✵❀]</a>\n<li><a href=\"https://yay.space/group/1651/detail\">Minecraft・マインクラフト【総合】</a>\n<li><a href=\"https://yay.space/group/176190\">マインクラフト</a>\n<li><a href=\"https://yay.space/group/195354\">Minecraft 統合版</a>\n<li><a href=\"https://yay.space/group/243518/detail\">Minecraft</a></ol></ul>\n<h2 id=\"h2\">登録型</h2>\n<ul><li><a href=\"https://monocraft.net/servers/SIa6esbbmANs2GVbUecW\">ものくらふと</a>\n<li><a href=\"https://disboard.org/ja/server/737538781024092170\">ディスボード</a><br>\n表示順をあげるボタンをクリック\n<li><a href=\"https://minecraft.jp/servers/mc.acecore.systems\">Japan Minecraft Servers</a><br>投票\n<li><a href=\"https://discoparty.jp/s/DC709GK11w\">Discoparty</a>\n<li><a href=\"https://dissoku.net/ja/server/737538781024092170\">ディス速</a></ul>\n<h2 id=\"h2\">一覧形式（修正のみ）</h2>\n<ul><li><a href=\"https://jmty.jp/osaka/com-fri/article-moif7\">ジモティー</a>\n<li><a href=\"https://w.atwiki.jp/minecraftclassic/pages/18.html\">Minecraft Classic Japan Wiki</a>\n<li><a href=\"https://mcservers.jp/\">MCServers.JP</a></ul>\n<h2 id=\"h2\">動画</h2>\n<ul><li><a href=\"https://www.youtube.com/@aceserver/featured\">YouTube</a>\n<li><a href=\"https://www.twitch.tv/aceserver\">Twitch</a></ul>",
+      "category": {
+        "_id": "61e936ac8b1cc500187ad308",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-01-20T10:17:16.705Z",
+            "updatedAt": "2022-10-29T04:33:22.757Z",
+            "firstPublishedAt": "2022-01-20T10:17:16.705Z",
+            "publishedAt": "2022-10-29T04:33:22.757Z"
+          },
+          "createdAt": "2022-01-20T10:17:16.705Z",
+          "updatedAt": "2022-10-29T04:33:22.757Z"
+        },
+        "name": "その他",
+        "sortOrder": 50
+      },
+      "sortOrder": 50
+    },
+    {
+      "_id": "63453283d2720e3d2d57fc85",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-11T09:08:19.147Z",
+          "updatedAt": "2023-01-22T06:33:32.112Z",
+          "firstPublishedAt": "2022-10-11T09:08:19.147Z",
+          "publishedAt": null
+        },
+        "createdAt": "2022-10-11T09:08:19.147Z",
+        "updatedAt": "2023-01-22T06:33:32.112Z"
+      },
+      "title": "イベント",
+      "slug": "event",
+      "meta": {
+        "title": "イベント",
+        "description": "イベント情報の紹介をします。",
+        "ogImage": null
+      },
+      "body": "<p><img src=\"https://cdn.pixabay.com/photo/2016/11/23/15/48/audience-1853662_960_720.jpg\" alt=\"観客, バンド, コンサート, 群衆, お祭り, ライト, 音楽, ミュージシャン, 人, パフォーマンス\"></p>\n<p>ここでは運営公式のイベントを紹介しますが、参加者が個々で開催しているような<br>\nイベントも多数ございますので、詳しくはDiscordをご確認ください。</p>\n<h2>安らぎの杜プロジェクト</h2>\n<p>2021/6/22(火)~開催中</p>\n<p>サーバー主であるグイさんの拠点付近に、露天掘りをした大きな穴があります。<br>\nそこをおしゃれに建築してみようというイベントです。</p>\n<p>↓途中経過</p>\n<h2>エースフェス【終了済み】</h2>\n<p>2021/5/29(土)-30(日)開催</p>\n<p>エースフェス観客動員数<br>\n・1日目：21人(恐らくこのサーバーでの同接人数過去最多記録のはず)<br>\n・2日目：17人<br>\n計38人の参加がありました！</p>\n<p>・<strong>29日 PVPエース杯</strong></p>\n<p>優勝：Master_Yinfe <br>\n準優勝：sya_ri <br>\n3位：めろんぱん</p>\n<p>優勝商品となる「スタジアム命名権」により、スタジアムの名前が<br>\n**「茨城オーバーウォッチャーズ本拠地」**に決定しました。</p>\n<p>・<strong>30日 音楽フェス</strong></p>\n",
+      "category": {
+        "_id": "61e936ac8b1cc500187ad308",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-01-20T10:17:16.705Z",
+            "updatedAt": "2022-10-29T04:33:22.757Z",
+            "firstPublishedAt": "2022-01-20T10:17:16.705Z",
+            "publishedAt": "2022-10-29T04:33:22.757Z"
+          },
+          "createdAt": "2022-01-20T10:17:16.705Z",
+          "updatedAt": "2022-10-29T04:33:22.757Z"
+        },
+        "name": "その他",
+        "sortOrder": 50
+      },
+      "sortOrder": 40
+    },
+    {
+      "_id": "6345322dd2720e3d2d5794dd",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-11T09:06:53.301Z",
+          "updatedAt": "2025-03-15T12:20:40.518Z",
+          "firstPublishedAt": "2022-10-11T09:06:53.301Z",
+          "publishedAt": null
+        },
+        "createdAt": "2022-10-11T09:06:53.301Z",
+        "updatedAt": "2025-03-15T12:20:40.518Z"
+      },
+      "title": "ワールド案内",
+      "slug": "world",
+      "meta": {
+        "title": "ワールド案内",
+        "description": "エースサーバーにある各ワールドの紹介をします。",
+        "ogImage": null
+      },
+      "body": "<style>\na{\n  font-weight:bold;//太字にする\n}\na:link{\n  color:#000000;//未クリックの色\n}\na:visited{\n  color:#000;//既クリックの色\n}\na:hover{//カーソルをリンクの上に乗せてるときの設定\n  text-decoration:underline;//下線を引く\n color:#000;\n}\na:active{\n  color:#000;//クリックしたときの色\n}\n\nsummary  {\n  font-size:15px;\n  left:4px;\n    padding: 10px;\n    background-color: #ededed;\n    font-weight: bold;\n}\ndetails p  {\n    margin-left: 26px;\n}\ndetails[open] {\n}\n</style>\n<p><img src=\"https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/0c380442-a2f7-42dd-9905-54dc76df8e58%2F2020-11-07_10.42.49.png\" alt=\"2020-11-07_10.42.49.png\"><br>\n当サーバーに、複数存在するワールドの紹介をしていきます。</p>\n<ol>\n<h2><li><a href=\"https://aceserver-wiki.acecore.systems/article/LobbyOverview\">ロビー</a></h2>\n<h3>概要</h3>\n<p>ログインすると、最初に入るワールドです。</p>\n<p>設置されているゲートを使って「メインワールド」と<br>\n「アズカバン」に行くことができます。</p>\n<h2><li><a href=\"https://aceserver-wiki.acecore.systems/article/SurvivalGuideFacility\">現メインサーバー（サバイバル）</a></h2>\n<h3>概要</h3>\n<p>当サーバーの現在の「メインワールド」です。</p>\n<p>常に最新Ver.でJava版と統合版のクロスプレイに対応しており、<br>\nロビーのゲートから行くことができます。</p>\n<p>ゲートは大きな木の根元にあります。</p>\n<h2><li>サバイバル（エースタウン）（現在閉鎖中）</h2>\n<h3>概要</h3>\n<p>当サーバーの「旧メインワールド」です。</p>\n<p>現在閉鎖中です。</p>\n<details>\n    <summary>市役所　X-235 Y64 Z123</summary>\n    <p>参加者が作った村や、「ジ・エンド」「メサ高原（荒野バイオーム）」など、離れたバイオームへ移動できるポータルがあります。</p>\n</details>\n<details>\n    <summary>交易所・ネザーゲート　X-244 Y64 Z110</summary>\n    <p>特別な村人が設置されており、ほとんどの交易物＋αが入手できます。<br>\nまた、このサーバーのメインネザーゲートもこの中にあります。</p>\n</details>\n<details>\n    <summary>各トラップタワー、経験値トラップ</summary>\n    <p>有志のみなさんが作成し、解放されている施設です。\nマナーよく、利用しましょう。<br><b>主な施設</b><br>スケルトントラップ（X-156 Y391 Z49）<br>エンダーマントラップ（エンド　X103 Y49 Z0）</p>\n</details>\n<details>\n    <summary>共有施設</summary>\n    <p>倉庫、植林場、採掘場を用意してます。<b><br>主な施設</b><br>植林場（X-257 Y65 Z195）<br>新・採掘場<br>カボチャ畑（X-112 Y63 Z113）</p>\n</details>\n<details>\n    <summary>ネザー・エンド</summary>\n    <p>ある程度整備はされてますが、サバイバル力に自信がない人は力をつけてからがオススメ！</p>\n</details>\n<h2><li><a href=\"https://aceserver-wiki.acecore.systems/article/AzkabanOverview\">アズカバン</a></h2>\n<h3>概要</h3>\n<p>アナーキーワールドです。</p>\n<p>また、ロビーやメインワールドで問題を起こした人が<br>\n強制送還されるワールドでもあります。</p>\n<p>ロビーから誰でも入ることができますが、メインワールドではないので、<br>\n問題が発生しても対応はしません。</p>\n<h2><li><a href=\"https://aceserver-wiki.acecore.systems/article/ResetOverview\">資源サーバー</a></h2>\n<h3>概要</h3>\n<p>資源回収用のサーバーです。</p>\n<p>毎週水曜日にリセットされるため、数に限りのあるアイテムを回収できます。</p>\n<p>また、爆破採掘やウィザー召喚も認めれています。</p>\n<h2><li>回路サーバー(現在調整中)</h2>\n<h3>概要</h3>\n<p>回路を活用するために作成されたFabricサーバーです。<br>\n現在はModの不具合によってメイン鯖との持ち物共有がされていません。</p>\n<h2><li>イベント鯖</h2>\n<h3>概要</h3>\n<p>イベントが開催されるときに使用されます。<br>\nイベント鯖1とイベント鯖2があり、両方ともメイン鯖の市役所から行くことができます。</p>\n<h2><li>試練鯖</h2>\n<h3>概要</h3>\n<p>comming soon...</p>\n",
+      "category": {
+        "_id": "61e92e9f616290001858f8a4",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-01-20T09:42:55.742Z",
+            "updatedAt": "2023-03-12T13:16:37.919Z",
+            "firstPublishedAt": "2022-01-20T09:42:55.742Z",
+            "publishedAt": "2023-03-12T13:16:37.919Z"
+          },
+          "createdAt": "2022-01-20T09:42:55.742Z",
+          "updatedAt": "2023-03-12T13:16:37.919Z"
+        },
+        "name": "イントロダクション",
+        "sortOrder": 10
+      },
+      "sortOrder": 10
+    },
+    {
+      "_id": "634531c7d2720e3d2d56ef9c",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-11T09:05:11.966Z",
+          "updatedAt": "2026-07-18T14:48:35.182Z",
+          "firstPublishedAt": "2022-10-11T09:05:11.966Z",
+          "publishedAt": "2026-07-18T14:48:35.182Z"
+        },
+        "createdAt": "2022-10-11T09:05:11.966Z",
+        "updatedAt": "2026-07-18T14:48:35.182Z"
+      },
+      "title": "参加方法",
+      "slug": "in",
+      "meta": {
+        "title": "参加方法",
+        "description": "参加方法について解説します。",
+        "ogImage": null
+      },
+      "body": "<style>\n* {\n  margin: 0;\n  padding: 0;\n}\n#midasi {\n  padding: 0.2em 1em;\n  margin: 0.5em;\n  border-left: 6px double #000;\n}\n.howarisu {\n  line-height: 2em;\n  border: 1px solid #000;\n  margin: 0;\n}\n#howarisu {\n  background-color: #f0f0f0;\n  border-left: 6px double #000;\n  padding: 0em 0.2em;\n  margin: 0.3em;\n  border-bottom: initial;\n}\n.button_margin {\n  margin: 1em;\n}\n*,\n*:before,\n*:after {\n  -webkit-box-sizing: inherit;\n  box-sizing: inherit;\n}\n\n/* 画像をコンパクトにするためのCSS */\n.compact-img {\n  max-width: 320px;\n  width: 100%;\n  height: auto;\n  display: block;\n  margin: 1em 0;\n  border-radius: 8px;\n}\n\n/* ボタンを横並びにするためのコンテナ */\n.btn-container {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 0.5rem;\n  margin: 1rem 0;\n}\n\n.btn,\na.btn,\nbutton.btn {\n  font-size: 1.6rem;\n  font-weight: 700;\n  line-height: 1.5;\n  position: relative;\n  display: inline-block;\n  padding: 1rem 4rem;\n  cursor: pointer;\n  -webkit-user-select: none;\n  -moz-user-select: none;\n  -ms-user-select: none;\n  user-select: none;\n  -webkit-transition: all 0.3s;\n  transition: all 0.3s;\n  text-align: center;\n  vertical-align: middle;\n  text-decoration: none;\n  letter-spacing: 0.1em;\n  color: #212529;\n  border-radius: 0.5rem;\n}\n\n/* 公式ダウンロード用の少し小さいボタン */\n.btn-sm {\n  font-size: 1rem !important;\n  padding: 0.6rem 1.5rem !important;\n}\n\na.btn-gradient {\n  font-weight: normal;\n  color: #fff;\n  border-radius: 0;\n  background-image: -webkit-gradient(\n    linear,\n    left top,\n    right top,\n    color-stop(40%, #ff3cac),\n    to(#562b7c)\n  );\n  background-image: -webkit-linear-gradient(left, #ff3cac 40%, #562b7c 100%);\n  background-image: linear-gradient(90deg, #ff3cac 40%, #562b7c 100%);\n}\n\na.btn-gradient:after {\n  position: absolute;\n  top: 0;\n  left: 0;\n  width: 100%;\n  height: 100%;\n  content: \"\";\n  -webkit-transition: all 0.5s;\n  transition: all 0.5s;\n  background-image: -webkit-gradient(\n    linear,\n    left top,\n    right top,\n    from(#ff3cac),\n    color-stop(#562b7c),\n    to(#2b86c5)\n  );\n  background-image: -webkit-linear-gradient(left, #ff3cac, #562b7c, #2b86c5);\n  background-image: linear-gradient(90deg, #ff3cac, #562b7c, #2b86c5);\n}\n\na.btn-gradient span {\n  position: relative;\n  z-index: 1;\n}\n\na.btn-gradient:hover {\n  color: #fff;\n}\n\na.btn-gradient:hover:after {\n  opacity: 0;\n}\n\n/* 連携案内用の枠デザイン */\n.link-alert-box {\n  background-color: #fff9e6;\n  border-left: 5px solid #ffcc00;\n  padding: 1rem;\n  margin: 1.5rem 0;\n  border-radius: 4px;\n}\n.link-alert-box p {\n  margin: 0 0 0.5rem 0;\n  font-weight: bold;\n  color: #8a6d3b;\n  font-size: 0.95rem;\n}\n</style>\n<img src=\"https://cdn.pixabay.com/photo/2018/02/07/18/30/people-3137672_960_720.jpg\" alt=\"ヘッダー画像\" class=\"compact-img\">\n<img src=\"/img/リスト.png\" alt=\"手順リスト\" class=\"compact-img\">\n<h4>エースサーバーDiscordに参加する。</h4>\n<h6>以下からエースサーバー公式Discordサーバーに参加してください。</h6>\n<div style=\"margin: 1rem 0;\">\n  <a href=\"https://discord.gg/acsv\" class=\"btn btn-gradient\"><span>Discordサーバーへ参加</span></a>\n</div>\n<div class=\"link-alert-box\">\n  <p>⚠️ 一部マイクラ鯖に参加するにはこちらが必要です</p>\n  <a href=\"https://asv-wiki.acecore.net/article/how%20to%20discordsrv%20link\" class=\"btn btn-gradient btn-sm\"><span>マイクラとDiscordを連携する</span></a>\n</div>\n<hr color=\"#AAA\" size=\"3\" noshade>\n<p>Discordのアカウントがない・インストールしていない方は</p>\n<div class=\"btn-container\">\n  <a href=\"https://discord.com\" class=\"btn btn-gradient btn-sm\"><span>PC版 - 公式サイト</span></a>\n  <a href=\"https://play.google.com/store/apps/details?id=com.discord&hl=ja&gl=US\" class=\"btn btn-gradient btn-sm\"><span>Android版</span></a>\n  <a href=\"https://apps.apple.com/jp/app/discord-%E8%A9%B1%E3%81%9D%E3%81%86-%E3%83%81%E3%83%A3%E3%83%83%E3%83%88%E3%81%97%E3%82%88%E3%81%86-%E9%9B%86%E3%81%BE%E3%82%8D%E3%81%86/id985746746\" class=\"btn btn-gradient btn-sm\"><span>iOS版</span></a>\n</div>\n<br>\n<h4>Discordサーバーにて参加申請を行う。</h4>\n<h6>Discordサーバーに入室後、まずは注意・規則を必ずよく読んだ上で手続きを行ってください。</h6>\n",
+      "category": {
+        "_id": "61e92e9f616290001858f8a4",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-01-20T09:42:55.742Z",
+            "updatedAt": "2023-03-12T13:16:37.919Z",
+            "firstPublishedAt": "2022-01-20T09:42:55.742Z",
+            "publishedAt": "2023-03-12T13:16:37.919Z"
+          },
+          "createdAt": "2022-01-20T09:42:55.742Z",
+          "updatedAt": "2023-03-12T13:16:37.919Z"
+        },
+        "name": "イントロダクション",
+        "sortOrder": 10
+      },
+      "sortOrder": 2
+    },
+    {
+      "_id": "63453173d2720e3d2d563c0a",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-11T09:03:47.440Z",
+          "updatedAt": "2026-07-18T14:48:39.506Z",
+          "firstPublishedAt": "2022-10-11T09:03:47.440Z",
+          "publishedAt": "2026-07-18T14:48:39.506Z"
+        },
+        "createdAt": "2022-10-11T09:03:47.440Z",
+        "updatedAt": "2026-07-18T14:48:39.506Z"
+      },
+      "title": "ルール・BAN条件",
+      "slug": "rule",
+      "meta": {
+        "title": "ルール",
+        "description": "サーバー内での基本的なルールについて解説します。",
+        "ogImage": null
+      },
+      "body": "<p><img src=\"https://cdn.pixabay.com/photo/2018/03/07/08/13/shaking-hands-3205463_960_720.jpg\" alt=\"手を振ってください, ハンドシェイク, 契約, 結論, ルール, 単語, 雲, エージェンシー, 書かれました\"></p>\n<style>\n#h2{\nbackground-color:#f0f0f0;\n border-left: 6px double #000;\npadding:0.2em;\n}\n.gaiyouran {\n    position: relative;\n    padding: 1em 1.5em;\n    margin: 2em 0;\n    border: solid 3px #c71585;/*線*/\n    border-radius: 8px;/*角の丸み*/\n    color: #000000;/*文字色*/\n}\n.gaiyouran .sample_box_title{\n    position: absolute;\n    display: inline-block;\n    top: -13px;\n    left: 10px;\n    padding: 0 10px;\n    line-height: 1;\n    font-size: 1.3em;/*タイトル文字サイズ*/\n    background: #ffffff;/*タイトル文字背景色*/\n    color: #c71585;/*タイトル文字色*/\n    font-weight: bold;\n}\n.gaiyouran p {\n    margin: 0; \n    padding: 0;\n}\n#client{\nlist-style: none; \n}\ntable{\n  width: 100%;\n  border-collapse:separate;\n  border-spacing: 0;\n}\n\ntable th:first-child{\n  border-radius: 5px 0 0 0;\n}\n\ntable th:last-child{\n  border-radius: 0 5px 0 0;\n  border-right: 1px solid #3c6690;\n}\n\ntable th{\n  text-align: center;\n  color:white;\n  background: linear-gradient(#829ebc,#225588);\n  border-left: 1px solid #3c6690;\n  border-top: 1px solid #3c6690;\n  border-bottom: 1px solid #3c6690;\n  box-shadow: 0px 1px 1px rgba(255,255,255,0.3) inset;\n  width: 25%;\n  padding: 10px 0;\n}\n\ntable td{\n  text-align: center;\n  border-left: 1px solid #a8b7c5;\n  border-bottom: 1px solid #a8b7c5;\n  border-top:none;\n  box-shadow: 0px -3px 5px 1px #eee inset;\n  width: 25%;\n  padding: 10px 0;\n}\n\ntable td:last-child{\n  border-right: 1px solid #a8b7c5;\n}\n\ntable tr:last-child td:first-child {\n  border-radius: 0 0 0 5px;\n}\n\ntable tr:last-child td:last-child {\n  border-radius: 0 0 5px 0;\n}\ntd{\nvertical-align: top;\n}\n</style>\n<p>みなさんが、楽しくこのサーバーで遊んでいただく為のルールになります。<br>\nルールを守って、楽しく遊んでくださいね。</p>\n<h2 id=\"h2\">常識的なルール</h2>\nどこでもあるようなルールです。<br>\n人が集まる場所での、最低限のマナー等を記載してます。\n<ol>\n<li>何事も挨拶が大事。あらぬ疑いをかけられないよう、挨拶をする事をおすすめします。\n<li>他参加者に迷惑のない行動をとりましょう。\n<li>人種差別、宗教的発言、政治的発言、犯罪を助長する発言、脅し行為、性的発言、嫌がらせ行為等、また自身の価値観の一方的な押し付けは行わないようにしましょう。<br>\n<b>特に「性的発言」は未成年がいますので、厳しめに摘発いたします。</b>\n<li>他参加者の個人情報、SNSのスクリーンショット等を勝手に他参加者へ晒さないように。(DMでの個人間のやり取りも気を付けてください)\n<li>親しき仲にも礼儀あり。乱暴で汚い言葉使い、命令口調等、言動には気をつけましょう。\n<li>「共有の畑」「植林場」を使用したら、苗・種を植え直ししましょう。</ol>\n<h2 id=\"h2\">建設のルール</h2>\n建築物を作る際のルールです。わからないときは相談しましょう。\n<ol>\n<li>自分の敷地には、看板に名前を入れて設置。所有者である事をアピールしましょう。\n<li>他参加者の建築物、敷地に入るのは原則禁止。所有者に許可を取ってくださいね。\n<li>他参加者の建築物近くに建築する場合は、面積が「16×16未満」なら2マス、それ以上で「48×48未満」なら4マス、それ以上で「82×82未満」ならば16マス間隔を開けてください。面積が「82×82以上」の建築物を建てる場合は、運営へ事前連絡をお願いします。なお、参加者同士の同意がある場合に限り、この項を無視しても良いです。\n<li>「プレイヤートラップ」や「セキュリティーハウス」と呼ばれるような、他参加者の進入時に害を与えるようなものは禁止です。\n<li>事前に申請の無いもので、明らかに景観を損ねるようなもの、他参加者からクレームがあったものは運営側で撤去する場合があります。（事前に参加者本人へ通告します）\n<li>建築物の大小に関わらず、一ヶ月間ログインが無い方に関しては、建築物の「撤去」または「移転」など、運営側で判断のうえ実施することがあります。また、申請があれば「6ヶ月間」は、この期間を伸ばすことが可能です。\n</ol>\n<h2 id=\"h2\">土地のルール</h2>\n<ol><h3><li>整地ルール</h3>\n<ul>\n<li>整地の定義 = Y:63(海の高さ)まで\n<li>地面を上げる場合は埋め立ててください。\n<li>地面を平らにする、段差がある場合は段差を階段状、または登りやすいようにしてください。\n<li>32チャンク以上の整地を「大規模整地」とします。\n<li>大規模整地の場合を除いて申請は必要ありません。</ul>\n<h3><li>露天掘りルール</h3>\n<ul><li>露天掘りの定義 = Y:63以下まで掘る\n<li>露天掘りの周りを他参加者が落ちないように柵等で囲ってください。\n<li>露天掘り中に通路等に当たった場合は塞ぎ、通路を避けて掘ってください。\n<li>地上に建物がある場合は、本人または許可を得た人物のみ地下建築のルールが適応されます。\n<br>（本人・許可を得た人物であっても、Y座標34以下を掘る場合は申請が必要です。）\n<li>掘る範囲は、チャンク単位で掘ってください\n<li>露天掘りを開始してから[1チャンク×1週間]以内に岩盤まで掘ってください\n<li>通常の露天掘りで海に当たった場合は元の目的に含める\n<li> 資源採掘目的の場合、露天掘りしていい場所はX座標が-3000~-8000,Z座標が-3000~-8000のエリアに限られます。\n<li>建築目的の場合、建築物は付近の地面と同じ高さを越えないように作って下さい\n<li>海底神殿の場合は建築目的に含める</ul></ol>\n<h2 id=\"h2\">申請が必要な建物・作業</h2>\n<li>他者の住居上空や、地下を縦断するような建築・鉄道\n<li>常時稼働するトラップタワー、経験値タワー<br><br>\n<b>以上のものは、運営またはスタッフに確認を取ってから行うようにしてください。</b><br><br>\n<li>露天掘り\n<li>大規模整地(32チャンク以上)<br><br>\n<b>以上のものはDiscordの申請チャンネル内でテンプレートに沿って申請して下さい。</b><br><br>\n<p>申し出がない場合は警告させていただきます。最悪の場合は撤去も考えてください。</p>\n<li>「プレイヤーヘッド」を使用したい場合、運営に申請の上で「1人1スタック」までであれば付与いたします。<br>ただし、使用目的がはっきりとしていない場合は却下いたします。また、あまり一か所に集中した置き方はしないようにしてください。<br>\n（統合版に関しては、方法がJava版と異なりますので運営にご相談ください）\n</ol>\n<h2 id=\"h2\">トラップ・回路</h2>\nレッドストーン回路や各種装置に関するルールです。<br>\nサーバーの負荷軽減にご協力をお願いいたします。\n<!--StartFragment-->\n<p><img src=\"https://cdn.pixabay.com/photo/2014/09/20/13/52/board-453758_960_720.jpg\" alt=\"ボード, エレクトロニクス, コンピューター, 電気工学, 現在, プリント回路基板, データ, Cpu\"></p>\n<!--EndFragment-->\n<ul>\n  <li>レッドストーン回路、モンスタートラップには必ずON/OFFスイッチを取り付けてください。<br>\n  <b>サーバー退出時は必ずOFFにしてください。</b>また、サーバー負荷を確認した場合は、運営側からご相談させていただく場合があります。\n  <li>チャンクローダー、およびチャンクを読み込み続ける機構を持った装置は<b>禁止</b>です。<br>\n  一例として、エンダーパールを水流で保存する装置は禁止事項に該当します。\n  <li>メインサーバー内で個人のエンダーマントラップとシュルカートラップの作成は<b>禁止</b>です。<br>\n  エンダーマントラップは公共施設をご利用ください。\n  <li>装置はサーバーの負荷軽減に努めてください。<br>\n  負荷軽減の方法がわからない場合は、お気軽に質問してください。\n  <li>サーバーに対して負荷が大きいと判断された場合は、運営判断のもと告知のうえ<b>撤去する場合があります。</b>\n</ul>\nピストンは20個同時作動が可能です。20個以上使いたい場合は、リピーター1個分(4tick)遅延すれば問題ありません。\n<h2 id=\"h2\">ビーコン</h2>\n<ol>\n  <li>設置したビーコンによりクライアント負荷がかかる場合は、告知のうえ<b>撤去する場合があります。</b>\n</ol>\n<h2 id=\"h2\">資源ワールド</h2>\n資源ワールドのリセットに関するルールです。\n<ol>\n  <li>資源ワールドのリセットは、以下の条件のいずれかを満たしたうえで、プレイヤーからの依頼があった場合に実施をします。\n    <ul>\n      <li>前回の実施から2週間以上経過している\n      <li>サーバーバージョンが変更された\n      <li>初期リスポーンが機能していない\n    </ul>\n  <li>リセットは事前通告なしに行われる場合があります。<b>資源ワールドに私物を放置しないことを推奨します。</b>\n  <li>サーバー退出時にhubまたはLegacy Worldにリスポーン地点設定を行うことを強く推奨します。\n</ol>\n<h2 id=\"h2\">アップデート</h2>\n<ol>\n  <li>終了したシーズンサーバーの統合時に、統合するシーズンサーバーのバージョンに合わせたアップデートが行われます。\n  <li>プレイヤーから要望があった際に、以下の条件を満たす場合に臨時でアップデートが行われることがあります。\n    <ul>\n      <li>paper mcの該当バージョンがリリースされている(betaではない)\n      <li>以下のプラグインが該当バージョンに対応するアップデートが行われている\n        <ul>\n          <li>world edit\n          <li>world guard\n          <li>dynmap\n        </ul>\n    </ul>\n</ol>\n<h2 id=\"h2\">通貨について</h2>\n生活サーバーでは生活コインが導入されています。\n<ol>\n  <li>背の高い草1個で生活コイン1コインを購入できます。\n  <li>生活コインを用いてアイテムの売買を行うことができます。\n  <li>生活コインはエースコインへの交換、およびエースコインからの交換のいずれも可能です。\n</ol>\n<h2 id=\"h2\">爆破物の使用について</h2>\n<b>メインサーバーでの爆破物（エンドクリスタル・TNTなど）の使用は禁止です。</b><br>\nまた、エンドやネザーでのベット、現世でのリスポーンアンカーの使用も禁止です。そのため、爆破採掘も禁止です。<br>\n※花火は爆破物には含みません\n<h2 id=\"h2\"> MOBについて</h2>\n<ul><li>個人の村人（既存の村にいる）の繁殖・厳選は禁止です。村人ゾンビを治療のうえ、厳選をお願いします。\n<li>MOBに関しては、必要な時に増やしても問題ありませんが、最後はしっかりと間引いてください。\n<li>MOBは飼育頭数制限があります。すべてのMOBを合計して「90匹」とさせていただきます。（村人、ペット、家畜をまとめています。）\n<li>上記の「90匹」を超えるMOBを飼育したい方のために、MOBの飼育名義をこのサーバー内にいる他参加者から「借りる事」を良しとしています。\n<li>トラップの放置に関しては、サーバー自体が「20分無操作でログアウト」するように設定していますので、その範囲であればOKです。\n<li>敵対MOBに関しては、他参加者や建築物に害が及ばない工夫をしたうえで。飼育をお願いします。<br><b>ただし「ガスト」の飼育に関しては、攻撃による影響を考慮して禁止とさせていただきます。</b><br>\n※実績解除のため、現世に連れてくる事に関しては場所を選んだうえで、最終的に倒していただければ問題ありません。\n<li>ウィザーの召喚はメインサーバーでは禁止とさせていただきます。召喚したい場合は資源サーバーにて行い、<b>必ず倒してください</b>。万が一倒せなかった場合は速やかに報告してください。\n</ul>\n<h2 id=\"h2\">使用可能なクライアント</h2>\n<table id=client>\n<th>許可</th>\n<th>グレー</th>\n<th>禁止</th>\n<tr><td><li>Forge<br></li>\n<li>Fabric<br></li>\n<li>Lunar<br></li>\n<li>Badlion<br></li>\n<td><li>Feather<br></li>\n<td><li>WURST<br></li>\n<li>SIGMA<br></li>\n<li>LiquidBounce<br></li>\n<li>INERTIA<br></li>\n<li>Aristois<br></li>\n<li>Impact<br></li>\n<li>Konas<br></li>\n<li>Flare<br></li>\n<li>Zephyr(BE)<br></li>\n<li>Horion(BE)<br></li>\n</table>\nその他のクライアントを使用したい場合は、Discordにてご質問ください。\n<h2 id=\"h2\">BAN条件</h2>\n<p>以下の行為を行った参加者はBAN（サーバー追放）処置をさせていただきます。<br>\n覚えのないという方は、個別にお問い合わせを受けております。その際には、再度調査を行います。</p>\n<ol><li>他参加者の「建築物」「作物」「家畜（及び村人）」の、破壊・窃盗・殺害行為。\n<li>チャットでの暴言、過度なログ荒らし行為。意図的なデスメッセージの乱用等。\n<li>故意にサーバーに負荷をかける行為。\n<li>ゲームバランスを変えるような行為。公共の施設、アイテムの悪用、バグの使用。\n<li>他参加者への迷惑行為。\n<li>不適切なMOD、チートの使用。\n<li>運営が不適切と判断した場合。\n</ol>\n<h2 id=\"h2\">配信や動画について</h2>\n<p>配信を行う際、特に申請など必要ありませんが配信の概要に以下内容をご掲示ください。動画の場合も同様となります。</p>\n<div class=\"gaiyouran\">\n    <span class=\"sample_box_title\">概要欄に書いてね！</span>\n<p>サーバー名：エースサーバー<br>\n参加方法：http://acecore.systems/acesv<br>\nDiscord：https://discord.gg/dkrn6NtU5E</p></div>",
+      "category": {
+        "_id": "635d007306cfd5386b36f752",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-10-29T10:29:07.085Z",
+            "updatedAt": "2026-07-18T14:58:57.312Z",
+            "firstPublishedAt": "2022-10-29T10:29:34.954Z",
+            "publishedAt": "2026-07-18T14:58:57.312Z"
+          },
+          "customOrder": 6,
+          "createdAt": "2022-10-29T10:29:07.085Z",
+          "updatedAt": "2026-07-18T14:58:57.312Z"
+        },
+        "name": "生活鯖について",
+        "sortOrder": 20
+      },
+      "sortOrder": 0
+    },
+    {
+      "_id": "634530dfd2720e3d2d54e7ec",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-11T09:01:19.153Z",
+          "updatedAt": "2026-07-18T14:48:22.377Z",
+          "firstPublishedAt": "2022-10-11T09:01:19.153Z",
+          "publishedAt": "2026-07-18T14:48:22.377Z"
+        },
+        "createdAt": "2022-10-11T09:01:19.153Z",
+        "updatedAt": "2026-07-18T14:48:22.377Z"
+      },
+      "title": "遊び方",
+      "slug": "howto",
+      "meta": {
+        "title": "遊び方",
+        "description": "遊び方について解説します",
+        "ogImage": null
+      },
+      "body": "<p><img src=\"https://cdn.pixabay.com/photo/2020/10/05/20/03/boys-5630669_960_720.jpg\" alt=\"男の子, 子供達, 道, トレイル, 公園, ブラザーズ, 木, 葉っぱ, 秋, 子供, 自然, 楽しい\"></p>\n<style>\nh2{\npadding:0.2em 0em 0em 1.5em;\n}\n#h3 {\n  position: relative;\n  display: inline-block;\n  padding: 0.2rem 1rem 0.2rem 2rem;\n  color: #fff;\n  border-radius: 100vh 0 0 100vh;\n  background: #fa4141;\n}\n\n#h3:before {\n  position: absolute;\n  top: calc(50% - 3.5px);\n  left: 10px;\n  width: 7px;\n  height: 7px;\n  content: '';\n  border-radius: 50%;\n  background: #fff;\n}\na{\n  font-weight:bold;//太字にする\n}\na:visited{\n  color:#6600ff;//既クリックの色\n}\na:hover{//カーソルをリンクの上に乗せてるときの設定\n  color:#ff0099;//色\n  text-decoration:underline;//下線を引く\n}\na:active{\n  color:#3300cc;//クリックしたときの色\n}\n</style>\n<p>本項では、サーバーでの遊び方について解説していきます。<br>\n※権限によって、使用できるものが変わります。利用条件にて解説</p>\n<p><strong>※本サーバーでは「ロビー」「サバイバル」「アズカバン」ともにGeyser MCプラグインを採用しておりますので、Java版・統合版どちらでも遊ぶことが可能ですが、システムを強引にJava版に統一している関係により、統合版の一部仕様が動作しないことがあります。あらかじめご了承ください。</strong></p>\n<ul>\n<h2 id=\"h2\"><li>Discord</h2>\n<h3 id=\"h3\">解説</h3>　<br>\nこのサーバーでは、Discordも活発に動いています！<br>\n案内や参加者同士のコミュニケーション・通話ができる場所として、活用しています！<br>\n皆様、是非ご活用ください！<br>\n<h3 id=\"h3\">ルール</h3><br>\n<ul><li>ホームページの「ルール」ページ内にも記載がありますように、「発言内容」や「投稿内容」に気をつけたうえで、自由に発言していただいて構いません。\n<li>他のサーバーへの勧誘や、他ゲーム関係の執拗な勧誘行為は認めていません。\n<li>VCも、自由にご参加ください。<br>\n運営もVCが好きなので、タイミングが合えば直接コミュニケーションを取ることが可能です！\n<li>メンション等をする場合、夜中や早朝を避けるなどの配慮をしてください。</ul>\n<h3 id=\"h3\">ロール</h3>\n<ul><li>運営・・・運営であることを意味します。\n<li>サポーター・・・運営が対応できないとき等、代わりに対応してくれます。\n<li>レギュラー・・・常連プレイヤーであることを意味します。何か困ったことがあったときには、優しく案内してくれるような人ばかりのはずです。\n<li>連携済み・・・Discordとマイクラのアカウントが連携できているプレイヤーを意味します。\n<p>その他にもございますが、ここでは省かせていただきます。</ul></p>\n<h3 id=\"h3\">BOT</h3>\n<ul><li><a href=\"https://cod-sushi.com/shovel-how-to-use/\">shovel (Blue・Red・Green)</a>・・・テキストチャンネルに書き込まれた文章を、VCで読み上げてくれます。\n<li><a href=\"https://www.dayaman.work/syabetaro/info\">喋太郎</a>・・・上に同じ。\n<li><a href=\"https://mee6.xyz/\">mee6</a>・・・「検索機能」や「ランキング機能」、VC内で音楽が聴ける機能があります。\n<li>クチャ・・・\nこのサーバー専用に開発された「多機能型テキスト読み上げディスコードBOT」です。<br>\nテキストの読み上げの他にも、Discord内で色々できます。<br>\n【製作者 : MKOTA_SAN・サポーターリーダーsou / イラスト : 株式会社帝王(MCID：Nightmare_SOUND) / 管理：サポーターリーダーsou】\n<li>エース君・・・\nこのサーバー専用に開発された、新規さんへの参加方法を案内してくれるBOTです。<br>\nそれ以外にも時報をお知らせしたり、Discord内で色々できます。<br>\n【製作者：MKOTA_SAN / Heroku管理：MKOTA_SAN・運営はっ】\n<p>その他にもございますが、ここでは省かせていただきます。</ol></p>\n",
+      "category": {
+        "_id": "61e92e9f616290001858f8a4",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-01-20T09:42:55.742Z",
+            "updatedAt": "2023-03-12T13:16:37.919Z",
+            "firstPublishedAt": "2022-01-20T09:42:55.742Z",
+            "publishedAt": "2023-03-12T13:16:37.919Z"
+          },
+          "createdAt": "2022-01-20T09:42:55.742Z",
+          "updatedAt": "2023-03-12T13:16:37.919Z"
+        },
+        "name": "イントロダクション",
+        "sortOrder": 10
+      },
+      "sortOrder": 3
+    },
+    {
+      "_id": "61e93243616290001858fe14",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-01-20T09:58:27.437Z",
+          "updatedAt": "2026-07-18T14:48:17.663Z",
+          "firstPublishedAt": "2022-01-20T09:58:27.437Z",
+          "publishedAt": "2026-07-18T14:48:17.663Z"
+        },
+        "createdAt": "2022-01-20T09:58:27.437Z",
+        "updatedAt": "2026-07-18T14:48:17.663Z"
+      },
+      "title": "サーバー理念",
+      "slug": "rinen",
+      "meta": {
+        "title": "サーバー理念",
+        "description": "サーバー理念",
+        "ogImage": {
+          "_id": "6345303dd2720e3d2d5389c1",
+          "altText": "",
+          "description": "",
+          "fileName": "acico.png",
+          "fileSize": 136025,
+          "fileType": "image/png",
+          "height": 512,
+          "metadata": {},
+          "src": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/cf33b9fd-4dd0-4662-b4d2-db3194b2a7fa%2Facico.png",
+          "title": "",
+          "width": 512
+        }
+      },
+      "body": "<p><img src=\"https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/48946ae8-4496-4e8f-8bcc-4349318ca026%2Ficon2.png\" alt=\"icon2.png\"></p>\n<h2>みんなの居場所で有ること。</h2>\n<p>ここで言う「みんな」とはサーバー内にいる人だけではなく、サーバーにまだ来ていない人もさします。<br>\nまた、運営やサポーターも例外ではありません。<br>\n居場所であるという事はもちろん、「居心地が良い」という事も含まれています。<br>\nそして、そこにあり続ける事を最大の理念といたします。<br>\nこれらの理念のために、新たな方法を模索することを躊躇しません。</p>\n<h2>サーバー目標</h2>\n<h3>自由と秩序の両立。</h3>\n<p>ルールや制限で縛りすぎず、自由と秩序が両立できる環境を目指します。<br>\n必要最低限のルールを見極め、設定します。</p>\n<h3>平等であること。</h3>\n<p>運営陣もこのサーバーの参加者の一員として、全員に対等で別け隔てのない環境を作ります。<br>\n特定の個人に固執せず、和の心を持った対応を心がけます。</p>\n<h3>より沢山の人に楽しんでもらう。</h3>\n<p>エースサーバーの良さを知ってもらうため、各種サイトで宣伝させていただいています。<br>\n（利用させていただいているサイトはプロモーションページで紹介しています）<br>\nまた、エースサーバーでゲーム配信など行っていただける方を、大募集しています。<br>\n※申請等は不要ですので、自由にご活用ください！！</p>\n",
+      "category": {
+        "_id": "61e92e9f616290001858f8a4",
+        "_sys": {
+          "raw": {
+            "createdAt": "2022-01-20T09:42:55.742Z",
+            "updatedAt": "2023-03-12T13:16:37.919Z",
+            "firstPublishedAt": "2022-01-20T09:42:55.742Z",
+            "publishedAt": "2023-03-12T13:16:37.919Z"
+          },
+          "createdAt": "2022-01-20T09:42:55.742Z",
+          "updatedAt": "2023-03-12T13:16:37.919Z"
+        },
+        "name": "イントロダクション",
+        "sortOrder": 10
+      },
+      "sortOrder": 1
+    }
+  ]
+}

@@ -142,10 +142,14 @@ npm run cf:typegen
 npm run check
 npm test
 npm run test:migration
+npm run test:migration:archive
 npm run build
-npm run test:migration:current
 npx wrangler pages functions build
 ```
+
+`npm run test:migration:acceptance`と、build後の
+`npm run test:migration:legacy-acceptance`は移行受入れ時だけ実行します。旧Newtの
+対象記事・画像を現在のWikiと突合するため、CMSの通常保存gateには含めません。
 
 旧Nuxt/Newtの公開payloadは、退役前に復元可能なJSONとしてrepositoryへ保全
 しました。rootと各記事の公開payload原文を含むため、旧Pages停止後もpayload
@@ -172,12 +176,26 @@ rollback再現用manifestと照合します。現在の記事inventoryには依�
 CMSで記事を追加・編集・削除しても原本証跡の継続CIを妨げません。初回production
 manifestとの全件突合結果は`MIGRATION-PARITY-2026-07-28.md`へ記録します。
 
-`test:migration:current`は完全移行監査用です。`npm run build`の後に実行し、
+`test:migration:legacy-acceptance`は旧公開15件の受入れ監査用です。
+`npm run build`の後に実行し、
 保存snapshotとrepository内画像だけによるoffline再生成が現在の15 Markdownへ
 一致すること、11画像・redirect・修復済みMarkdownと描画HTML・参加導線を確認
 します。通常のCMS保存ゲートには使用せず、将来の記事更新を旧Nuxtの内容へ固定
 しません。`npm run build`は現在のMarkdown inventory、schema、SEO、検索、sitemap
 などを動的に検証します。
+
+2026-07-29にはNewtモデルAPIから記事32件、カテゴリ9件、リンク3件の全件原本を
+追加保存しました。従来の公開15 MarkdownはSHA-256一致を維持し、未公開17件だけを
+`draft: true`として決定的に変換しています。下書き本文にあった画像8参照は
+manifestへ保存し、7固有画像すべてを公開path外のmigration archiveへ保存し、
+うち1件は既存公開assetとの完全一致もhash固定しました。本文へは公開前の
+個別確認まで画像を追加しません。Newtメディアライブラリ全72ファイルも一括ZIPで
+private GitHub Releaseへ保全し、ZIPと各ファイルのSHA-256をrepositoryへ保存します。
+公開15件は退役前snapshotとの本文・meta・category履歴照合も固定し、全32件の
+ID/slug/本文hash衝突0と表示タイトル重複2群を監査しています。詳細、明示
+slug/category mapping、Newt管理画面のモデル・view証跡は
+[`NEWT-FULL-MIGRATION-2026-07-29.md`](./NEWT-FULL-MIGRATION-2026-07-29.md)
+を参照してください。
 
 ローカルでAccess/GitHub Appを接続する場合だけ、`.dev.vars.example` を
 `.dev.vars` へコピーして実値を設定します。exampleはfail closedのため
@@ -219,7 +237,10 @@ branch previewは`CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretを
 - 同日に旧系削除が承認され、PR #37でrootの旧Nuxt/Newt build経路を削除済み
 - merge後のproduction再確認を通し、旧Newt token、旧Wiki用deploy hook、
   旧Pages project `aceserver-wiki`を退役済み
-- Newt spaceの本文、下書き、未参照assetは退役対象外として保持
+- Newt全32記事のAPI原本を保存し、未公開17件を`draft: true` Markdownへ移行済み
+- 下書き画像8参照・7固有原本は自己完結archiveへ保存し、既存asset一致1件も記録済み
+- Newtメディアライブラリ全72ファイルはprivate GitHub Releaseへ保存し、
+  ZIPと各ファイルのhashをrepositoryへ記録済み
 
 deployment ID、commit SHA、監査結果、復旧点は
 [`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)に記録しています。

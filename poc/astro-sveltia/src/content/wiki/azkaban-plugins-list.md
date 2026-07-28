@@ -1,0 +1,20 @@
+---
+title: "プラグイン一覧"
+seoTitle: "アズカバン(実験サバ)のプラグイン一覧"
+description: "アズカバン(実験サバ)のプラグイン一覧の紹介"
+category: "その他サーバーについて"
+order: 270
+draft: true
+---
+| プラグイン名 | 説明 |
+| --- | --- |
+| [Ender Dragon Reimagined](https://www.spigotmc.org/resources/ender-dragon-reimagined.111075/) | エンダードラゴンをより強力に！？ |
+| [InfernalMobs](https://www.spigotmc.org/resources/infernal-mobs.2156/) | 特殊な強いmobを倒すと強いツールや装備が手に入ります！！！ |
+| [LevelledMobs](https://www.spigotmc.org/resources/levelledmobs.74304/) | mobをより強く！ |
+| [Morph](https://www.spigotmc.org/resources/morph.8846/) | 倒したmobにへ～んしん！できるらしい。 |
+| [SlimeGrowth](https://www.spigotmc.org/resources/slime-growth.110304/) | スライム最強。戦わないで！ |
+| [custom-ore-generator](https://www.spigotmc.org/resources/custom-ore-generator-%E3%80%8E1-8-1-20-1%E3%80%8F.64339/) | 鉱石ブロックの量を増加させています。 |
+| [GSit](https://www.spigotmc.org/resources/gsit-modern-sit-seat-and-chair-lay-and-crawl-plugin-1-13-1-20.62325/) | 座れます。そんな余裕ないかも？ |
+| [MarriageMaster](https://www.spigotmc.org/resources/marriage-master-mc-1-7-1-20.19273/) | 結婚ができるらしい。 |
+| [MysqlInventoryBridge](https://www.spigotmc.org/resources/mysql-inventory-bridge.7849/) | メインサーバーとアイテム連携されます。 |
+| [MythicMobs](https://www.spigotmc.org/resources/%E2%9A%94-mythicmobs-free-version-%E2%96%BAthe-1-custom-mob-creator%E2%97%84.5702/) | 特殊mob未作成です。 |
