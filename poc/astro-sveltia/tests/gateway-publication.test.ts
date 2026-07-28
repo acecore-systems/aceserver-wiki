@@ -144,6 +144,7 @@ describe('CMS publication modes', () => {
       branch: 'main',
       mode: 'direct',
     })
+    expect(result.extensions.cms).not.toHaveProperty('pull_request')
     expect(publication.branch()).toMatch(/^cms\/pending\/[a-f0-9]{64}$/u)
     expect(publication.calls.some(({ url }) => url.endsWith('/pulls'))).toBe(
       false,

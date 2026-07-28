@@ -4,8 +4,10 @@ import { onRequestGet } from '../functions/admin/config.yml.ts'
 import adminInit from '../public/admin/init.js?raw'
 
 describe('Sveltia config delivery', () => {
-  it('CMSの公開案内で記事・画像削除をPull Requestへ案内する', async () => {
-    expect(adminInit).toContain('記事・画像の削除は参照確認を伴うPull Request')
+  it('CMSの公開案内で保存は直接公開、削除は管理者対応と案内する', async () => {
+    expect(adminInit).toContain('保存すると自動で公開されます')
+    expect(adminInit).toContain('CMSから記事・画像は削除できません')
+    expect(adminInit).toContain('削除が必要な場合は管理者へ依頼してください')
   })
 
   it('rewrites GitHub API roots to the current protected origin', async () => {

@@ -55,7 +55,7 @@ function showPublicationNotice() {
   notice.setAttribute('aria-label', 'Wikiの公開方法')
   title.textContent = '保存すると自動で公開されます'
   message.textContent =
-    '通常は数分でサイトに反映されます。記事・画像の削除は参照確認を伴うPull Requestで行います。'
+    '通常は数分でサイトに反映されます。CMSから記事・画像は削除できません。削除が必要な場合は管理者へ依頼してください。'
   close.className = 'cms-publish-notice__close'
   close.type = 'button'
   close.setAttribute('aria-label', '公開方法の案内を閉じる')

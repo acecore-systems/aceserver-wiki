@@ -18,7 +18,7 @@ fail closedで無効です。
    許可されたMarkdownと画像だけをGitHubへ保存する。
 6. GitHub連携のCloudflare Pagesが、Git pushを契機に再ビルドする。
 
-SveltiaへGitHubアカウントやPATを渡しません。コミットとPRにはメールアドレスや
+SveltiaへGitHubアカウントやPATを渡しません。CMS commitにはメールアドレスや
 raw Discord user IDを含めず、request IDだけを残します。Discord user IDとの
 対応はD1監査だけに保存します。
 
@@ -63,7 +63,8 @@ GitHub Appは `acecore-systems/aceserver-wiki` だけへインストールし、
 repository permissionsだけを付与します。
 
 - Contents: Read and write
-- Pull requests: Read and write
+- Metadata: Read（GitHubが必須化する既定権限）
+- Pull requests: No access
 
 必要なsecretとdeployment固有値は次のとおりです。
 
@@ -75,7 +76,7 @@ repository permissionsだけを付与します。
 | `CMS_DISCORD_GUILD_ID`           | `guild`/`role`時だけ許可するguild ID  |
 | `CMS_DISCORD_AUTHORIZATION_MODE` | `account`（既定）、`guild`、`role`    |
 | `CMS_DISCORD_ALLOWED_ROLE_IDS`   | `role`時の許可role IDカンマ区切り     |
-| `CMS_PUBLICATION_MODE`           | `direct`または`review`                |
+| `CMS_PUBLICATION_MODE`           | productionでは`direct`固定            |
 | `CMS_GITHUB_APP_CLIENT_ID`       | GitHub App client ID                  |
 | `CMS_GITHUB_APP_INSTALLATION_ID` | repository installation ID            |
 | `CMS_GITHUB_APP_PRIVATE_KEY`     | GitHub AppのPKCS#1/PKCS#8 private key |
@@ -88,8 +89,9 @@ secretsへ登録します。認可・公開modeとrole IDはdeployment varsで�
 
 ## 保存モード
 
-`CMS_PUBLICATION_MODE` は `direct` だけを許可します。expected HEADが一致するときだけ
-`main`へ直接commitし、それ以外の値は503で拒否します。
+`CMS_PUBLICATION_MODE` は `direct` だけを許可します。expected HEADが一致するとき
+だけ`main`へ直接commitし、それ以外の値は503で拒否します。gatewayはPull Requestを
+作成せず、GitHub AppにもPull requests権限を付与しません。
 
 編集者の保存がそのままGit pushとなり、
 Pagesの再ビルド後に公開されます。D1によるrate limit、BAN、永続監査、
@@ -122,7 +124,9 @@ PRを作り、CIを通して`main`へ反映します。
 - CMS全体を1000 files、Markdown 64 MiB、画像512 MiB、
   合計512 MiB以下に限定
 - path traversal、nested content/media path、管理対象外ファイルを拒否
-- 参照切れを防ぐためCMSからのMarkdown・画像削除を拒否し、削除は参照確認を伴うPRに限定
+- 参照切れを防ぐためCMSからのMarkdown・画像削除を拒否
+- 削除が必要な場合は、保守担当者がGitHub Appとは別の通常の作業branchから
+  参照確認を伴うPull Requestを作成
 
 ## ローカル検証
 
@@ -163,7 +167,8 @@ npm入口は取得元の退役に合わせて削除していますが、取得�
 `test:migration`は、保全済みrollback payloadの本文byte数・SHA-256を
 rollback再現用manifestと照合します。現在の記事inventoryには依存しないため、
 CMSで記事を追加・編集しても原本証跡の継続CIを妨げません。記事・画像の削除は
-参照確認を伴う通常のPull Requestで行います。初回production
+CMSから行わず、保守担当者が通常の作業branchから参照確認を伴うPull Requestを
+作成します。初回production
 manifestとの全件突合結果は`MIGRATION-PARITY-2026-07-28.md`へ記録します。
 
 `test:migration:current`は完全移行監査用です。`npm run build`の後に実行し、
