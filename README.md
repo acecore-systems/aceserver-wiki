@@ -2,45 +2,51 @@
 
 ## 概要
 
-エースサーバーの公式 Wiki ページです。
+エースサーバー公式Wikiのsource repositoryです。公開サイトはAstroで生成し、
+記事の正本はrepository内のMarkdownです。編集画面はSveltia CMS、ログインは
+Discord OAuthを受けるOIDC brokerとCloudflare Access、保存はPages Functionsの
+content gatewayを使用します。
 
-## ビルド
+本番はCloudflare Pages project `aceserver-wiki-astro`にGitHub repositoryを接続し、
+`https://asv-wiki.acecore.net`で公開しています。Direct Uploadは使用しません。
 
-Node.js 24.18.0 と Corepack を使用します。
+## Repository構成
+
+- [`poc/astro-sveltia`](./poc/astro-sveltia/README.md):
+  Astro、Markdown、Sveltia CMS、Pages Functions
+- [`poc/discord-oidc-broker`](./poc/discord-oidc-broker/README.md):
+  Discord OAuthをCloudflare Access用OIDCへ変換するWorker
+- [`tests/workflows.test.mjs`](./tests/workflows.test.mjs):
+  CMS rollback workflowの安全条件
+
+repository内の旧Nuxt/Newt実装は2026-07-28の完全移行監査と削除承認を受けて
+退役しました。
+旧公開payload、15記事、11画像、変換結果のhashは
+[`poc/astro-sveltia/migration`](./poc/astro-sveltia/migration)に保全し、CIで
+offline検証します。
+
+## ローカル検証
+
+Node.js 24.18.0を使用します。
 
 ```bash
-corepack enable
-yarn install --immutable
-yarn lint
-yarn typecheck
-yarn test:seo
-yarn build
+cd poc/astro-sveltia
+npm ci
+npm run cf:typegen
+npm run check
+npm test
+npm run test:migration
+npm run build
+npm run test:migration:current
+npx wrangler pages functions build
 ```
 
-静的サイトを生成する場合は、Newt の CDN API トークンをローカルでは
-`.env`、Cloudflare Pages では暗号化されたビルド環境変数
-`NEWT_CDN_API_TOKEN` として設定し、`yarn generate` を実行します。生成物は
-既存の Pages 出力先に合わせて `dist/` に作成されます。トークンをリポジトリや
-公開ランタイム設定に含めないでください。
-
-このビルド手順はrollback用に保持している旧Nuxt/Newt実装向けです。
-本番公開は2026-07-27にAstro・Markdown版へ切り替えました。旧Pages projectと
-Newt設定はrollback window中は削除せず、旧projectからcustom domainを外して
-自動deployを停止しています。
-
-## Astro・Markdown版
-
-移行先のWikiは
-[`poc/astro-sveltia`](./poc/astro-sveltia/README.md)
-にあります。Astro、repository内Markdown、stock Sveltia CMS、Discord OAuthを
-受ける[Wiki専用OIDC broker](./poc/discord-oidc-broker/README.md)、
-Cloudflare Access、Pages Functionsのcontent gatewayで構成しています。
-
-Newtの公開データはMarkdownへ移行済みです。Astro版のE2E確認と
-`asv-wiki.acecore.net`のcustom domain切替も完了しています。旧Nuxt/Newt実装は
-rollback用に保持しています。
-公開・認証・D1・復旧の手順は
+OIDC brokerは別projectです。検証手順は
+[`poc/discord-oidc-broker/README.md`](./poc/discord-oidc-broker/README.md)
+を参照してください。公開・認証・D1・復旧の運用は
 [`poc/astro-sveltia/OPERATIONS.md`](./poc/astro-sveltia/OPERATIONS.md)
-を、実施記録は
+に、切替と旧系退役の実施記録は
 [`poc/astro-sveltia/CUTOVER-2026-07-27.md`](./poc/astro-sveltia/CUTOVER-2026-07-27.md)
-を参照してください。
+と
+[`poc/astro-sveltia/MIGRATION-PARITY-2026-07-28.md`](./poc/astro-sveltia/MIGRATION-PARITY-2026-07-28.md)
+にあります。

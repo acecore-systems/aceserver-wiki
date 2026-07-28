@@ -35,8 +35,9 @@ manifestに一致することを確認しました。初回production manifest�
   - snapshotと同じdeployment固有payload hash、15記事と11画像の移行先、
     redirect、破損画像の扱いを保持
   - 初回production manifestとは独立した再現用証跡
-- `npm run snapshot:newt-public`
-  - 記録済みrollback deploymentからsnapshotを再取得する
+- 退役前に取得したsnapshotは不変証跡として保持する
+- 旧deploymentへ依存するlive再取得のnpm入口は退役するが、取得・hash照合・
+  決定的snapshot生成のscriptは由来証跡として保持する
 - `npm run test:migration`
   - rollback snapshotとrollback再現用manifestを、現在の記事編集から独立して
     継続検証する
@@ -174,13 +175,12 @@ semantic tableとして比較し、次の10表すべてで一致しました。
 せず維持しています。MCServers.JPとTwitchはHEAD 405でもGET 200のため維持して
 います。
 
-## Rollback保持
+## 旧系退役
 
-旧Pages project、記録済みNuxt deployment、Newt接続情報、rootの旧Nuxt build
-経路は、[`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)の条件どおり
-2026-08-03 20:55 JSTまで保持します。期日後に本番15記事、検索、SEO、旧URL、
-Access、CMS保存、D1 unknown 0件、GitHub push deploymentを再確認してから、次の
-順序で終了します。
+2026-07-28、本監査の結果を確認した利用者から旧系削除の明示承認を受けました。
+これは当初2026-08-03 20:55 JSTまでとしていたrollback保持を置き換えます。
+退役は本番15記事、検索、SEO、旧URL、Access、CMS、D1、GitHub push deploymentを
+各段階で再確認し、次の順序で実施します。
 
 1. rootの旧Nuxt build経路とrepository内Newt接続設定を削除するcleanup PRを作成し、
    reviewを完了する。この時点ではNewt tokenと旧Pages projectを保持する。
