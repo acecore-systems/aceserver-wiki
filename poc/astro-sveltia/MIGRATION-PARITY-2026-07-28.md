@@ -63,7 +63,7 @@ manifestに一致することを確認しました。初回production manifest�
 | 保存画像                | 11/11 byte一致                           |
 | 旧slug                  | 4件を301で正規化                         |
 | 旧`SurvivalRules` alias | 301で`/article/rule/`へ維持              |
-| 検索`Discord`           | 旧・新とも同じ8記事                      |
+| 検索`Discord`           | 旧8記事、新9記事（復旧した参加導線で+1） |
 | sitemap                 | トップと15記事を収録                     |
 
 ## 本文・表の全件監査
@@ -73,6 +73,11 @@ HTML/Markdownの空白、list marker、見出しmarkerなど表示構造だけ�
 可視textとして比較し、下記のexact allowlist適用後に15/15記事で一致しました。
 表は文字列の並びではなく、header、row、cell、`rowspan`が表す共有関係を
 semantic tableとして比較し、次の10表すべてで一致しました。
+
+検索結果の1件増加は本文欠落ではありません。旧版ではplaceholderだった
+`ディスコード連携のやり方`の参加導線を、有効なDiscord inviteを持つCTAへ
+置換したため、同記事も`Discord`検索に現れるようになりました。旧版の8記事は
+新版でもすべて検索でき、そこへ同記事が追加されています。
 
 - `ルール・BAN条件`: 1表
 - `コマンドについて`: 6表
