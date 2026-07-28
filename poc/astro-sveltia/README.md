@@ -216,9 +216,10 @@ branch previewは`CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretを
   接続し、Markdown下書きの保存・公開除外・削除を本番E2E確認済み
 - 2026-07-27に`asv-wiki.acecore.net`を`aceserver-wiki-astro`へ切替済み
 - 2026-07-28の完全移行監査で15記事・11画像・URL・検索・SEOの移行を確認済み
-- 同日に旧系削除が承認され、rootの旧Nuxt/Newt build経路を撤去中
-- 旧Newt tokenと旧Pages project `aceserver-wiki`はcleanup PR merge後の
-  production再確認が終わるまで変更せず、最後に失効・削除する
+- 同日に旧系削除が承認され、PR #37でrootの旧Nuxt/Newt build経路を削除済み
+- merge後のproduction再確認を通し、旧Newt token、旧Wiki用deploy hook、
+  旧Pages project `aceserver-wiki`を退役済み
+- Newt spaceの本文、下書き、未参照assetは退役対象外として保持
 
 deployment ID、commit SHA、監査結果、復旧点は
 [`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)に記録しています。

@@ -248,15 +248,18 @@ deployment成功まで確認します。
 - read、追加量、CMS全体容量の各上限を429または413でfail closedに拒否する
 - rollback workflowで対象commitだけを戻せる
 
-### custom domain rollback
+### 旧Pages退役後の復旧境界
 
-この手順は旧Pages projectの退役前だけ使用できます。
-切替前に、旧Pages project `aceserver-wiki`のactive deployment ID、commit SHA、
-custom domain状態と確認時刻を運用記録へ残します。重大な障害が起きた場合は、
-`asv-wiki.acecore.net`を新projectから外して旧projectへ戻し、custom domainが
-activeになってからトップ、代表記事、旧URL redirectを再確認します。
+2026-07-28の完全移行監査と明示承認後、repositoryの旧build経路、Newt tokenと
+旧Wiki用deploy hook、旧Pages project `aceserver-wiki`を退役しました。
+旧projectと記録済みrollback deploymentは削除済みのため、旧Nuxtへcustom domainを
+戻す手順は使用できません。
 
-切替後は旧Pages projectとNewt設定を当初のrollback window中だけ保持しました。
-2026-07-28の完全移行監査と明示承認後、repositoryの旧build経路、Newt token、
-旧projectの順で退役します。実施状態と削除後の復旧境界は
-[`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)へ記録します。
+記事の誤更新はCMS rollback workflowで対象commitだけを戻し、`main`へのGitHub push
+から`aceserver-wiki-astro`を再deployします。Pages project自体の再作成が必要な
+場合もDirect Uploadは使用せず、このrepositoryをGitHub連携し、production成功後に
+`asv-wiki.acecore.net`を再接続します。
+
+退役の実施状態、保持した証跡、復旧境界は
+[`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)と
+[Issue #35](https://github.com/acecore-systems/aceserver-wiki/issues/35)へ記録します。
