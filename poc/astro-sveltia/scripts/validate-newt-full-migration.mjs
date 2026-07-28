@@ -69,9 +69,9 @@ assert(
 assert(
   plan.generatedManifest.publicEvidence.snapshotPath ===
     'migration/newt-public-content-snapshot.json' &&
-    plan.generatedManifest.publicEvidence.snapshotBytes === 273425 &&
+    plan.generatedManifest.publicEvidence.snapshotBytes === 272487 &&
     plan.generatedManifest.publicEvidence.snapshotSha256 ===
-      '2a131f05cf56e0eddf5f3ea635dabbfe40da00378342f0879df9deea21f1bd4c' &&
+      '434808037b459837c5a69ae3f42d17dab9b4c69559b8fe40d6a084d02d000019' &&
     plan.generatedManifest.publicEvidence.snapshotOrigin ===
       'https://bba3fffa.aceserver-wiki.pages.dev' &&
     plan.generatedManifest.publicEvidence.snapshotCapturedAt ===

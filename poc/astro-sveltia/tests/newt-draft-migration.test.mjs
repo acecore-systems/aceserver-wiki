@@ -5,9 +5,26 @@ import {
   canonicalCategoryFor,
   descriptionFor,
   normalizeDraftHtml,
+  normalizeTextEvidence,
 } from '../scripts/import-newt-drafts.mjs'
 
 describe('Newt draft converter', () => {
+  it('normalizes CRLF and CR in text evidence before hashing', () => {
+    const expected = Buffer.from('one\ntwo\nthree\n四\n', 'utf8')
+    const variants = [
+      Buffer.from('one\ntwo\nthree\n四\n', 'utf8'),
+      Buffer.from('one\r\ntwo\r\nthree\r\n四\r\n', 'utf8'),
+      Buffer.from('one\rtwo\rthree\r四\r', 'utf8'),
+      Buffer.from('one\r\ntwo\rthree\n四\n', 'utf8'),
+    ]
+
+    for (const source of variants) {
+      const normalized = normalizeTextEvidence(source)
+      assert.deepEqual(normalized, expected)
+      assert.deepEqual(normalizeTextEvidence(normalized), expected)
+    }
+  })
+
   it('normalizes source HTML without publishing or copying remote images', () => {
     const normalized = normalizeDraftHtml(
       [

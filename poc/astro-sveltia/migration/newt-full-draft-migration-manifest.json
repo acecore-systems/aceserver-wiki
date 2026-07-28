@@ -255,10 +255,10 @@
   },
   "publicEvidence": {
     "manifestPath": "migration/newt-public-payload-manifest.json",
-    "manifestSha256": "640b40ee343b90196f1a9bbf2d7db7413f87abac4ffa7b06bf19aba3311a225a",
+    "manifestSha256": "559972dbe3e225c0a88b9afb2bb2637e6fb2f27560cfb7af0d3ca1005a7c9dcd",
     "snapshotPath": "migration/newt-public-content-snapshot.json",
-    "snapshotBytes": 273425,
-    "snapshotSha256": "2a131f05cf56e0eddf5f3ea635dabbfe40da00378342f0879df9deea21f1bd4c",
+    "snapshotBytes": 272487,
+    "snapshotSha256": "434808037b459837c5a69ae3f42d17dab9b4c69559b8fe40d6a084d02d000019",
     "snapshotOrigin": "https://bba3fffa.aceserver-wiki.pages.dev",
     "snapshotCapturedAt": "2026-07-27T11:39:46.639Z",
     "categoryNameChanges": [

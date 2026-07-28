@@ -13,10 +13,14 @@ const fullAssetManifestRaw = await readFile(
   new URL('migration/newt-full-assets-2026-07-29-manifest.json', root),
   'utf8',
 )
-const fullAssetManifest = JSON.parse(fullAssetManifestRaw)
+const normalizedFullAssetManifestRaw = fullAssetManifestRaw.replace(
+  /\r\n?/gu,
+  '\n',
+)
+const fullAssetManifest = JSON.parse(normalizedFullAssetManifestRaw)
 assert.equal(
-  createHash('sha256').update(fullAssetManifestRaw).digest('hex'),
-  '580f6215e23cef7f2e0a9c73cc7b8f5e988e7ad77f5e17d8b7f7d14728873e29',
+  createHash('sha256').update(normalizedFullAssetManifestRaw).digest('hex'),
+  'cc28ed6ebb6872c046e70c02dc24537c3e6b5374c6a48b9ac74b78578500cdc5',
   'The complete Newt asset manifest changed.',
 )
 
@@ -49,7 +53,7 @@ assert.deepEqual(generatedManifest.inventory, {
 })
 assert.equal(
   generatedManifest.publicEvidence.snapshotSha256,
-  '2a131f05cf56e0eddf5f3ea635dabbfe40da00378342f0879df9deea21f1bd4c',
+  '434808037b459837c5a69ae3f42d17dab9b4c69559b8fe40d6a084d02d000019',
 )
 assert(
   generatedManifest.publicInventory.every(

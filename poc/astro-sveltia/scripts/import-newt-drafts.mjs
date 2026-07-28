@@ -91,8 +91,8 @@ const expectedUiEvidence = {
   },
 }
 const expectedPublicSnapshot = {
-  bytes: 273425,
-  sha256: '2a131f05cf56e0eddf5f3ea635dabbfe40da00378342f0879df9deea21f1bd4c',
+  bytes: 272487,
+  sha256: '434808037b459837c5a69ae3f42d17dab9b4c69559b8fe40d6a084d02d000019',
   schemaVersion: 1,
   origin: 'https://bba3fffa.aceserver-wiki.pages.dev',
   capturedAt: '2026-07-27T11:39:46.639Z',
@@ -410,9 +410,13 @@ turndown.remove(['script', 'style'])
 export async function buildDraftMigrationPlan({
   verifyRepositoryState = false,
 } = {}) {
-  const sourceManifestBytes = await readFile(sourceManifestUrl)
-  const uiEvidenceBytes = await readFile(uiEvidenceUrl)
-  const publicSnapshotBytes = await readFile(publicSnapshotUrl)
+  const sourceManifestBytes = normalizeTextEvidence(
+    await readFile(sourceManifestUrl),
+  )
+  const uiEvidenceBytes = normalizeTextEvidence(await readFile(uiEvidenceUrl))
+  const publicSnapshotBytes = normalizeTextEvidence(
+    await readFile(publicSnapshotUrl),
+  )
 
   assert(
     sourceManifestBytes.byteLength === expectedSourceExport.manifestBytes &&
@@ -562,7 +566,7 @@ export async function buildDraftMigrationPlan({
   const sourceModels = new Map()
   for (const expectedFile of expectedSourceExport.files) {
     const fileUrl = new URL(expectedFile.fileName, sourceDirectory)
-    const bytes = await readFile(fileUrl)
+    const bytes = normalizeTextEvidence(await readFile(fileUrl))
 
     assert(
       bytes.byteLength === expectedFile.bytes &&
@@ -684,7 +688,9 @@ export async function buildDraftMigrationPlan({
     'Expected 16 formerly published drafts and one never-published empty Communication draft.',
   )
 
-  const publicManifestBytes = await readFile(publicManifestUrl)
+  const publicManifestBytes = normalizeTextEvidence(
+    await readFile(publicManifestUrl),
+  )
   const publicManifest = parseJson(
     publicManifestBytes,
     'newt-public-payload-manifest.json',
@@ -1975,6 +1981,10 @@ function hasObjectPath(value, path) {
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
+}
+
+export function normalizeTextEvidence(value) {
+  return Buffer.from(value.toString('utf8').replace(/\r\n?/gu, '\n'), 'utf8')
 }
 
 function parseJson(bytes, label) {

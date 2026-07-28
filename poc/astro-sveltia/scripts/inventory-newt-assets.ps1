@@ -87,7 +87,7 @@ try {
     files = $files
   }
 
-  $json = $manifest | ConvertTo-Json -Depth 8
+  $json = ($manifest | ConvertTo-Json -Depth 8).Replace("`r`n", "`n")
   [IO.File]::WriteAllText($outputFullPath, $json + "`n", [Text.UTF8Encoding]::new($false))
 } finally {
   $sha256.Dispose()

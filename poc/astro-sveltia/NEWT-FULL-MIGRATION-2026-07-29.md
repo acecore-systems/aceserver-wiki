@@ -52,6 +52,10 @@ importerは原本manifest自体と3 APIファイルのbyte数・SHA-256をコー
 します。公開日時がある15件と公開日時がない17件も自動分類後に固定inventoryと
 照合し、想定外の公開状態を受け入れません。
 
+JSONのテキスト証跡はUTF-8・LFをcanonical bytesとしてbyte数とSHA-256を固定します。
+`.gitattributes`でcheckout時のLFを強制し、importer側でも既存Windows checkoutの
+CRLF・単独CRをLFへ正規化するため、OSの改行設定は証跡判定へ影響しません。
+
 公開15件は、全件APIだけでなく退役前の
 [`migration/newt-public-content-snapshot.json`](./migration/newt-public-content-snapshot.json)
 とも本文、meta、category ID、category raw履歴を完全照合します。コミュニティ2記事
