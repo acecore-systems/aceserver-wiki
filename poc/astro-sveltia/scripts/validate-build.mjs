@@ -22,10 +22,24 @@ const expectedHeaderLinks = [
   'https://asv.acecore.net',
 ]
 const articles = await readPublishedArticles()
+const [adminInit, adminStyles] = await Promise.all([
+  readFile(new URL('admin/init.js', dist), 'utf8'),
+  readFile(new URL('admin/shell.css', dist), 'utf8'),
+])
 
 assert(
   cmsConfig.output?.omit_empty_optional_fields === true,
   'Sveltia CMS must omit empty optional fields before strict Astro validation.',
+)
+assert(
+  adminInit.includes('保存すると自動で公開されます') &&
+    adminInit.includes('通常は数分でサイトに反映されます。') &&
+    adminInit.includes('公開方法の案内を閉じる'),
+  'CMS editor must explain that saving publishes automatically.',
+)
+assert(
+  adminStyles.includes('.cms-publish-notice'),
+  'CMS publication guidance must be styled.',
 )
 
 const rootDocument = await readHtml('index.html')
