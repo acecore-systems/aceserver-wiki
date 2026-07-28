@@ -149,6 +149,10 @@ fast-forwardで`main`へ反映します。GitHubのresponseが失われても、
 commit marker、唯一の親commit、`main`の包含関係を照合して復旧します。
 D1監査を成功へ確定できない場合、gatewayは成功レスポンスを返しません。
 
+このdirect publishはCMS管理対象のMarkdownと画像だけに限定します。source code、
+Astro schema、CMS設定、Pages Functions、workflowは作業branchのPRとCIで
+`main`へ反映します。
+
 - readは1 Discord userあたり10分間に120回、全体で10秒間に60回かつ
   10分間に240回
 - mutationは1 Discord userあたり10分間に12回、全体で60回

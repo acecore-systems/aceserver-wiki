@@ -31,6 +31,7 @@ async function initCms() {
       JSON.stringify({ token: 'cloudflare-access' }),
     )}`
     window.CMS.init()
+    showPublicationNotice()
   } catch (error) {
     const status = describeError(error)
 
@@ -40,6 +41,27 @@ async function initCms() {
       retry: true,
     })
   }
+}
+
+function showPublicationNotice() {
+  if (document.querySelector('.cms-publish-notice')) return
+
+  const notice = document.createElement('aside')
+  const title = document.createElement('strong')
+  const message = document.createElement('span')
+  const close = document.createElement('button')
+
+  notice.className = 'cms-publish-notice'
+  notice.setAttribute('aria-label', 'Wikiの公開方法')
+  title.textContent = '保存すると自動で公開されます'
+  message.textContent = '通常は数分でサイトに反映されます。'
+  close.className = 'cms-publish-notice__close'
+  close.type = 'button'
+  close.setAttribute('aria-label', '公開方法の案内を閉じる')
+  close.textContent = '×'
+  close.addEventListener('click', () => notice.remove())
+  notice.append(title, message, close)
+  document.body.append(notice)
 }
 
 async function getGatewayJson(path, stage) {
