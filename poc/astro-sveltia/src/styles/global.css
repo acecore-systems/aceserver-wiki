@@ -727,6 +727,17 @@ a:hover {
   font-weight: 700;
 }
 
+.search-results__related {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border: 1px solid color-mix(in srgb, var(--color-muted) 45%, transparent);
+  border-radius: 999px;
+  color: var(--color-muted);
+  font-size: 1.1rem;
+  vertical-align: 2px;
+}
+
 .search-results p {
   margin: 3px 0 0;
   color: var(--color-muted);

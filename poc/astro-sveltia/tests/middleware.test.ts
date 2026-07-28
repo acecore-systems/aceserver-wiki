@@ -63,4 +63,33 @@ describe('Pages middleware', () => {
 
     expect(response.headers.get('X-Robots-Tag')).toBe('noindex')
   })
+
+  it('keeps the Vectorize corpus out of search-engine results', async () => {
+    const response = await onRequest({
+      request: new Request('https://asv-wiki.acecore.net/vector-corpus.json'),
+      next: async () =>
+        new Response('{}', {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    } as Parameters<typeof onRequest>[0])
+
+    expect(response.headers.get('X-Robots-Tag')).toBe('noindex')
+  })
+
+  it('does not cache the deployment marker used by index synchronization', async () => {
+    const response = await onRequest({
+      request: new Request(
+        'https://asv-wiki.acecore.net/.well-known/aceserver-wiki-build.json',
+      ),
+      next: async () =>
+        new Response('{}', {
+          headers: {
+            'Cache-Control': 'public, max-age=3600',
+            'Content-Type': 'application/json',
+          },
+        }),
+    } as Parameters<typeof onRequest>[0])
+
+    expect(response.headers.get('Cache-Control')).toBe('no-store')
+  })
 })
