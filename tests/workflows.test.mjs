@@ -10,6 +10,10 @@ const vectorizeWorkflowUrl = new URL(
   '../.github/workflows/sync-vectorize.yml',
   import.meta.url,
 )
+const vitestConfigUrl = new URL(
+  '../poc/astro-sveltia/vitest.config.ts',
+  import.meta.url,
+)
 
 function getStepBlock(workflow, name) {
   const lines = workflow.split(/\r?\n/u)
@@ -85,4 +89,11 @@ test('Vectorize secrets are used only by protected-main sync steps', async () =>
       workflow.indexOf('      - name: Sync production Vectorize index'),
   )
   assert.doesNotMatch(workflow, /git push/u)
+})
+
+test('Vitest never opens remote AI or Vectorize binding sessions', async () => {
+  const config = await readFile(vitestConfigUrl, 'utf8')
+
+  assert.match(config, /cloudflareTest\(\{\s+remoteBindings: false,/u)
+  assert.doesNotMatch(config, /remoteBindings:\s*true/u)
 })
