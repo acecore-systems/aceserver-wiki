@@ -24,6 +24,7 @@ const categories = groupWikiArticles(articles)
   <section class="home">
     <h1>{HEADER_TITLE}</h1>
     <p class="home__description">{ROOT_DESCRIPTION}</p>
+    <a class="home__start" href={articlePath('rinen')}>Wikiを読む</a>
 
     {
       categories.map((category) => (

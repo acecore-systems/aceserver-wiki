@@ -51,4 +51,16 @@ describe('Pages middleware', () => {
     expect(policy).not.toContain('https://unpkg.com')
     expect(response.headers.get('X-Frame-Options')).toBe('DENY')
   })
+
+  it('keeps the public search index out of search-engine results', async () => {
+    const response = await onRequest({
+      request: new Request('https://asv-wiki.acecore.net/search-index.json'),
+      next: async () =>
+        new Response('[]', {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    } as Parameters<typeof onRequest>[0])
+
+    expect(response.headers.get('X-Robots-Tag')).toBe('noindex')
+  })
 })

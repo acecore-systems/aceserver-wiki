@@ -6,7 +6,7 @@ order: 70
 ogImage: "/uploads/wiki/server-philosophy-og.png"
 draft: false
 ---
-![icon2.png](/uploads/wiki/server-philosophy-icon.png)
+![エースサーバーのアイコン](/uploads/wiki/server-philosophy-icon.png)
 
 ## みんなの居場所で有ること。
 

@@ -11,11 +11,13 @@ draft: false
 
 ###### 以下の手順にそってアカウント連携を行ってください。
 
-## ディスコードに参加するXXX（XXXのとこにディスコードリンクを埋め込み）
+## Discordに参加する
+
+[エースサーバー公式Discordに参加](https://discord.gg/acsv)
 
 ###### 【📚ルール認証】のチャンネルでルールを確認したうえで画像の「A」のリアクションを一度だけ押す
 
-![image_2026-07-15_095728508.png](/uploads/wiki/discord-link-step-a.png)
+![Discordのルール認証で押すAリアクション](/uploads/wiki/discord-link-step-a.png)
 
 ###### 【👍ディスコ―ド連携】のチャンネルに行き説明に従い連携を完了させる　BE版の方は先頭の\_BE\_は必要ありません。除いたものをご入力ください
 
@@ -25,4 +27,4 @@ draft: false
 
 ###### 統合版の方は最初の画面からプレイを選択し鯖の項目を選択した後次の画像のとおりに作業を進めてください
 
-![E3FA5126-3C9F-48A9-A08E-6DBFFC93E8BF.png](/uploads/wiki/discord-link-server.png)
+![Minecraftでエースサーバーを追加する手順](/uploads/wiki/discord-link-server.png)

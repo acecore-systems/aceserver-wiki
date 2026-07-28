@@ -84,6 +84,9 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+      - name: Verify archived Nuxt/Newt migration evidence
+        run: npm run test:migration
+
       - name: Build and validate Astro Wiki
         run: npm run build
 

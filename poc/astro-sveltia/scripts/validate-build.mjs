@@ -50,6 +50,10 @@ assert(
   expectedHeaderLinks.every((href) => hasAnchorHref(rootDocument, href)),
   'A configured header link is missing from the root.',
 )
+assert(
+  hasAnchorWithText(rootDocument, '/article/rinen/', 'Wikiを読む'),
+  'The Nuxt home-page start CTA is missing.',
+)
 
 const searchDocument = await readHtml('search/index.html')
 assert(
@@ -265,6 +269,13 @@ function assertTrustedScriptNonce(document, source) {
 function hasAnchorHref(document, href) {
   return findElements(document, 'a').some(
     (node) => getAttribute(node, 'href') === href,
+  )
+}
+
+function hasAnchorWithText(document, href, text) {
+  return findElements(document, 'a').some(
+    (node) =>
+      getAttribute(node, 'href') === href && elementText(node).trim() === text,
   )
 }
 
