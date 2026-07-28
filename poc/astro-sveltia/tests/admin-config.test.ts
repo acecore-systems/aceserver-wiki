@@ -1,8 +1,15 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { onRequestGet } from '../functions/admin/config.yml.ts'
+import adminInit from '../public/admin/init.js?raw'
 
 describe('Sveltia config delivery', () => {
+  it('CMSの公開案内で保存は直接公開、削除は管理者対応と案内する', async () => {
+    expect(adminInit).toContain('保存すると自動で公開されます')
+    expect(adminInit).toContain('CMSから記事・画像は削除できません')
+    expect(adminInit).toContain('削除が必要な場合は管理者へ依頼してください')
+  })
+
   it('rewrites GitHub API roots to the current protected origin', async () => {
     const next = vi.fn(async (request: Request) => {
       expect(request.headers.get('If-Modified-Since')).toBeNull()
