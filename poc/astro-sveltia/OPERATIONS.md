@@ -24,7 +24,7 @@ secretを登録しません。
 
 ## 初回公開ゲート
 
-1. PRのroot CI、Astro CI、OIDC broker CI、依存監査、Pages previewを
+1. PRのAstro CI、OIDC broker CI、依存監査、Pages previewを
    すべてgreenにする。
 2. OIDC broker用D1へmigrationを適用する。
 3. brokerのRS256 signing keyとAccess client secretを生成する。private keyと

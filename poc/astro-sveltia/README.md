@@ -149,8 +149,10 @@ npx wrangler pages functions build
 
 旧Nuxt/Newtの公開payloadは、退役前に復元可能なJSONとしてrepositoryへ保全
 しました。rootと各記事の公開payload原文を含むため、旧Pages停止後もpayload
-SHA-256を保存文字列から再計算できます。旧deploymentへ依存するlive snapshot
-コマンドは、取得元の退役に合わせて削除しています。
+SHA-256を保存文字列から再計算できます。旧deploymentへ依存するlive snapshotの
+npm入口は取得元の退役に合わせて削除していますが、取得元固定・payload照合・
+決定的snapshot生成の実装は`./scripts/snapshot-newt-public.mjs`へ由来証跡として
+保持します。旧deployment削除後の通常運用では実行しません。
 
 移行証跡は用途を分けて保存します。
 

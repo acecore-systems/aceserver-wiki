@@ -35,8 +35,9 @@ manifestに一致することを確認しました。初回production manifest�
   - snapshotと同じdeployment固有payload hash、15記事と11画像の移行先、
     redirect、破損画像の扱いを保持
   - 初回production manifestとは独立した再現用証跡
-- 退役前に取得したsnapshotは不変証跡として保持し、旧deploymentへ依存する
-  live再取得コマンドは旧系と同時に退役する
+- 退役前に取得したsnapshotは不変証跡として保持する
+- 旧deploymentへ依存するlive再取得のnpm入口は退役するが、取得・hash照合・
+  決定的snapshot生成のscriptは由来証跡として保持する
 - `npm run test:migration`
   - rollback snapshotとrollback再現用manifestを、現在の記事編集から独立して
     継続検証する
