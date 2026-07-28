@@ -5,7 +5,7 @@ category: "イントロダクション"
 order: 90
 draft: false
 ---
-![ヘッダー画像](/uploads/wiki/join-header.jpg)
+![エースサーバーへ参加するプレイヤー](/uploads/wiki/join-header.jpg)
 
 #### エースサーバーDiscordに参加する。
 

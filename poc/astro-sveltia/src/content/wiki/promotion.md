@@ -33,10 +33,10 @@ draft: false
 3.  [Minecraft](https://mixi.jp/view_community.pl?id=5243448&conversion_from=login)
 4.  [マインクラフトPE](https://mixi.jp/view_community.pl?id=6065938)
 
--   FRESTU
-    1.  [プロフィール](https://frestu.com/accounts/AceCoreS)
-    2.  [Discordフレンド募集](https://frestu.com/boards/discord_friends/posts)
-    3.  [ゲーム友達募集](https://frestu.com/boards/game_friends/posts)
+-   FRESTU（2026年7月28日時点でリンク先の応答を確認できないため、リンク掲載を終了）
+    1.  プロフィール
+    2.  Discordフレンド募集
+    3.  ゲーム友達募集
 -   Yay!
     1.  [プロフィール](https://yay.space/user/7156119)
     2.  [スマホでマインクラフト♡☆✵❀\]](https://yay.space/group/140455)
@@ -47,12 +47,12 @@ draft: false
 
 ## 登録型
 
--   [ものくらふと](https://monocraft.net/servers/SIa6esbbmANs2GVbUecW)
+-   ものくらふと（2026年7月28日時点で掲載ページを確認できないため、リンク掲載を終了）
 -   [ディスボード](https://disboard.org/ja/server/737538781024092170)
     表示順をあげるボタンをクリック
--   [Japan Minecraft Servers](https://minecraft.jp/servers/mc.acecore.systems)
+-   Japan Minecraft Servers（掲載ページが404のため、リンク掲載を終了）
     投票
--   [Discoparty](https://discoparty.jp/s/DC709GK11w)
+-   Discoparty（掲載ページが404のため、リンク掲載を終了）
 -   [ディス速](https://dissoku.net/ja/server/737538781024092170)
 
 ## 一覧形式（修正のみ）

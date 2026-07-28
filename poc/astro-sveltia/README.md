@@ -139,12 +139,43 @@ npm run check
 npm test
 npm run test:migration
 npm run build
+npm run test:migration:current
 npx wrangler pages functions build
 ```
 
-`test:migration`は初回移行時の15記事・11画像を固定hashで確認するone-shot検証です。
-CMS運用開始後は通常CIから外し、`npm test`と現在のMarkdown inventoryを動的に
-検証する`npm run build`を継続ゲートにします。
+`snapshot:newt-public`は、記録済みrollback deploymentで公開されているNuxt/Newt
+payloadを取得し、15記事の本文を復元可能なJSONとして保存する保全コマンドです。
+rootと各記事の公開payload原文も保存するため、旧Pages停止後もpayload SHA-256を
+文字列から再計算できます。同じdeploymentから再取得した場合は同一file hashに
+なるよう、取得時刻にはpayloadの`prerenderedAt`を使用します。
+既定では`https://bba3fffa.aceserver-wiki.pages.dev`だけを読み、Newt tokenは
+使用・保存しません。取得元を変える場合だけ、HTTPS originを
+`NEWT_MIGRATION_SOURCE_ORIGIN`で指定します。
+
+移行証跡は用途を分けて保存します。
+
+- `migration/newt-initial-production-manifest.json`
+  - `main`の`746f19be0a64bb580b289a9846fa3948b9561bf0`に存在した
+    `newt-public-payload-manifest.json`の完全な不変コピー
+  - custom domainが旧Nuxtを指していた初回移行時のorigin、payload hash、
+    15記事の本文hash、初回生成Markdown hashを保持
+  - rollback snapshotの再取得や現在の記事編集では更新しない
+- `migration/newt-public-payload-manifest.json`
+  - 記録済みrollback deploymentから原文を再現するためのmanifest
+  - `migration/newt-public-content-snapshot.json`と同じdeployment固有の
+    payload hashを保持し、初回production manifestとは独立して扱う
+
+`test:migration`は、保全済みrollback payloadの本文byte数・SHA-256を
+rollback再現用manifestと照合します。現在の記事inventoryには依存しないため、
+CMSで記事を追加・編集・削除しても原本証跡の継続CIを妨げません。初回production
+manifestとの全件突合結果は`MIGRATION-PARITY-2026-07-28.md`へ記録します。
+
+`test:migration:current`は完全移行監査用です。`npm run build`の後に実行し、
+保存snapshotとrepository内画像だけによるoffline再生成が現在の15 Markdownへ
+一致すること、11画像・redirect・修復済みMarkdownと描画HTML・参加導線を確認
+します。通常のCMS保存ゲートには使用せず、将来の記事更新を旧Nuxtの内容へ固定
+しません。`npm run build`は現在のMarkdown inventory、schema、SEO、検索、sitemap
+などを動的に検証します。
 
 ローカルでAccess/GitHub Appを接続する場合だけ、`.dev.vars.example` を
 `.dev.vars` へコピーして実値を設定します。exampleはfail closedのため
@@ -187,3 +218,6 @@ branch previewは`CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretを
 
 deployment ID、commit SHA、監査結果、復旧点は
 [`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)に記録しています。
+Nuxt公開本文の全件hash、復元用snapshot、構造・リンク・画像の突合結果は
+[`MIGRATION-PARITY-2026-07-28.md`](./MIGRATION-PARITY-2026-07-28.md)に記録
+しています。

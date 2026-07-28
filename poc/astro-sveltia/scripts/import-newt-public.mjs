@@ -1,18 +1,45 @@
 import { createHash } from 'node:crypto'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 
 import { unflatten } from 'devalue'
 import { parseFragment, serialize } from 'parse5'
 import TurndownService from 'turndown'
 
-const SOURCE_ORIGIN = 'https://asv-wiki.acecore.net'
-const CONTENT_DIRECTORY = new URL('../src/content/wiki/', import.meta.url)
-const MEDIA_DIRECTORY = new URL('../public/uploads/wiki/', import.meta.url)
+import {
+  collapseRowspanAliasRows,
+  normalizeKnownMigratedMarkdown,
+  replaceMarkdownTableMarker,
+} from './newt-markdown-normalization.mjs'
+
+const root = new URL('../', import.meta.url)
+const CONTENT_DIRECTORY = new URL('src/content/wiki/', root)
+const MEDIA_DIRECTORY = new URL('public/uploads/wiki/', root)
 const MANIFEST_URL = new URL(
-  '../migration/newt-public-payload-manifest.json',
-  import.meta.url,
+  'migration/newt-public-payload-manifest.json',
+  root,
 )
+const SNAPSHOT_URL = new URL(
+  'migration/newt-public-content-snapshot.json',
+  root,
+)
+const commandArguments = process.argv.slice(2)
+const CHECK_ONLY = commandArguments.includes('--check')
+
+assert(
+  commandArguments.every((argument) => argument === '--check') &&
+    commandArguments.filter((argument) => argument === '--check').length <= 1,
+  'Usage: node scripts/import-newt-public.mjs [--check]',
+)
+
+const immutableManifest = JSON.parse(await readFile(MANIFEST_URL, 'utf8'))
+const snapshot = JSON.parse(await readFile(SNAPSHOT_URL, 'utf8'))
+const SOURCE_ORIGIN = normalizeOrigin(immutableManifest.source.origin)
+const LEGACY_SOURCE_ORIGINS = new Set([
+  SOURCE_ORIGIN,
+  'https://asv-wiki.acecore.net',
+  'https://aceserver-wiki.pages.dev',
+])
 const XHTML_NAMESPACE = 'http://www.w3.org/1999/xhtml'
 
 const ARTICLES = [
@@ -343,6 +370,25 @@ const imagePathBySource = new Map(
     `/uploads/wiki/${fileName}`,
   ]),
 )
+const imageAltByLocalPath = new Map([
+  ['/uploads/wiki/rule-handshake.jpg', '握手とルールを表すイメージ'],
+  [
+    '/uploads/wiki/rule-circuit-board.jpg',
+    'レッドストーン回路を表す基板のイメージ',
+  ],
+  [
+    '/uploads/wiki/discord-link-step-a.png',
+    'Discordのルール認証で押すAリアクション',
+  ],
+  [
+    '/uploads/wiki/discord-link-server.png',
+    'Minecraftでエースサーバーを追加する手順',
+  ],
+  ['/uploads/wiki/server-philosophy-icon.png', 'エースサーバーのアイコン'],
+  ['/uploads/wiki/join-header.jpg', 'エースサーバーへ参加するプレイヤー'],
+  ['/uploads/wiki/play-header.jpg', 'エースサーバーで一緒に遊ぶイメージ'],
+  ['/uploads/wiki/promotion-header.jpg', 'エースサーバーの宣伝イメージ'],
+])
 const slugByDecodedLegacyPath = new Map(
   REDIRECTS.flatMap(({ from, to }) => {
     const decoded = decodeURIComponent(from)
@@ -362,10 +408,17 @@ const turndown = new TurndownService({
 
 turndown.remove(['script', 'style'])
 
-const rootPayload = await fetchPayload('/_payload.json')
-const wikiData = rootPayload.value?.data?.['wiki-data']
+const archivedRootPayload = decodeArchivedPayload(snapshot.source.rawPayload)
+const wikiData = archivedRootPayload.data?.['wiki-data']
 
 assert(wikiData, 'Root payload does not contain data["wiki-data"].')
+assertDeepEqual(
+  wikiData,
+  snapshot.wikiData,
+  'Decoded root payload differs from the archived snapshot data.',
+)
+validateArchivedSourceEvidence()
+
 assertDeepEqual(
   wikiData.categories.map(({ _id, name }) => ({ id: _id, name })),
   CATEGORIES,
@@ -394,18 +447,21 @@ assert(
   'Wiki cover URL changed in the public payload.',
 )
 
-await mkdir(CONTENT_DIRECTORY, { recursive: true })
-await mkdir(MEDIA_DIRECTORY, { recursive: true })
-await mkdir(new URL('./', MANIFEST_URL), { recursive: true })
-
 const articleEvidence = []
+const generatedArticles = []
 
 for (const expected of ARTICLES) {
   const payloadPath = `/article/${encodeURIComponent(expected.sourceSlug)}/_payload.json`
-  const payload = await fetchPayload(payloadPath)
-  const article = payload.value?.data?.[`article:${expected.sourceSlug}`]
+  const archived = snapshot.articles.find(
+    ({ sourceSlug }) => sourceSlug === expected.sourceSlug,
+  )
+  const evidence = immutableManifest.articles.find(
+    ({ sourceSlug }) => sourceSlug === expected.sourceSlug,
+  )
+  const article = archived?.article
 
   assert(article, `Article payload is missing: ${expected.sourceSlug}`)
+  assert(evidence, `Article evidence is missing: ${expected.sourceSlug}`)
   assert(
     article._id === expected.id,
     `Article ID changed: ${expected.sourceSlug}`,
@@ -458,7 +514,11 @@ for (const expected of ARTICLES) {
     `A remote image remains after conversion: ${expected.sourceSlug}`,
   )
 
-  await writeFile(markdownFileUrl, markdown, 'utf8')
+  generatedArticles.push({
+    fileUrl: markdownFileUrl,
+    markdown,
+    targetSlug: expected.targetSlug,
+  })
 
   articleEvidence.push({
     id: expected.id,
@@ -469,7 +529,7 @@ for (const expected of ARTICLES) {
     order: expected.order,
     sourceUrl: `${SOURCE_ORIGIN}/article/${encodeURIComponent(expected.sourceSlug)}/`,
     sourcePayloadUrl: `${SOURCE_ORIGIN}${payloadPath}`,
-    sourcePayloadSha256: sha256(payload.raw),
+    sourcePayloadSha256: archived.payloadSha256,
     sourceBodyBytes: bodyBytes,
     sourceBodySha256: sha256(article.body),
     markdownPath: `src/content/wiki/${expected.targetSlug}.md`,
@@ -481,17 +541,7 @@ for (const expected of ARTICLES) {
 const assetEvidence = []
 
 for (const asset of ASSETS) {
-  const response = await fetch(asset.sourceUrl, {
-    headers: { 'User-Agent': 'Acecore-Wiki-Migration/1.0' },
-  })
-
-  assert(
-    response.ok,
-    `Asset download failed (${response.status}): ${asset.sourceUrl}`,
-  )
-
-  const bytes = Buffer.from(await response.arrayBuffer())
-  const contentType = response.headers.get('content-type')?.split(';')[0]
+  const bytes = await readFile(new URL(asset.fileName, MEDIA_DIRECTORY))
 
   assert(
     bytes.byteLength === asset.bytes,
@@ -505,12 +555,6 @@ for (const asset of ASSETS) {
     detectImageMediaType(bytes) === asset.mediaType,
     `Asset magic bytes do not match ${asset.mediaType}: ${asset.fileName}`,
   )
-  assert(
-    !contentType || contentType === asset.mediaType,
-    `Asset Content-Type changed for ${asset.fileName}: ${contentType}`,
-  )
-
-  await writeFile(new URL(asset.fileName, MEDIA_DIRECTORY), bytes)
 
   assetEvidence.push({
     sourceUrl: asset.sourceUrl,
@@ -532,13 +576,13 @@ assert(
   `Total source body size changed: ${totalSourceBodyBytes}`,
 )
 
-const manifest = {
+const generatedManifest = {
   schemaVersion: 1,
   source: {
     origin: SOURCE_ORIGIN,
     rootPayloadUrl: `${SOURCE_ORIGIN}/_payload.json`,
-    rootPayloadSha256: sha256(rootPayload.raw),
-    prerenderedAt: rootPayload.value.prerenderedAt,
+    rootPayloadSha256: snapshot.source.rootPayloadSha256,
+    prerenderedAt: snapshot.source.prerenderedAt,
     articleCount: articleEvidence.length,
     categoryCount: CATEGORIES.length,
     headerLinkCount: LINKS.length,
@@ -561,12 +605,184 @@ const manifest = {
   redirects: REDIRECTS,
 }
 
-await writeFile(MANIFEST_URL, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8')
-
-console.log(
-  `Migrated ${articleEvidence.length} articles and ${assetEvidence.length} verified assets (${totalSourceBodyBytes} source body bytes).`,
+assertDeepEqual(
+  generatedManifest,
+  immutableManifest,
+  'Generated migration evidence differs from the rollback reproduction manifest.',
 )
-console.log(`Evidence: ${fileURLToPath(MANIFEST_URL)}`)
+
+if (CHECK_ONLY) {
+  for (const generated of generatedArticles) {
+    const current = (await readFile(generated.fileUrl, 'utf8')).replace(
+      /\r\n?/gu,
+      '\n',
+    )
+    assert(
+      current === generated.markdown,
+      `Generated Markdown differs from the working tree: ${generated.targetSlug}`,
+    )
+  }
+
+  console.log(
+    `Verified offline regeneration for ${articleEvidence.length} Markdown articles, ${assetEvidence.length} local assets, and the rollback reproduction manifest without writing files.`,
+  )
+} else {
+  await mkdir(CONTENT_DIRECTORY, { recursive: true })
+  await Promise.all(
+    generatedArticles.map(({ fileUrl, markdown }) =>
+      writeFile(fileUrl, markdown, 'utf8'),
+    ),
+  )
+
+  console.log(
+    `Regenerated ${articleEvidence.length} Markdown articles offline from the archived snapshot and ${assetEvidence.length} verified local assets (${totalSourceBodyBytes} source body bytes).`,
+  )
+  console.log(`Evidence: ${fileURLToPath(MANIFEST_URL)}`)
+}
+
+function validateArchivedSourceEvidence() {
+  assert(
+    immutableManifest.schemaVersion === 1,
+    'Unexpected immutable manifest schema.',
+  )
+  assert(snapshot.schemaVersion === 1, 'Unexpected source snapshot schema.')
+  assert(
+    snapshot.source.origin === SOURCE_ORIGIN,
+    'Snapshot origin differs from the immutable manifest.',
+  )
+  assert(
+    snapshot.source.rootPayloadUrl === immutableManifest.source.rootPayloadUrl,
+    'Snapshot root payload URL differs from the immutable manifest.',
+  )
+  assert(
+    typeof snapshot.source.rawPayload === 'string' &&
+      sha256(snapshot.source.rawPayload) ===
+        immutableManifest.source.rootPayloadSha256 &&
+      snapshot.source.rootPayloadSha256 ===
+        immutableManifest.source.rootPayloadSha256,
+    'Snapshot root payload SHA-256 differs from the immutable manifest.',
+  )
+  assert(
+    snapshot.source.prerenderedAt === immutableManifest.source.prerenderedAt,
+    'Snapshot prerender timestamp differs from the immutable manifest.',
+  )
+  assert(
+    archivedRootPayload.prerenderedAt === snapshot.source.prerenderedAt,
+    'Decoded root payload prerender timestamp differs from the snapshot.',
+  )
+  assert(
+    snapshot.source.capturedAt ===
+      deterministicCaptureTime(snapshot.source.prerenderedAt),
+    'Snapshot capture timestamp is not deterministic.',
+  )
+  assert(
+    snapshot.source.articleCount === immutableManifest.source.articleCount &&
+      snapshot.articles.length === immutableManifest.source.articleCount,
+    'Snapshot article count differs from the immutable manifest.',
+  )
+  assert(
+    snapshot.source.categoryCount === immutableManifest.source.categoryCount,
+    'Snapshot category count differs from the immutable manifest.',
+  )
+  assert(
+    snapshot.source.headerLinkCount ===
+      immutableManifest.source.headerLinkCount,
+    'Snapshot header-link count differs from the immutable manifest.',
+  )
+  assert(
+    snapshot.source.totalSourceBodyBytes ===
+      immutableManifest.source.totalSourceBodyBytes,
+    'Snapshot source-body size differs from the immutable manifest.',
+  )
+  assertDeepEqual(
+    immutableManifest.categories,
+    CATEGORIES,
+    'Hard-coded categories differ from the immutable manifest.',
+  )
+  assertDeepEqual(
+    immutableManifest.links,
+    LINKS,
+    'Hard-coded header links differ from the immutable manifest.',
+  )
+  assertDeepEqual(
+    snapshot.wikiData.categories.map(({ _id, name }) => ({ id: _id, name })),
+    immutableManifest.categories,
+    'Snapshot categories differ from the immutable manifest.',
+  )
+  assertDeepEqual(
+    snapshot.wikiData.links.map(({ _id, text, href }) => ({
+      id: _id,
+      text,
+      href,
+    })),
+    immutableManifest.links,
+    'Snapshot header links differ from the immutable manifest.',
+  )
+  assertDeepEqual(
+    snapshot.wikiData.articles.map(({ _id, slug, title }) => ({
+      id: _id,
+      sourceSlug: slug,
+      title,
+    })),
+    immutableManifest.articles.map(({ id, sourceSlug, title }) => ({
+      id,
+      sourceSlug,
+      title,
+    })),
+    'Snapshot article order or identity differs from the immutable manifest.',
+  )
+
+  const archivedSourceSlugs = snapshot.articles.map(
+    ({ sourceSlug }) => sourceSlug,
+  )
+  assert(
+    new Set(archivedSourceSlugs).size === archivedSourceSlugs.length,
+    'Snapshot contains duplicate article slugs.',
+  )
+
+  for (const evidence of immutableManifest.articles) {
+    const archived = snapshot.articles.find(
+      ({ sourceSlug }) => sourceSlug === evidence.sourceSlug,
+    )
+
+    assert(archived, `Snapshot article is missing: ${evidence.sourceSlug}`)
+    assert(
+      archived.id === evidence.id &&
+        archived.article?._id === evidence.id &&
+        archived.article?.slug === evidence.sourceSlug,
+      `Snapshot article identity differs: ${evidence.sourceSlug}`,
+    )
+    assert(
+      archived.sourceUrl === evidence.sourceUrl &&
+        archived.payloadUrl === evidence.sourcePayloadUrl,
+      `Snapshot article URL differs: ${evidence.sourceSlug}`,
+    )
+    assert(
+      typeof archived.rawPayload === 'string' &&
+        sha256(archived.rawPayload) === evidence.sourcePayloadSha256 &&
+        archived.payloadSha256 === evidence.sourcePayloadSha256,
+      `Snapshot article payload SHA-256 differs: ${evidence.sourceSlug}`,
+    )
+    const decodedPayload = decodeArchivedPayload(archived.rawPayload)
+    assertDeepEqual(
+      decodedPayload.data?.[`article:${evidence.sourceSlug}`],
+      archived.article,
+      `Decoded article payload differs from the snapshot: ${evidence.sourceSlug}`,
+    )
+    assert(
+      typeof archived.article?.body === 'string' &&
+        Buffer.byteLength(archived.article.body, 'utf8') ===
+          evidence.sourceBodyBytes &&
+        archived.bodyBytes === evidence.sourceBodyBytes,
+      `Snapshot article body byte count differs: ${evidence.sourceSlug}`,
+    )
+    assert(
+      sha256(archived.article.body) === evidence.sourceBodySha256 &&
+        archived.bodySha256 === evidence.sourceBodySha256,
+      `Snapshot article body SHA-256 differs: ${evidence.sourceSlug}`,
+    )
+  }
+}
 
 function convertHtmlToMarkdown(source, sourceSlug) {
   const fragment = parseFragment(source)
@@ -620,9 +836,8 @@ function convertHtmlToMarkdown(source, sourceSlug) {
     )
     setAttribute(image, 'src', localPath)
 
-    if (sourceSlug === 'promotion' && !getAttribute(image, 'alt').trim()) {
-      setAttribute(image, 'alt', 'エースサーバーの宣伝イメージ')
-    }
+    const improvedAlt = imageAltByLocalPath.get(localPath)
+    if (improvedAlt) setAttribute(image, 'alt', improvedAlt)
   }
 
   for (const anchor of findNodes(fragment, (node) => node.tagName === 'a')) {
@@ -635,10 +850,14 @@ function convertHtmlToMarkdown(source, sourceSlug) {
   let markdown = turndown.turndown(serialize(fragment))
 
   tableMarkdown.forEach((table, index) => {
-    markdown = markdown.replace(`WIKITABLETOKEN${index}END`, table)
+    markdown = replaceMarkdownTableMarker(
+      markdown,
+      `WIKITABLETOKEN${index}END`,
+      table,
+    )
   })
 
-  return markdown
+  return normalizeKnownMigratedMarkdown(markdown, sourceSlug)
     .replace(/[ \t]+\n/gu, '\n')
     .replace(/\n{3,}/gu, '\n\n')
     .trim()
@@ -658,6 +877,7 @@ function convertTable(table) {
   const grid = []
   const futureCells = new Map()
   const headerFlags = []
+  const inheritedColumnsByRow = []
 
   rows.forEach((row, rowIndex) => {
     const cells = (row.childNodes ?? []).filter(
@@ -699,14 +919,18 @@ function convertTable(table) {
     if (outputRow.some((cell) => cell !== undefined)) {
       grid.push(outputRow)
       headerFlags.push(containsHeader)
+      inheritedColumnsByRow.push(new Set(scheduled?.keys() ?? []))
     }
   })
 
   assert(grid.length > 0, 'Encountered an empty HTML table.')
 
   const columnCount = Math.max(...grid.map((row) => row.length))
-  const normalized = grid.map((row) =>
-    Array.from({ length: columnCount }, (_, index) => row[index] ?? ''),
+  const normalized = collapseRowspanAliasRows(
+    grid.map((row) =>
+      Array.from({ length: columnCount }, (_, index) => row[index] ?? ''),
+    ),
+    inheritedColumnsByRow,
   )
   const header = normalized[0]
   const body = normalized.slice(1)
@@ -742,7 +966,9 @@ function tableCellMarkdown(cell) {
 
   return renderChildren(cell)
     .replace(/\s+/gu, ' ')
+    .replace(/(?:\s*／\s*){2,}/gu, ' ／ ')
     .replace(/\s*／\s*$/u, '')
+    .replace(/^使用方法h$/u, '使用方法')
     .replaceAll('|', '\\|')
     .trim()
 }
@@ -761,7 +987,7 @@ function rewriteInternalHref(href) {
     return href
   }
 
-  if (url.origin !== SOURCE_ORIGIN) return href
+  if (!LEGACY_SOURCE_ORIGINS.has(url.origin)) return href
 
   let decodedPath
   try {
@@ -773,7 +999,7 @@ function rewriteInternalHref(href) {
   const redirectTarget = slugByDecodedLegacyPath.get(decodedPath)
 
   if (redirectTarget) return `${redirectTarget}${url.search}${url.hash}`
-  return href.startsWith(SOURCE_ORIGIN)
+  return [...LEGACY_SOURCE_ORIGINS].some((origin) => href.startsWith(origin))
     ? `${url.pathname}${url.search}${url.hash}`
     : href
 }
@@ -796,20 +1022,14 @@ function serializeFrontmatter(article) {
   return lines.join('\n')
 }
 
-async function fetchPayload(path) {
-  const url = `${SOURCE_ORIGIN}${path}`
-  const response = await fetch(url, {
-    headers: { Accept: 'application/json' },
-  })
-
-  assert(response.ok, `Payload request failed (${response.status}): ${url}`)
-
-  const raw = await response.text()
-  const value = unflatten(JSON.parse(raw), {
+function decodeArchivedPayload(rawPayload) {
+  assert(
+    typeof rawPayload === 'string',
+    'Archived payload must be stored as a raw JSON string.',
+  )
+  return unflatten(JSON.parse(rawPayload), {
     ShallowReactive: (payload) => payload,
   })
-
-  return { raw, value }
 }
 
 function findNodes(root, predicate) {
@@ -897,6 +1117,32 @@ function detectImageMediaType(bytes) {
 
 function sha256(value) {
   return createHash('sha256').update(value).digest('hex')
+}
+
+function deterministicCaptureTime(prerenderedAt) {
+  const capturedAt = new Date(prerenderedAt)
+  assert(
+    Number.isFinite(capturedAt.valueOf()),
+    'The snapshot prerender timestamp is invalid.',
+  )
+  return capturedAt.toISOString()
+}
+
+function normalizeOrigin(value) {
+  const url = new URL(value)
+  assert(
+    url.protocol === 'https:',
+    'The immutable migration source origin must use HTTPS.',
+  )
+  assert(
+    url.username === '' &&
+      url.password === '' &&
+      url.pathname === '/' &&
+      url.search === '' &&
+      url.hash === '',
+    'The immutable migration source must be an origin without credentials, path, query, or fragment.',
+  )
+  return url.origin
 }
 
 function assert(condition, message) {

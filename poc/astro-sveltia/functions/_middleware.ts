@@ -89,6 +89,9 @@ async function withSecurityHeaders(response: Response, url: URL) {
   }
 
   if (isAdmin) headers.set('Cache-Control', 'no-store')
+  if (url.pathname === '/search-index.json') {
+    headers.set('X-Robots-Tag', 'noindex')
+  }
 
   let body: BodyInit | null = response.body
   const isPublicHtml =
