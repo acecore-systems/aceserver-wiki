@@ -227,6 +227,8 @@ D1監査を成功へ確定できない場合、gatewayは成功レスポンス�
 このdirect publishはCMS管理対象のMarkdownと画像だけに限定します。source code、
 Astro schema、CMS設定、Pages Functions、workflowは作業branchのPRとCIで
 `main`へ反映します。
+参照中の記事・画像を誤って消さないよう、CMSからの削除は拒否します。削除は
+参照確認を含む通常のPull Requestで行います。
 
 - readは1 Discord userあたり10分間に120回、全体で10秒間に60回かつ
   10分間に240回

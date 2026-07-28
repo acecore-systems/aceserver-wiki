@@ -122,7 +122,7 @@ PRを作り、CIを通して`main`へ反映します。
 - CMS全体を1000 files、Markdown 64 MiB、画像512 MiB、
   合計512 MiB以下に限定
 - path traversal、nested content/media path、管理対象外ファイルを拒否
-- PR作成に失敗したreview branchを削除
+- 参照切れを防ぐためCMSからのMarkdown・画像削除を拒否し、削除は参照確認を伴うPRに限定
 
 ## ローカル検証
 
@@ -162,7 +162,8 @@ npm入口は取得元の退役に合わせて削除していますが、取得�
 
 `test:migration`は、保全済みrollback payloadの本文byte数・SHA-256を
 rollback再現用manifestと照合します。現在の記事inventoryには依存しないため、
-CMSで記事を追加・編集・削除しても原本証跡の継続CIを妨げません。初回production
+CMSで記事を追加・編集しても原本証跡の継続CIを妨げません。記事・画像の削除は
+参照確認を伴う通常のPull Requestで行います。初回production
 manifestとの全件突合結果は`MIGRATION-PARITY-2026-07-28.md`へ記録します。
 
 `test:migration:current`は完全移行監査用です。`npm run build`の後に実行し、
@@ -206,7 +207,7 @@ branch previewは`CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretを
 - AdSenseは未審査UGCへ配信しないため全公開ページで無効化済み
 - D1監査、rate limit、BAN、idempotency、rollback workflowを実装済み
 - Discord OAuth→OIDC broker、Cloudflare Access、GitHub App、Pages productionを
-  接続し、Markdown下書きの保存・公開除外・削除を本番E2E確認済み
+  接続し、Markdown下書きの保存・公開除外を本番E2E確認済み
 - 2026-07-27に`asv-wiki.acecore.net`を`aceserver-wiki-astro`へ切替済み
 - 2026-07-28の完全移行監査で15記事・11画像・URL・検索・SEOの移行を確認済み
 - 同日に旧系削除が承認され、PR #37でrootの旧Nuxt/Newt build経路を削除済み

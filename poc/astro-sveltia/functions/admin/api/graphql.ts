@@ -11,6 +11,7 @@ import {
 import {
   CMS_REPOSITORY,
   hasExpectedCmsRepositoryConfig,
+  isAllowedCmsDeletePath,
   isAllowedCmsWritePath,
   isCmsMarkdownPath,
   isCmsMediaPath,
@@ -1479,7 +1480,7 @@ function parseCmsCommitInput(
     if (
       !path ||
       path !== deletion.path ||
-      !isAllowedCmsWritePath(path) ||
+      !isAllowedCmsDeletePath(path) ||
       paths.has(path)
     ) {
       return {

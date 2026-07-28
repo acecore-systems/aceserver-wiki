@@ -502,20 +502,27 @@ describe('CMS publication modes', () => {
     expect(calls.some((url) => url.endsWith('/graphql'))).toBe(false)
   })
 
-  it('allows a deletion that brings an oversized CMS tree back to the cap', async () => {
-    const tree = contentTree(CMS_PROJECTED_TREE_LIMITS.maxFiles + 1)
-    const publication = mockSuccessfulDirectPublication('e', tree)
-    const response = await onRequestPost({
-      request: graphqlRequest(
-        deletionVariables(MAIN_SHA, tree.at(-1)?.path || ''),
-      ),
-      env: testEnv('direct'),
-    } as Parameters<typeof onRequestPost>[0])
+  it('rejects content and media deletion before GitHub access', async () => {
+    let githubCalled = false
+    mockFetch(async () => {
+      githubCalled = true
+      throw new Error('GitHub must not be called')
+    })
 
-    expect(response.status).toBe(200)
-    expect(publication.calls.some(({ url }) => url.endsWith('/graphql'))).toBe(
-      true,
-    )
+    const contentPath = 'poc/astro-sveltia/src/content/wiki/deletion-blocked.md'
+    const mediaPath =
+      'poc/astro-sveltia/public/uploads/wiki/deletion-blocked.png'
+
+    for (const path of [contentPath, mediaPath]) {
+      const response = await onRequestPost({
+        request: graphqlRequest(deletionVariables(MAIN_SHA, path)),
+        env: testEnv('direct'),
+      } as Parameters<typeof onRequestPost>[0])
+
+      expect(response.status).toBe(403)
+    }
+
+    expect(githubCalled).toBe(false)
   })
 
   it('rejects projected CMS media above 512 MiB before commit', async () => {
@@ -596,28 +603,6 @@ describe('CMS publication modes', () => {
 
     expect(response.status).toBe(413)
     expect(calls.some((url) => url.endsWith('/git/refs'))).toBe(false)
-  })
-
-  it('allows deleting oversized Markdown to recover below the byte cap', async () => {
-    const path = 'poc/astro-sveltia/src/content/wiki/oversized.md'
-    const publication = mockSuccessfulDirectPublication('4', [
-      {
-        mode: '100644',
-        path,
-        sha: '4'.repeat(40),
-        size: CMS_PROJECTED_TREE_LIMITS.maxContentBytes + 1,
-        type: 'blob',
-      },
-    ])
-    const response = await onRequestPost({
-      request: graphqlRequest(deletionVariables(MAIN_SHA, path)),
-      env: testEnv('direct'),
-    } as Parameters<typeof onRequestPost>[0])
-
-    expect(response.status).toBe(200)
-    expect(publication.calls.some(({ url }) => url.endsWith('/graphql'))).toBe(
-      true,
-    )
   })
 })
 

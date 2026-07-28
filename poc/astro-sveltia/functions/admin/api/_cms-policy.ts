@@ -86,6 +86,11 @@ export function isAllowedCmsWritePath(path: string) {
   return MEDIA_EXTENSIONS.has(getExtension(path)) && isSafeMediaFileName(path)
 }
 
+export function isAllowedCmsDeletePath(path: string) {
+  void path
+  return false
+}
+
 export function isAllowedCmsDirectoryPath(path: string) {
   if (path === '') return true
 
