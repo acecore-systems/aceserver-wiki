@@ -85,6 +85,10 @@ assert(
   'The complete desktop header must start at the shared 67.5rem shell breakpoint.',
 )
 assert(
+  desktopHeaderStyles.includes('.side-navigation { display: block; }'),
+  'Desktop article navigation must use document scrolling without sticky positioning or an internal scrollbar.',
+)
+assert(
   !globalStyles.includes('@media (min-width: 600px)') &&
     !globalStyles.includes('@media (min-width: 896px)'),
   'Legacy header breakpoints must not reintroduce a duplicate tablet/desktop navigation state.',

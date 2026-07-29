@@ -720,13 +720,7 @@ a:hover {
   }
 
   .side-navigation {
-    position: sticky;
-    inset-block-start: calc(var(--header-height) + 1.5rem);
     display: block;
-    max-height: calc(100vh - var(--header-height) - 3rem);
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-border-strong) transparent;
   }
 
   .side-navigation a:focus-visible {
