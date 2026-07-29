@@ -6,7 +6,12 @@ import {
   normalizeCmsPath,
 } from '../functions/admin/api/_cms-policy.ts'
 import { validateCmsAddition } from '../functions/admin/api/_content-validation.ts'
+import {
+  MAX_CMS_MARKDOWN_BYTES,
+  MAX_CMS_MARKDOWN_KIB,
+} from '../src/lib/cms-limits.ts'
 import { assertMarkdownSource } from '../src/lib/markdown-policy.ts'
+import { assertWikiMarkdownByteSize } from '../src/loaders/wiki-markdown-loader.ts'
 
 const VALID_MARKDOWN = `---
 title: Markdown編集PoC
@@ -57,6 +62,36 @@ describe('CMS path policy', () => {
 })
 
 describe('CMS content validation', () => {
+  it('accepts Markdown at 448 KiB and rejects one byte over', () => {
+    expect(MAX_CMS_MARKDOWN_KIB).toBe(448)
+    expect(MAX_CMS_MARKDOWN_BYTES).toBe(448 * 1024)
+
+    const baseBytes = new TextEncoder().encode(VALID_MARKDOWN).byteLength
+    const atLimit = `${VALID_MARKDOWN}${'a'.repeat(
+      MAX_CMS_MARKDOWN_BYTES - baseBytes,
+    )}`
+    const overLimit = `${atLimit}a`
+    const path = 'poc/astro-sveltia/src/content/wiki/size-boundary.md'
+
+    expect(new TextEncoder().encode(atLimit)).toHaveLength(
+      MAX_CMS_MARKDOWN_BYTES,
+    )
+    expect(() =>
+      assertWikiMarkdownByteSize(MAX_CMS_MARKDOWN_BYTES, 'at-limit.md'),
+    ).not.toThrow()
+    expect(() =>
+      assertWikiMarkdownByteSize(MAX_CMS_MARKDOWN_BYTES + 1, 'over-limit.md'),
+    ).toThrow('448 KiB')
+    expect(validateCmsAddition(path, encodeUtf8(atLimit)).ok).toBe(true)
+
+    const rejected = validateCmsAddition(path, encodeUtf8(overLimit))
+
+    expect(rejected.ok).toBe(false)
+    if (!rejected.ok) {
+      expect(rejected.message).toContain('448 KiB')
+    }
+  })
+
   it('accepts strict UTF-8 Markdown and frontmatter', () => {
     const result = validateCmsAddition(
       'poc/astro-sveltia/src/content/wiki/markdown-editing-poc.md',
