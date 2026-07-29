@@ -13,6 +13,7 @@ interface Props {
 }
 
 const { categories, currentId } = Astro.props
+const isHome = Astro.url.pathname === '/'
 ---
 
 <header class="site-header">
@@ -46,13 +47,16 @@ const { categories, currentId } = Astro.props
     </form>
 
     <details class="mobile-menu">
-      <summary aria-label="記事メニューを開く">
-        <span aria-hidden="true"></span>
+      <summary aria-label="記事メニュー">
+        <span class="mobile-menu__icon" aria-hidden="true"></span>
+        <span class="mobile-menu__label" aria-hidden="true">メニュー</span>
       </summary>
       <div class="mobile-menu__panel">
         <nav aria-label="モバイル記事メニュー">
           <ul class="mobile-menu__primary">
-            <li><a href="/" aria-current={!currentId ? 'page' : undefined}>トップ</a></li>
+            <li>
+              <a href="/" aria-current={isHome ? 'page' : undefined}>トップ</a>
+            </li>
             {
               WIKI_HEADER_LINKS.map((link) => (
                 <li>
@@ -87,20 +91,26 @@ const { categories, currentId } = Astro.props
             categories.map((category) => (
               <section class="mobile-menu__category">
                 <h2>{category.name}</h2>
-                <ul>
-                  {category.articles.map((article) => (
-                    <li>
-                      <a
-                        href={articlePath(article.id)}
-                        aria-current={
-                          currentId === article.id ? 'page' : undefined
-                        }
-                      >
-                        {article.data.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                {category.articles.length > 0 ? (
+                  <ul>
+                    {category.articles.map((article) => (
+                      <li>
+                        <a
+                          href={articlePath(article.id)}
+                          aria-current={
+                            currentId === article.id ? 'page' : undefined
+                          }
+                        >
+                          {article.data.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p class="mobile-menu__empty">
+                    現在、公開中の記事はありません。
+                  </p>
+                )}
               </section>
             ))
           }
@@ -109,3 +119,67 @@ const { categories, currentId } = Astro.props
     </details>
   </div>
 </header>
+
+<script>
+  const desktopMedia = window.matchMedia('(min-width: 67.5rem)')
+  const main = document.querySelector<HTMLElement>('.main')
+
+  for (const menu of document.querySelectorAll<HTMLDetailsElement>(
+    '.mobile-menu',
+  )) {
+    const summary = menu.querySelector<HTMLElement>('summary')
+
+    const updateMenuState = () => {
+      const isModal = menu.open && !desktopMedia.matches
+      document.body.classList.toggle('has-open-mobile-menu', isModal)
+
+      if (isModal) {
+        main?.setAttribute('inert', '')
+      } else {
+        main?.removeAttribute('inert')
+      }
+    }
+
+    const closeMenu = () => {
+      menu.open = false
+      updateMenuState()
+    }
+
+    menu.addEventListener('toggle', updateMenuState)
+    menu.addEventListener('click', (event) => {
+      if (event.target instanceof HTMLAnchorElement) closeMenu()
+    })
+    menu.addEventListener('keydown', (event) => {
+      if (!menu.open) return
+
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeMenu()
+        summary?.focus()
+        return
+      }
+
+      if (event.key !== 'Tab') return
+
+      const focusable = Array.from(
+        menu.querySelectorAll<HTMLElement>(
+          'summary, a[href], input:not([disabled]), button:not([disabled])',
+        ),
+      ).filter((element) => element.getClientRects().length > 0)
+      const first = focusable.at(0)
+      const last = focusable.at(-1)
+
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last?.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first?.focus()
+      }
+    })
+
+    desktopMedia.addEventListener('change', ({ matches }) => {
+      if (matches) closeMenu()
+    })
+  }
+</script>

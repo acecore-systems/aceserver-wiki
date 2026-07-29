@@ -22,20 +22,18 @@ const expectedHeaderLinks = [
   'https://asv.acecore.net',
 ]
 const articles = await readPublishedArticles()
-const [adminInit, adminStyles, globalStyles] = await Promise.all([
-  readFile(new URL('admin/init.js', dist), 'utf8'),
-  readFile(new URL('admin/shell.css', dist), 'utf8'),
-  readFile(new URL('src/styles/global.css', root), 'utf8'),
-])
+const [adminInit, adminStyles, globalStyles, markdownStyles, wikiLayout] =
+  await Promise.all([
+    readFile(new URL('admin/init.js', dist), 'utf8'),
+    readFile(new URL('admin/shell.css', dist), 'utf8'),
+    readFile(new URL('src/styles/global.css', root), 'utf8'),
+    readFile(new URL('src/styles/markdown.css', root), 'utf8'),
+    readFile(new URL('src/layouts/WikiLayout.astro', root), 'utf8'),
+  ])
 const normalizedGlobalStyles = normalizeCss(globalStyles)
-const tabletHeaderStyles = normalizeCss(
-  cssMediaBlock(globalStyles, '(min-width: 600px)'),
-)
+const normalizedMarkdownStyles = normalizeCss(markdownStyles)
 const desktopHeaderStyles = normalizeCss(
-  cssMediaBlock(globalStyles, '(min-width: 896px)'),
-)
-const compactDesktopHeaderStyles = normalizeCss(
-  cssMediaBlock(globalStyles, '(min-width: 896px) and (max-width: 960px)'),
+  cssMediaBlock(globalStyles, '(min-width: 67.5rem)'),
 )
 
 assert(
@@ -53,38 +51,52 @@ assert(
   'CMS publication guidance must be styled.',
 )
 assert(
-  normalizedGlobalStyles.includes(
-    '.site-search button { height: 32px; flex: 0 0 auto; padding: 4px 9px; white-space: nowrap; }',
-  ),
-  'The desktop search button must remain readable without wrapping.',
+  wikiLayout.includes("import '../styles/global.css'") &&
+    wikiLayout.includes("import '../styles/markdown.css'") &&
+    wikiLayout.indexOf("import '../styles/global.css'") <
+      wikiLayout.indexOf("import '../styles/markdown.css'"),
+  'The Wiki layout must load the shared Markdown stylesheet after the global shell styles.',
 )
 assert(
-  tabletHeaderStyles.includes(
-    '.site-links { display: flex; margin-left: auto; }',
+  normalizedMarkdownStyles.includes(
+    '.article__body { width: min(100%, var(--reading-width));',
   ) &&
-    tabletHeaderStyles.includes(
-      '.site-links a:not(.edit-link) { display: none; }',
+    normalizedMarkdownStyles.includes(
+      '.article__body table { display: block;',
     ) &&
-    tabletHeaderStyles.includes('.mobile-menu { margin-left: 8px; }') &&
-    !tabletHeaderStyles.includes('.site-search { display: flex; }') &&
-    !tabletHeaderStyles.includes('.mobile-menu { display: none; }'),
-  'The 600-895px header must keep the edit CTA visible without the crowded desktop navigation.',
+    normalizedMarkdownStyles.includes(
+      '.article__body :where(img, video) { display: block; max-width: 100%;',
+    ),
+  'Markdown content must preserve a readable measure, local table scrolling, and responsive media.',
 )
 assert(
-  desktopHeaderStyles.includes('.site-links { margin-left: 3rem; }') &&
-    desktopHeaderStyles.includes(
-      '.site-links a:not(.edit-link) { display: inline; }',
-    ) &&
+  normalizedGlobalStyles.includes(
+    '.site-links, .site-search { display: none; }',
+  ) &&
+    normalizedGlobalStyles.includes(
+      '.mobile-menu { margin-inline-start: auto; }',
+    ),
+  'Mobile must default to the menu while hiding the desktop links and search.',
+)
+assert(
+  desktopHeaderStyles.includes('.site-links { display: flex;') &&
     desktopHeaderStyles.includes('.site-search { display: flex; }') &&
     desktopHeaderStyles.includes('.mobile-menu { display: none; }'),
-  'The complete desktop header must start at 896px.',
+  'The complete desktop header must start at the shared 67.5rem shell breakpoint.',
 )
 assert(
-  compactDesktopHeaderStyles.includes(
-    '.site-links a { padding-right: 7px; padding-left: 7px; }',
+  !globalStyles.includes('@media (min-width: 600px)') &&
+    !globalStyles.includes('@media (min-width: 896px)'),
+  'Legacy header breakpoints must not reintroduce a duplicate tablet/desktop navigation state.',
+)
+assert(
+  normalizedGlobalStyles.includes(
+    "button, input[type='search'] { min-height: 2.75rem; }",
   ) &&
-    compactDesktopHeaderStyles.includes('.site-search input { width: 11rem; }'),
-  'Compact desktop header rules must cover 896-960px.',
+    normalizedGlobalStyles.includes(
+      '.mobile-menu > summary { display: inline-flex; min-height: 2.75rem;',
+    ),
+  'Primary form and menu controls must preserve a 44px minimum target size.',
 )
 
 const rootDocument = await readHtml('index.html')
@@ -124,6 +136,27 @@ assert(
   hasAnchorWithText(rootDocument, '/article/rinen/', 'Wikiを読む'),
   'The Nuxt home-page start CTA is missing.',
 )
+const mainContent = findElements(rootDocument, 'div').find(
+  (node) => getAttribute(node, 'id') === 'main-content',
+)
+assert(
+  mainContent && getAttribute(mainContent, 'tabindex') === '-1',
+  'The skip link target must focus the page content after the side navigation.',
+)
+assert(
+  hasAnchorWithText(rootDocument, '#main-content', '本文へ移動'),
+  'The page must provide a content skip link.',
+)
+assert(
+  ['/article/in/', '/article/rule/', '/article/SurvivalCommand/'].every(
+    (href) => hasAnchorHref(rootDocument, href),
+  ),
+  'The root must keep the curated quick article links.',
+)
+assert(
+  elementText(rootDocument).includes('現在、公開中の記事はありません。'),
+  'Empty categories must remain explicit instead of rendering a blank list.',
+)
 
 const searchDocument = await readHtml('search/index.html')
 assert(
@@ -143,6 +176,12 @@ assertTrustedScriptNonce(searchDocument, '/search.js')
 assert(
   !hasScriptSource(searchDocument, adsenseSource),
   'Unmoderated search results must not load AdSense.',
+)
+assert(
+  elementText(searchDocument).includes(
+    'エースサーバー公式Wikiの記事をタイトルと本文から検索できます。',
+  ),
+  'Search must explain what the query covers.',
 )
 
 const notFoundDocument = await readHtml('404.html')
@@ -197,6 +236,20 @@ for (const article of articles) {
     getAttribute(node, 'class').split(/\s+/u).includes('article__body'),
   )
   assert(articleBody, `Article body is missing: ${article.slug}`)
+  const breadcrumbs = findElements(document, 'nav').find(
+    (node) => getAttribute(node, 'aria-label') === 'パンくずリスト',
+  )
+  assert(
+    breadcrumbs && elementText(breadcrumbs).includes(article.data.title),
+    `Article breadcrumb is missing: ${article.slug}`,
+  )
+  const visibleDescription = findElements(document, 'p').find((node) =>
+    getAttribute(node, 'class').split(/\s+/u).includes('article__description'),
+  )
+  assert(
+    elementText(visibleDescription).trim() === article.data.description,
+    `Article description must be visible: ${article.slug}`,
+  )
   assertExternalLinksAreUgc(articleBody, article.slug)
 }
 

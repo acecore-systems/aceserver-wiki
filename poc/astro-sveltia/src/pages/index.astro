@@ -4,6 +4,7 @@ import {
   HEADER_TITLE,
   ROOT_DESCRIPTION,
   ROOT_META_TITLE,
+  WIKI_QUICK_ARTICLE_IDS,
 } from '../config/wiki'
 import {
   getWikiArticles,
@@ -13,6 +14,10 @@ import {
 
 const articles = await getWikiArticles()
 const categories = groupWikiArticles(articles)
+const quickArticles = WIKI_QUICK_ARTICLE_IDS.flatMap((id) => {
+  const article = articles.find((item) => item.id === id)
+  return article ? [article] : []
+})
 ---
 
 <WikiLayout
@@ -26,17 +31,38 @@ const categories = groupWikiArticles(articles)
     <p class="home__description">{ROOT_DESCRIPTION}</p>
     <a class="home__start" href={articlePath('rinen')}>Wikiを読む</a>
 
+    <nav class="home__quick-links" aria-label="よく使う記事">
+      <h2>よく使う記事</h2>
+      <ul>
+        {
+          quickArticles.map((article) => (
+            <li>
+              <a href={articlePath(article.id)}>{article.data.title}</a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
     {
       categories.map((category) => (
         <section class="home__category">
           <h2>{category.name}</h2>
-          <ul>
-            {category.articles.map((article) => (
-              <li>
-                <a href={articlePath(article.id)}>{article.data.title}</a>
-              </li>
-            ))}
-          </ul>
+          {
+            category.articles.length > 0 ? (
+              <ul>
+                {category.articles.map((article) => (
+                  <li>
+                    <a href={articlePath(article.id)}>{article.data.title}</a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p class="home__empty">
+                現在、公開中の記事はありません。
+              </p>
+            )
+          }
         </section>
       ))
     }

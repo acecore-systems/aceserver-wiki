@@ -11,6 +11,11 @@ export const SEARCH_DESCRIPTION =
 export const BING_SITE_VERIFICATION = 'B670753BF4A50FA5437E5694CB04BAFD'
 export const ADSENSE_CLIENT = 'ca-pub-3935803464310919'
 export const WIKI_ICON_PATH = '/uploads/wiki/wiki-icon.png'
+export const WIKI_QUICK_ARTICLE_IDS = [
+  'in',
+  'rule',
+  'SurvivalCommand',
+] as const
 
 export const WIKI_CATEGORIES = [
   { id: '61e92e9f616290001858f8a4', name: 'イントロダクション' },

@@ -25,6 +25,9 @@ export async function getStaticPaths() {
 const { article } = Astro.props
 const articles = await getWikiArticles()
 const categories = groupWikiArticles(articles)
+const currentCategory = categories.find(({ name }) => {
+  return name === article.data.category
+})
 const { Content } = await render(article)
 const title = `${article.data.seoTitle ?? article.data.title}｜${SITE_NAME}`
 ---
@@ -40,7 +43,17 @@ const title = `${article.data.seoTitle ?? article.data.title}｜${SITE_NAME}`
   showAds={false}
 >
   <article class="article">
-    <h1 class="article__title">{article.data.title}</h1>
+    <header class="article__header">
+      <nav class="breadcrumbs" aria-label="パンくずリスト">
+        <ol>
+          <li><a href="/">トップ</a></li>
+          {currentCategory && <li>{currentCategory.name}</li>}
+          <li aria-current="page">{article.data.title}</li>
+        </ol>
+      </nav>
+      <h1 class="article__title">{article.data.title}</h1>
+      <p class="article__description">{article.data.description}</p>
+    </header>
     <div class="article__body">
       <Content />
     </div>
