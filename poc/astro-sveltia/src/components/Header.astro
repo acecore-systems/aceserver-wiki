@@ -1,4 +1,5 @@
 ---
+import EditLink from './EditLink.astro'
 import {
   HEADER_TITLE,
   WIKI_HEADER_LINKS,
@@ -29,7 +30,7 @@ const { categories, currentId } = Astro.props
           <a href={link.href}>{link.text}</a>
         ))
       }
-      <a href="/admin/" rel="nofollow">編集</a>
+      <EditLink />
     </nav>
 
     <form class="site-search" action="/search/" method="get" role="search">
@@ -59,7 +60,9 @@ const { categories, currentId } = Astro.props
                 </li>
               ))
             }
-            <li><a href="/admin/" rel="nofollow">編集</a></li>
+            <li class="mobile-menu__edit">
+              <EditLink />
+            </li>
           </ul>
 
           <form

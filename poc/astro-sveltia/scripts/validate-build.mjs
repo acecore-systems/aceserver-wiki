@@ -64,6 +64,17 @@ assert(
   expectedHeaderLinks.every((href) => hasAnchorHref(rootDocument, href)),
   'A configured header link is missing from the root.',
 )
+const editLinks = findElements(rootDocument, 'a').filter(
+  (node) =>
+    getAttribute(node, 'href') === '/admin/' &&
+    getAttribute(node, 'class').split(/\s+/u).includes('edit-link') &&
+    getAttribute(node, 'aria-label') === 'Wikiを編集' &&
+    elementText(node) === '編集',
+)
+assert(
+  editLinks.length === 2,
+  'Desktop and mobile edit links must use the clear Wiki edit CTA.',
+)
 assert(
   hasAnchorWithText(rootDocument, '/article/rinen/', 'Wikiを読む'),
   'The Nuxt home-page start CTA is missing.',

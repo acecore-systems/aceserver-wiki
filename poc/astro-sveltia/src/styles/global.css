@@ -188,6 +188,31 @@ a:hover {
   color: var(--color-text);
 }
 
+.site-links .edit-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--color-link);
+  border-radius: 4px;
+  background: var(--color-link);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.5;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s;
+}
+
+.site-links .edit-link:hover {
+  border-color: #0059b8;
+  background: #0059b8;
+  color: #fff;
+}
+
+.edit-link:focus-visible {
+  outline-color: var(--color-text);
+}
+
 .site-search {
   display: none;
   align-items: center;
@@ -337,6 +362,28 @@ a:hover {
 
 .mobile-menu__primary {
   margin: 20px 0 !important;
+}
+
+.mobile-menu__edit {
+  margin: 12px 24px 0 !important;
+}
+
+.mobile-menu__panel .edit-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border: 1px solid var(--color-link);
+  border-radius: 4px;
+  background: var(--color-link);
+  color: #fff;
+  font-weight: 700;
+}
+
+.mobile-menu__panel .edit-link:hover {
+  border-color: #0059b8;
+  background: #0059b8;
+  color: #fff;
 }
 
 .mobile-menu__search {
