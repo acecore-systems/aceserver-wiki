@@ -11,7 +11,7 @@ Markdownへ固定しました。
 - 未公開記事の画像参照8件（固有7件）: 7画像すべてを公開path外のmigration
   archiveへ保存し、うち1画像は既存公開assetとの完全一致も記録
 - Newtメディアライブラリ全体: 72ファイルを一括ZIPで取得し、ZIPと全ファイルの
-  SHA-256を固定。ZIP本体はprivate GitHub Releaseへ保管
+  SHA-256を固定。ローカルZIPと展開済みフォルダを検証し、遠隔保管は確認待ち
 - 下書き画像を`public/uploads/wiki`へ追加せず、本文は公開前reviewまで画像非表示
 
 移行manifestは
@@ -188,12 +188,15 @@ archiveは証跡保全用であり、Astroの公開静的ファイルではあ�
 - ZIP entry: 144（ファイル72、ディレクトリ72）
 - 展開後合計: `57115787` bytes
 - 危険な絶対path・`..` entry: 0
-- 保存先: private repository
+- 現在の保持状態: ローカルZIPと
+  `Aceserver-Newt完全バックアップ-2026-07-29`展開済みフォルダを検証済み
+- 遠隔保持予定: private repository
   `acecore-systems/aceserver-wiki`のGitHub Release
-  `newt-export-2026-07-29`
+  `newt-export-2026-07-29`（ユーザー確認後。現時点では未作成）
 
 ZIP本体を通常のGit履歴へ入れずcloneとCloudflare Pages buildを肥大化させないため、
-Release assetとして保持します。ファイル名、byte数、各SHA-256、ZIPの保持先は
+ローカルで確認後、必要に応じてRelease assetとして遠隔保持します。ファイル名、
+byte数、各SHA-256、現在の保持状態と遠隔保持予定は
 [`migration/newt-full-assets-2026-07-29-manifest.json`](./migration/newt-full-assets-2026-07-29-manifest.json)
 へ保存しています。manifestは恒久CIで、Newt管理画像と本文参照画像の既知対応も
 検証します。
@@ -246,10 +249,9 @@ npm run test:migration:acceptance
 
 記事本文・カテゴリ・リンクのAPI原本とMarkdown移行はrepository内で復元できます。
 下書き画像も7固有原本をarchiveでhash固定し、うち1件は既存assetとの完全一致も
-記録しました。さらにメディアライブラリ全72ファイルの一括ZIPもprivate GitHub
-Releaseへ保存し、ZIPと全ファイルのhashをrepositoryで固定しました。
-したがってWikiのarticle/category/link、参照画像、未参照を含むNewtメディアについて、
-Newtだけに残る原本はありません。公開15件は退役前snapshotとのmeta/category履歴
-照合も完了しています。
+記録しました。さらにメディアライブラリ全72ファイルの一括ZIPと展開済みフォルダを
+ローカルで検証し、ZIPと全ファイルのhashをrepositoryで固定しました。遠隔保管は
+ユーザー確認待ちのため、Newt削除はまだ実行しません。公開15件は退役前snapshotとの
+meta/category履歴照合も完了しています。
 ただし、下書き17件の内容確認と2件の追加security reviewは公開可否の判断として
 別に残ります。

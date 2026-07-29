@@ -20,7 +20,7 @@ const normalizedFullAssetManifestRaw = fullAssetManifestRaw.replace(
 const fullAssetManifest = JSON.parse(normalizedFullAssetManifestRaw)
 assert.equal(
   createHash('sha256').update(normalizedFullAssetManifestRaw).digest('hex'),
-  'cc28ed6ebb6872c046e70c02dc24537c3e6b5374c6a48b9ac74b78578500cdc5',
+  'da69c5b34a9813317672ff2dfc0756b0b9ac8f4b4865dd5e43e87f2b43f4d4d6',
   'The complete Newt asset manifest changed.',
 )
 
@@ -135,12 +135,19 @@ assert.deepEqual(
   'The complete Newt asset archive inventory changed.',
 )
 assert.deepEqual(fullAssetManifest.archive.retention, {
-  type: 'private-github-release-asset',
-  repository: 'acecore-systems/aceserver-wiki',
-  tag: 'newt-export-2026-07-29',
-  assetName: 'aceserver-newt-assets-2026-07-29.zip',
-  downloadUrl:
-    'https://github.com/acecore-systems/aceserver-wiki/releases/download/newt-export-2026-07-29/aceserver-newt-assets-2026-07-29.zip',
+  status: 'local-backup-verified-pending-user-review',
+  verifiedOn: '2026-07-29',
+  localZipSha256Verified: true,
+  localExtractedFolderName: 'Aceserver-Newt完全バックアップ-2026-07-29',
+  localExtractedFileCount: 72,
+  localExtractedBytes: 57_115_787,
+  plannedRemoteCopy: {
+    status: 'not-created',
+    type: 'private-github-release-asset',
+    repository: 'acecore-systems/aceserver-wiki',
+    tag: 'newt-export-2026-07-29',
+    assetName: 'aceserver-newt-assets-2026-07-29.zip',
+  },
 })
 assert.equal(
   new Set(fullAssetManifest.files.map(({ path }) => path)).size,

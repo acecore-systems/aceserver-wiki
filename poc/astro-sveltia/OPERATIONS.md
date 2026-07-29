@@ -102,7 +102,7 @@ top-level `sub`をDiscord IDとして使用しません。
 Wiki専用Appを`aceserver-wiki`だけへinstallし、権限を次に限定します。
 
 - Contents: Read and write
-- Pull requests: Read and write
+- Pull requests: No access
 - Metadata: Read（GitHubが必須化する既定権限）
 
 Webhook、GitHub OAuth callback、他repositoryへのinstallは不要です。
@@ -127,6 +127,9 @@ previewはpreview専用D1だけをbindingし、publication modeを`disabled`に�
 PagesのWrangler設定は`secrets.required`をサポートしないため、上表のsecretは
 Pages dashboardまたはAPIからproduction環境だけへ登録します。初回公開時と
 secret更新後は、productionのsecret名一覧とpreviewにsecretがないことを確認します。
+publication modeを`disabled`にするだけでは、preview branch内の任意コードによる
+secret読取を防げません。`CMS_GITHUB_APP_PRIVATE_KEY`がPreview environmentに
+存在しないことをCloudflare APIまたはdashboardで必ず別途確認します。
 
 ## CSPとFunctions経路
 
@@ -224,6 +227,9 @@ D1監査を成功へ確定できない場合、gatewayは成功レスポンス�
 このdirect publishはCMS管理対象のMarkdownと画像だけに限定します。source code、
 Astro schema、CMS設定、Pages Functions、workflowは作業branchのPRとCIで
 `main`へ反映します。
+参照中の記事・画像を誤って消さないよう、CMSからの削除は拒否します。削除が
+必要な場合は、保守担当者がGitHub Appとは別の通常の作業branchから参照確認を
+含むPull Requestを作成します。
 
 - readは1 Discord userあたり10分間に120回、全体で10秒間に60回かつ
   10分間に240回

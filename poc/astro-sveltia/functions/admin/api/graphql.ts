@@ -11,6 +11,7 @@ import {
 import {
   CMS_REPOSITORY,
   hasExpectedCmsRepositoryConfig,
+  isAllowedCmsDeletePath,
   isAllowedCmsWritePath,
   isCmsMarkdownPath,
   isCmsMediaPath,
@@ -59,7 +60,6 @@ type CmsCommitInput = {
 }
 
 type AuthenticatedIdentity = Extract<AccessIdentity, { ok: true }>
-type PublicationMode = 'direct' | 'review'
 type ReadQueryMode =
   'default-branch' | 'head' | 'file-contents' | 'file-history'
 type ReadAuthorization = {
@@ -144,9 +144,7 @@ export const onRequestPost: PagesFunction<CmsRuntimeEnv> = async ({
     }
 
     if (operation.operation === 'mutation') {
-      const publicationMode = getPublicationMode(env.CMS_PUBLICATION_MODE)
-
-      if (!publicationMode) {
+      if (env.CMS_PUBLICATION_MODE?.trim().toLowerCase() !== 'direct') {
         return json({ message: 'CMS publication modeの設定が不正です。' }, 503)
       }
 
@@ -156,7 +154,6 @@ export const onRequestPost: PagesFunction<CmsRuntimeEnv> = async ({
         env,
         operation,
         payload,
-        publicationMode,
         request,
       })
     }
@@ -249,7 +246,6 @@ async function handleCommitMutation({
   env,
   operation,
   payload,
-  publicationMode,
   request,
 }: {
   auth: AuthenticatedIdentity
@@ -257,7 +253,6 @@ async function handleCommitMutation({
   env: CmsRuntimeEnv
   operation: OperationDefinitionNode
   payload: GraphqlPayload
-  publicationMode: PublicationMode
   request: Request
 }) {
   if (!isCmsCommitOperation(operation, payload.variables)) {
@@ -325,8 +320,7 @@ async function handleCommitMutation({
   if (mutation.kind === 'reconcile') {
     try {
       const recovered = await reconcilePublication({
-        changedPaths,
-        publicationMode,
+        commitInput,
         reservation,
         token,
       })
@@ -341,9 +335,7 @@ async function handleCommitMutation({
           status: 200,
         })
 
-        if (publicationMode === 'direct') {
-          await deleteCmsBranch(reservation.publicationBranch, token)
-        }
+        await deleteCmsBranch(reservation.publicationBranch, token)
 
         return json(recovered.response, 200, {
           'X-CMS-Audit-Status': 'recorded',
@@ -443,54 +435,26 @@ async function handleCommitMutation({
     })
     const commitOid = getCommitOid(staged)
 
-    if (publicationMode === 'direct') {
-      await publishDirectCommit({
-        commitOid,
-        expectedHeadOid: mainSha,
-        token,
-      })
-
-      const response = withCmsExtension(staged, {
-        branch: CMS_REPOSITORY.branch,
-        mode: 'direct',
-      })
-
-      await completeCmsMutation({
-        branch: CMS_REPOSITORY.branch,
-        commitOid,
-        env,
-        reservation,
-        response,
-        status: 200,
-      })
-      await deleteCmsBranch(reservation.publicationBranch, token)
-
-      return json(response, 200, mutationResponseHeaders(reservation))
-    }
-
-    const pullRequest = await ensurePullRequest({
-      branch: reservation.publicationBranch,
-      changedPaths,
-      reservation,
+    await publishDirectCommit({
+      commitOid,
+      expectedHeadOid: mainSha,
       token,
     })
+
     const response = withCmsExtension(staged, {
-      branch: reservation.publicationBranch,
-      mode: 'review',
-      pull_request: {
-        number: pullRequest.number,
-        html_url: pullRequest.html_url,
-      },
+      branch: CMS_REPOSITORY.branch,
+      mode: 'direct',
     })
 
     await completeCmsMutation({
-      branch: reservation.publicationBranch,
+      branch: CMS_REPOSITORY.branch,
       commitOid,
       env,
       reservation,
       response,
       status: 200,
     })
+    await deleteCmsBranch(reservation.publicationBranch, token)
 
     return json(response, 200, mutationResponseHeaders(reservation))
   } catch (error) {
@@ -1478,7 +1442,7 @@ function parseCmsCommitInput(
     if (
       !path ||
       path !== deletion.path ||
-      !isAllowedCmsWritePath(path) ||
+      !isAllowedCmsDeletePath(path) ||
       paths.has(path)
     ) {
       return {
@@ -1519,7 +1483,7 @@ async function ensurePublicationCommit({
   reservation: CmsMutationReservation
   token: string
 }) {
-  let state = await inspectPublicationBranch(reservation, token)
+  let state = await inspectPublicationBranch(reservation, commitInput, token)
 
   if (state.kind === 'missing') {
     try {
@@ -1548,7 +1512,7 @@ async function ensurePublicationCommit({
         throw error
       }
 
-      state = await inspectPublicationBranch(reservation, token)
+      state = await inspectPublicationBranch(reservation, commitInput, token)
 
       if (state.kind === 'missing') {
         throw new GitHubApiError(
@@ -1576,6 +1540,7 @@ async function ensurePublicationCommit({
 
 async function inspectPublicationBranch(
   reservation: CmsMutationReservation,
+  commitInput: CmsCommitInput,
   token: string,
 ): Promise<PublicationBranchState> {
   const ref = await getOptionalGitRef(reservation.publicationBranch, token)
@@ -1604,6 +1569,13 @@ async function inspectPublicationBranch(
     )
   }
 
+  if (!(await verifyPublicationCommit(ref, commitInput, token))) {
+    throw new CmsStateError(
+      'CMS保存用branchのcommit内容をpathとblob SHAで照合できません。',
+      409,
+    )
+  }
+
   const committedDate =
     isRecord(commit.committer) && typeof commit.committer.date === 'string'
       ? commit.committer.date
@@ -1614,6 +1586,140 @@ async function inspectPublicationBranch(
     commitOid: ref,
     result: recoveredCommitResult(ref, committedDate),
   }
+}
+
+async function verifyPublicationCommit(
+  commitOid: string,
+  commitInput: CmsCommitInput,
+  token: string,
+) {
+  const details = await githubJson<unknown>({
+    path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/commits/${commitOid}?per_page=100`,
+    token,
+  })
+
+  if (
+    !isRecord(details) ||
+    details.sha !== commitOid ||
+    !Array.isArray(details.files)
+  ) {
+    throw new GitHubApiError('GitHub commit responseが不正です。', 502)
+  }
+
+  const actualPaths = new Set<string>()
+
+  for (const file of details.files) {
+    if (
+      !isRecord(file) ||
+      typeof file.filename !== 'string' ||
+      normalizeCmsPath(file.filename) !== file.filename
+    ) {
+      throw new GitHubApiError('GitHub commit files responseが不正です。', 502)
+    }
+
+    actualPaths.add(file.filename)
+
+    if (file.status === 'renamed') {
+      if (
+        typeof file.previous_filename !== 'string' ||
+        normalizeCmsPath(file.previous_filename) !== file.previous_filename
+      ) {
+        throw new GitHubApiError(
+          'GitHub renamed file responseが不正です。',
+          502,
+        )
+      }
+
+      actualPaths.add(file.previous_filename)
+    }
+  }
+
+  const expectedPaths = new Set([
+    ...commitInput.additions.map(({ path }) => path),
+    ...commitInput.deletions.map(({ path }) => path),
+  ])
+
+  if (
+    actualPaths.size !== expectedPaths.size ||
+    Array.from(expectedPaths).some((path) => !actualPaths.has(path))
+  ) {
+    return false
+  }
+
+  const tree = await fetchCmsTree(token, commitOid)
+  const blobShas = new Map(
+    tree.tree
+      .filter((item) => item.type === 'blob')
+      .map((item) => [item.path, item.sha]),
+  )
+
+  for (const addition of commitInput.additions) {
+    if (blobShas.get(addition.path) !== (await getGitBlobOid(addition))) {
+      return false
+    }
+  }
+
+  return commitInput.deletions.every(({ path }) => !blobShas.has(path))
+}
+
+async function getGitBlobOid(addition: ValidatedCmsAddition) {
+  const header = new TextEncoder().encode(`blob ${addition.byteSize}\0`)
+  const object = new Uint8Array(header.byteLength + addition.byteSize)
+
+  object.set(header)
+  decodeBase64Into(addition.contents, object, header.byteLength)
+
+  const digest = await crypto.subtle.digest('SHA-1', object)
+
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, '0'),
+  ).join('')
+}
+
+function decodeBase64Into(
+  value: string,
+  destination: Uint8Array,
+  offset: number,
+) {
+  let accumulator = 0
+  let bitCount = 0
+  let outputIndex = offset
+
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index)
+
+    if (code === 61) break
+
+    const decoded = decodeBase64Char(code)
+
+    if (decoded < 0) {
+      throw new GitHubApiError('CMS base64 dataが不正です。', 400)
+    }
+
+    accumulator = (accumulator << 6) | decoded
+    bitCount += 6
+
+    if (bitCount < 8) continue
+
+    bitCount -= 8
+    destination[outputIndex] = (accumulator >> bitCount) & 0xff
+    outputIndex += 1
+    accumulator &= (1 << bitCount) - 1
+  }
+
+  if (outputIndex !== destination.byteLength) {
+    throw new GitHubApiError('CMS base64 sizeが不正です。', 400)
+  }
+}
+
+function decodeBase64Char(code: number) {
+  if (code >= 65 && code <= 90) return code - 65
+  if (code >= 97 && code <= 122) return code - 71
+  if (code >= 48 && code <= 57) return code + 4
+  if (code === 43) return 62
+  if (code === 47) return 63
+
+  return -1
 }
 
 async function getOptionalGitRef(branch: string, token: string) {
@@ -1637,58 +1743,33 @@ async function getOptionalGitRef(branch: string, token: string) {
 }
 
 async function reconcilePublication({
-  changedPaths,
-  publicationMode,
+  commitInput,
   reservation,
   token,
 }: {
-  changedPaths: string[]
-  publicationMode: PublicationMode
+  commitInput: CmsCommitInput
   reservation: CmsMutationReservation
   token: string
 }) {
-  const staged = await inspectPublicationBranch(reservation, token)
+  const staged = await inspectPublicationBranch(reservation, commitInput, token)
 
   if (staged.kind !== 'commit') {
     return { kind: 'retry' as const }
   }
 
-  if (publicationMode === 'direct') {
-    await publishDirectCommit({
-      commitOid: staged.commitOid,
-      expectedHeadOid: reservation.expectedHeadOid,
-      token,
-    })
-
-    return {
-      kind: 'published' as const,
-      branch: CMS_REPOSITORY.branch,
-      commitOid: staged.commitOid,
-      response: withCmsExtension(staged.result, {
-        branch: CMS_REPOSITORY.branch,
-        mode: 'direct',
-      }),
-    }
-  }
-
-  const pullRequest = await ensurePullRequest({
-    branch: reservation.publicationBranch,
-    changedPaths,
-    reservation,
+  await publishDirectCommit({
+    commitOid: staged.commitOid,
+    expectedHeadOid: reservation.expectedHeadOid,
     token,
   })
 
   return {
     kind: 'published' as const,
-    branch: reservation.publicationBranch,
+    branch: CMS_REPOSITORY.branch,
     commitOid: staged.commitOid,
     response: withCmsExtension(staged.result, {
-      branch: reservation.publicationBranch,
-      mode: 'review',
-      pull_request: {
-        number: pullRequest.number,
-        html_url: pullRequest.html_url,
-      },
+      branch: CMS_REPOSITORY.branch,
+      mode: 'direct',
     }),
   }
 }
@@ -1796,91 +1877,6 @@ async function deleteCmsBranch(branch: string, token: string) {
         error: error instanceof Error ? error.message : String(error),
       }),
     )
-  }
-}
-
-async function ensurePullRequest({
-  branch,
-  changedPaths,
-  reservation,
-  token,
-}: {
-  branch: string
-  changedPaths: string[]
-  reservation: CmsMutationReservation
-  token: string
-}) {
-  const existing = await findOpenPullRequest(branch, token)
-
-  if (existing) return existing
-
-  const primaryPath = summarizePath(changedPaths[0])
-  const extraCount = changedPaths.length - 1
-  const title =
-    `cms: update ${primaryPath}` +
-    `${extraCount > 0 ? ` (+${extraCount})` : ''}`
-  const result = await githubJson<unknown>({
-    body: {
-      base: CMS_REPOSITORY.branch,
-      body: [
-        'Sveltia CMSの保存をDiscord認証済みユーザーから受け付けました。',
-        '',
-        `- Request ID: ${reservation.requestId}`,
-        `- ${reservation.commitMarker}`,
-        '- Files:',
-        ...changedPaths.map((path) => `  - \`${path}\``),
-        '',
-        '画像とMarkdownは同じcommitに含まれています。',
-        'CIでschema、content、buildを確認してからmainに取り込んでください。',
-      ].join('\n'),
-      head: branch,
-      title,
-    },
-    method: 'POST',
-    path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/pulls`,
-    token,
-  })
-
-  if (
-    !isRecord(result) ||
-    typeof result.number !== 'number' ||
-    typeof result.html_url !== 'string'
-  ) {
-    throw new GitHubApiError('GitHub pull request responseが不正です。', 502)
-  }
-
-  return {
-    number: result.number,
-    html_url: result.html_url,
-  }
-}
-
-async function findOpenPullRequest(branch: string, token: string) {
-  const head = encodeURIComponent(`${CMS_REPOSITORY.owner}:${branch}`)
-  const pulls = await githubJson<unknown>({
-    path: `/repos/${CMS_REPOSITORY.owner}/${CMS_REPOSITORY.name}/pulls?state=open&base=${CMS_REPOSITORY.branch}&head=${head}&per_page=2`,
-    token,
-  })
-
-  if (!Array.isArray(pulls)) {
-    throw new GitHubApiError('GitHub pull request一覧が不正です。', 502)
-  }
-
-  const pull = pulls[0]
-
-  if (pull === undefined) return null
-
-  if (
-    !isRecord(pull) ||
-    typeof pull.number !== 'number' ||
-    typeof pull.html_url !== 'string'
-  ) {
-    throw new GitHubApiError('GitHub pull request responseが不正です。', 502)
-  }
-
-  return {
-    number: pull.number,
-    html_url: pull.html_url,
   }
 }
 
@@ -2093,15 +2089,6 @@ function getCommitOid(result: Record<string, unknown>) {
   }
 
   return data.createCommitOnBranch.commit.oid
-}
-
-function getPublicationMode(value: string | undefined): PublicationMode | null {
-  const normalized = value?.trim().toLowerCase()
-
-  if (normalized === 'review') return 'review'
-  if (normalized === 'direct') return 'direct'
-
-  return null
 }
 
 function validateBrowserRequestBoundary(request: Request) {

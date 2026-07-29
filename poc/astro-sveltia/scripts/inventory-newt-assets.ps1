@@ -77,11 +77,19 @@ try {
       totalUncompressedBytes = $totalUncompressedBytes
       unsafeEntryCount = 0
       retention = [ordered]@{
-        type = 'private-github-release-asset'
-        repository = 'acecore-systems/aceserver-wiki'
-        tag = 'newt-export-2026-07-29'
-        assetName = 'aceserver-newt-assets-2026-07-29.zip'
-        downloadUrl = 'https://github.com/acecore-systems/aceserver-wiki/releases/download/newt-export-2026-07-29/aceserver-newt-assets-2026-07-29.zip'
+        status = 'local-backup-verified-pending-user-review'
+        verifiedOn = '2026-07-29'
+        localZipSha256Verified = $true
+        localExtractedFolderName = 'Aceserver-Newt完全バックアップ-2026-07-29'
+        localExtractedFileCount = 72
+        localExtractedBytes = 57115787
+        plannedRemoteCopy = [ordered]@{
+          status = 'not-created'
+          type = 'private-github-release-asset'
+          repository = 'acecore-systems/aceserver-wiki'
+          tag = 'newt-export-2026-07-29'
+          assetName = 'aceserver-newt-assets-2026-07-29.zip'
+        }
       }
     }
     files = $files

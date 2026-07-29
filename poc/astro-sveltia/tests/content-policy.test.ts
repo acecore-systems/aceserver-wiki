@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  isAllowedCmsDeletePath,
   isAllowedCmsWritePath,
   normalizeCmsPath,
 } from '../functions/admin/api/_cms-policy.ts'
@@ -26,6 +27,12 @@ describe('CMS path policy', () => {
 
     expect(normalizeCmsPath(path)).toBe(path)
     expect(isAllowedCmsWritePath(path)).toBe(true)
+    expect(isAllowedCmsDeletePath(path)).toBe(false)
+    expect(
+      isAllowedCmsDeletePath(
+        'poc/astro-sveltia/public/uploads/wiki/example.png',
+      ),
+    ).toBe(false)
   })
 
   it.each([
@@ -82,6 +89,20 @@ describe('CMS content validation', () => {
       VALID_MARKDOWN.replace(
         '本文は **Markdown** で保存します。',
         '[開く](java&#x73;cript:alert(1))',
+      ),
+    ],
+    [
+      'numeric entity whitespace in dangerous URI',
+      VALID_MARKDOWN.replace(
+        '本文は **Markdown** で保存します。',
+        '[開く](java&#x09;script:alert(1))\n[開く](java&#13;script:alert(1))',
+      ),
+    ],
+    [
+      'named entity whitespace in dangerous URI',
+      VALID_MARKDOWN.replace(
+        '本文は **Markdown** で保存します。',
+        '[開く](java&Tab;script:alert(1))\n[開く](java&NewLine;script:alert(1))',
       ),
     ],
     [
