@@ -1,0 +1,397 @@
+{
+  "schemaVersion": 1,
+  "observedOn": "2026-07-29",
+  "source": {
+    "service": "Newt",
+    "spaceUid": "aceserver",
+    "captureMethod": "Newt space asset bulk download"
+  },
+  "archive": {
+    "originalFileName": "download_295f23a6-6ddc-48a4-98f2-88686d19c6f1_1_72.zip",
+    "retainedFileName": "aceserver-newt-assets-2026-07-29.zip",
+    "bytes": 56092455,
+    "sha256": "28c12ec7a436c672a0fc562cad4d3f114f9e8ad1967050743078cefc51f5b4e1",
+    "entryCount": 144,
+    "fileCount": 72,
+    "directoryCount": 72,
+    "totalUncompressedBytes": 57115787.0,
+    "unsafeEntryCount": 0,
+    "retention": {
+      "status": "local-backup-verified-pending-user-review",
+      "verifiedOn": "2026-07-29",
+      "localZipSha256Verified": true,
+      "localExtractedFolderName": "Aceserver-Newt完全バックアップ-2026-07-29",
+      "localExtractedFileCount": 72,
+      "localExtractedBytes": 57115787,
+      "plannedRemoteCopy": {
+        "status": "not-created",
+        "type": "private-github-release-asset",
+        "repository": "acecore-systems/aceserver-wiki",
+        "tag": "newt-export-2026-07-29",
+        "assetName": "aceserver-newt-assets-2026-07-29.zip"
+      }
+    }
+  },
+  "files": [
+    {
+      "path": "01a216af-fcf4-4b76-adfb-fd92c6d210a5/スクリーンショット2023-03-1913.55.14.png",
+      "bytes": 333088,
+      "sha256": "ac92aaa713a104bd0611bd832aca551452dd654f466dd1b3880701b5ef55415f"
+    },
+    {
+      "path": "026fe37b-667b-4e94-ab9b-3cca9558d14f/2022-08-20_12.13.42.png",
+      "bytes": 4502008,
+      "sha256": "e861b3b709bcaa8129a351326277dbec7daf90f9dc0894d2f460d403664bd0a3"
+    },
+    {
+      "path": "0c380442-a2f7-42dd-9905-54dc76df8e58/2020-11-07_10.42.49.png",
+      "bytes": 2636141,
+      "sha256": "c918c588c4253f8b9e6b448c6b55b55849cc7d94326bc658d05cf8293fd52a42"
+    },
+    {
+      "path": "0cadd608-7b14-4fe9-9b55-5ff54fca6efb/enc3-1.png",
+      "bytes": 483527,
+      "sha256": "307098c54fa5a4fbc445b5f51abeebd6ab0c139aeb0f01a394acd943fe5085a8"
+    },
+    {
+      "path": "0e290472-07ec-4990-9f50-209f4d2b99fd/server-icon.png",
+      "bytes": 2773,
+      "sha256": "a5db0a196246692fbcce4d826cc8969139223f4ca5c427b8623dbff0f70db28b"
+    },
+    {
+      "path": "0f38ee8a-f748-4c6f-b2e5-e7b8f096decd/2021-01-01_12.47.29.png",
+      "bytes": 1007963,
+      "sha256": "a48f9aeff5837de2dd0e2b37fea19a8d20eeaf62192e07e13f9c52ce3f0f2101"
+    },
+    {
+      "path": "0f6b0926-a287-48c8-965d-a7adb51d988d/鳥作A鯖ロゴ.png",
+      "bytes": 173587,
+      "sha256": "3d4912a2975af171e09571867f29b5118cac3c8e189f5639cd781fdb4aa25dbf"
+    },
+    {
+      "path": "13f2df18-c7ba-4248-a314-0fb9d156c2b6/鳥作A鯖ロゴ2.jpg",
+      "bytes": 92018,
+      "sha256": "a532c536e85d48ef52b67fecfd5fd383a785c846b1ffb52911d65ade793b3085"
+    },
+    {
+      "path": "152929c0-657d-47d6-808f-297af7698d6c/草コマンド説明_007.png",
+      "bytes": 7400,
+      "sha256": "7515ddeb66503fadc8fd4537c3401f10a5c4fdc08151a8dc85789a2fb36e5f4e"
+    },
+    {
+      "path": "169d8f8b-3140-4ed8-a9a7-258507c5261a/enc1.png",
+      "bytes": 50319,
+      "sha256": "15f3edf515c0335f87549476592c194bd0202859b83c88c689d08dc42970ccaa"
+    },
+    {
+      "path": "1d8875b5-a446-4445-90b6-22e50df1c4a9/2021-02-19_14.17.26.png",
+      "bytes": 864110,
+      "sha256": "cc839693abcff8104ebf5c83eba1404e04c6e99980766ab109ddd4463a8f0ba6"
+    },
+    {
+      "path": "1d9872c3-2c86-4087-ac29-ae7e91ee46be/草コマンド説明_009.png",
+      "bytes": 23338,
+      "sha256": "7521b6be700b8f91cbeaa9e7dd51891e032d62d68569f899c90e605d7ce85b55"
+    },
+    {
+      "path": "25c9dc58-c237-4e1d-bddc-8df364c2cc3e/謎のアイコン.png",
+      "bytes": 277350,
+      "sha256": "410790601b62a9327862d6e1f4ae29c8a284c3125d93453809d186c962cc35df"
+    },
+    {
+      "path": "2898c52d-a4cd-42e2-b979-78e372178f35/client.png",
+      "bytes": 14395,
+      "sha256": "fef13dd644f96539d42936f3af718f5bc5cecccf5dfb2f868cc3c73504377417"
+    },
+    {
+      "path": "2c8452ac-7ba8-45e4-abf3-b0c53717ec6b/unknown.png",
+      "bytes": 2607210,
+      "sha256": "3a03a7db524ca3c0d9f0631fe58b4c307d9ea57ba94346b1b0975731d816bd7c"
+    },
+    {
+      "path": "2e6b6947-0bfc-43b1-b84f-93712360f0a3/dubai-desert-safari-6826298_1920.jpg",
+      "bytes": 218523,
+      "sha256": "d6f86b9193abf3ac5dec509627403cea2cf06ae7e0c03ce3875b4382005fd685"
+    },
+    {
+      "path": "3609b136-e691-4fce-8f66-13fbe770632b/2021-02-14_08.38.33.png",
+      "bytes": 2338409,
+      "sha256": "a0582f8790bffb20fc5ba145186ae6c1aa76f2805375ed322b717453e4cd2dd9"
+    },
+    {
+      "path": "3af976d8-b09d-4dab-b33f-0caab4d70ff9/web-3120321_1920.png",
+      "bytes": 176109,
+      "sha256": "383960f1711e9d72a2f8d80e48a06447d0b7e9323b29a7ef868a09aa36f74501"
+    },
+    {
+      "path": "3db4d2a4-4e1c-4617-9d6e-e0597ac5ca98/草コマンド説明_002.png",
+      "bytes": 8556,
+      "sha256": "5fbd0b0a183e66212b7728ee054c26e835652ca2d268a00d34f61c2f6da22c1f"
+    },
+    {
+      "path": "4005dc11-e565-4895-894a-6295247df16a/草コマンド説明_010.png",
+      "bytes": 3714,
+      "sha256": "dce0b46e5a8975bb5ad9f496e9f10d30f3a9e1e746dd79f08d86cc64f1da4001"
+    },
+    {
+      "path": "438dcf83-9019-451e-8054-8b02848bae08/peter-conlan-LEgwEaBVGMo-unsplash.jpg",
+      "bytes": 3253351,
+      "sha256": "ceabd5666abd33a383fe936794dedcb412fcaee29b9c1f172779eaf3c17f1d0e"
+    },
+    {
+      "path": "4512b06a-ef15-48c1-86db-3d696baf3f73/enc2-2.png",
+      "bytes": 154392,
+      "sha256": "a5acff35bc6bb2422af60b7f416da2254cb612388851f9b1e1d2204370daa887"
+    },
+    {
+      "path": "48946ae8-4496-4e8f-8bcc-4349318ca026/icon2.png",
+      "bytes": 139548,
+      "sha256": "c83056b983c1420ede6de165a6fd607cb90a1e3e3aa9d323a34fef571e501216"
+    },
+    {
+      "path": "4b06abf2-8066-4c09-88b6-12b9fbe2926c/草コマンド説明_001.png",
+      "bytes": 6558,
+      "sha256": "728c7ff09459a5da5b373f662961d89bc5ddb90f78d895aa0fdc766068f000d1"
+    },
+    {
+      "path": "4b4e6634-3883-419c-8325-dbfff28db59a/スクリーンショット2023-03-1913.54.43.png",
+      "bytes": 2137726,
+      "sha256": "a3064300f55ca4c2c48fe1aa31ad183e0f82fe84f7dd8266f19d0a9dd93fad0a"
+    },
+    {
+      "path": "518088bb-6b22-444d-b0b8-629de3031714/enc4-1.png",
+      "bytes": 303293,
+      "sha256": "59fb190ab803e0c6685ec6b49e700203e5a53f8b419a1a72ad09fca4e909059c"
+    },
+    {
+      "path": "5730cfaa-3347-4da8-900d-45b007decc1a/rob-mid.png",
+      "bytes": 3376,
+      "sha256": "d83ce8736c371f658bcbdd0ceb26b6791623f98a0d8279dd48e492847ac590cc"
+    },
+    {
+      "path": "60694aa2-c892-4ee1-95d9-e789b4367cfb/2021-02-14_11.41.20-コピー.png",
+      "bytes": 839242,
+      "sha256": "68ad6ab9448d44a9ccca709c2ca8b1e00fbc31e65f1be776bc165ee0d3f27281"
+    },
+    {
+      "path": "731af21a-e29c-4afd-90e6-ff62af3690e0/icon.png",
+      "bytes": 82779,
+      "sha256": "ac4d632b89a6f2f4158cc03349208b160ae49287227babf5ed5dad40eb3afd6a"
+    },
+    {
+      "path": "7628346f-e3b9-406e-8bd8-a09192be4d19/草コマンド説明_003.png",
+      "bytes": 9368,
+      "sha256": "bdbaeeed939aa60d679137c0c2154efd02fbeae3545f98ae06c0b71d2fad09c7"
+    },
+    {
+      "path": "7e5d8b5e-7027-449d-b36d-b90b315afb02/paint-958689_1920.jpg",
+      "bytes": 424309,
+      "sha256": "54bf5ec9f5d0cc0949e089913bdffd6949061fdf2a760b444d0b00bc31716d10"
+    },
+    {
+      "path": "7eab2c29-fedb-467d-afd1-f04f1b30d095/image_2026-07-15_095855322.png",
+      "bytes": 1140618,
+      "sha256": "bd0af46d53cfbffaedb122b4e999af883990a58ed10cbd785979d069431646aa"
+    },
+    {
+      "path": "82649290-4d32-4d9d-93e6-3adb3ff62f91/enc2-3.png",
+      "bytes": 221026,
+      "sha256": "0c4d660af5c5f5ffad9ff9bfb8a2b8de70f8878a94034cdfc1ea04824fc7036f"
+    },
+    {
+      "path": "87409d7d-00a3-4dea-9c44-29829b663707/sousukesanisGOD.png",
+      "bytes": 41331,
+      "sha256": "7ebe54f8eb77b07836d4944f149311df741c15f33b70b175aa7d9a5401436f65"
+    },
+    {
+      "path": "89922600-767f-4d8d-9318-e92f2879511a/E3FA5126-3C9F-48A9-A08E-6DBFFC93E8BF.png",
+      "bytes": 1346932,
+      "sha256": "d938207f74af8e1d759cb3e755e2fb3ebd74df8d4ad78866cc09d0b96ed7a129"
+    },
+    {
+      "path": "8bc4803b-7ef4-4af4-bc65-b195af07853d/草コマンド説明_006.png",
+      "bytes": 4831,
+      "sha256": "4c6404dd7bbf85e4c0fb4806c9238f48e06606fd4152e2574aa9c412b5ed5f6a"
+    },
+    {
+      "path": "8f553592-b8d5-4581-b752-5efd617ceae1/LoginSecurity_register.png",
+      "bytes": 22999,
+      "sha256": "4a2805173589f6196fa66954f2a9382276ac87041cdf96d72a79809625e60aea"
+    },
+    {
+      "path": "904bc2ed-2579-419d-a46b-3f3e864e5d68/草コマンド説明_011.png",
+      "bytes": 6103,
+      "sha256": "bea2d209242a858e8ae63caad036698cd4eace68854fb0475da605ceb8bfbfce"
+    },
+    {
+      "path": "9053c1e3-5868-4479-8ef2-7b3504b4fd03/草コマンド説明_008.png",
+      "bytes": 22048,
+      "sha256": "125f9b3d900b61c03bf786d931defe1ce9fa04c45d49a2ae8123aa1e7480c19b"
+    },
+    {
+      "path": "97336a4f-d842-44f3-8502-7057ec746c1a/2022-08-20_12.13.42.png",
+      "bytes": 4502008,
+      "sha256": "e861b3b709bcaa8129a351326277dbec7daf90f9dc0894d2f460d403664bd0a3"
+    },
+    {
+      "path": "9c454264-be39-4acf-a96a-79cfbc150774/SCC.png",
+      "bytes": 2968610,
+      "sha256": "fb6fac81285c1d12e1b8ef90bc4d51a4a4c33cde7fa0584f8ffb20c58459c1e4"
+    },
+    {
+      "path": "b099b37a-0849-425c-a7af-0c3d26a089c8/2023-03-06_21.17.24.png",
+      "bytes": 26865,
+      "sha256": "b37707659ef9932c530cdda4225fbde623f728774d81ab18e5322bb2f212c56a"
+    },
+    {
+      "path": "b34e3195-8609-48d7-9008-707afa68497f/2023-03-06_21.16.23.png",
+      "bytes": 745935,
+      "sha256": "1266db59dd3dd8a716f2dbcdc91e66dddc9b176915b11d159071d5d1793d088b"
+    },
+    {
+      "path": "bf936ca1-2f07-46bb-ad23-9e2a6290ad25/shaking-hands.jpg",
+      "bytes": 140587,
+      "sha256": "1a5fcfc9be301d1ca188e3825bb92b8eddf6945d22e55d73c73ce3e96382edbb"
+    },
+    {
+      "path": "c1727444-80b7-4668-8a76-dbe5fc30f775/enc5-1.png",
+      "bytes": 131025,
+      "sha256": "9cbcea3c44ce0eb1cc5779caa9a536697170c84550191e0338695169e73f612f"
+    },
+    {
+      "path": "c2a4f8f0-9492-4b07-bdef-a35fad1ba11d/2023-03-10_15.16.01.png",
+      "bytes": 2390336,
+      "sha256": "d28d45e54d00efd1835a8c8995ff30ac695eba7eb380390d8a0be7113a7c9953"
+    },
+    {
+      "path": "c726659c-8e90-4efc-aa8b-ee3e85b6498f/2021-05-16_12.38.56_2.png",
+      "bytes": 4219689,
+      "sha256": "7e9aa8d321afd2479d71d600aca53261b9ccdcc4ac2ec7c182a55094b1083715"
+    },
+    {
+      "path": "c9f4b1fb-c97f-4553-9493-6f2603b34d88/草コマンド説明_004.png",
+      "bytes": 6880,
+      "sha256": "b2505e89cd982c07177fef1c2c0f70c20cfa05391e55ad3efe36a1d80c888162"
+    },
+    {
+      "path": "cac5710f-19ce-4154-a5bb-77431261a2af/LoginSecurity_passlimit.png",
+      "bytes": 70853,
+      "sha256": "ed7d95c4f95514c2a54488eec238552177dd0e9e78434abd2594d702f6051de5"
+    },
+    {
+      "path": "cdb3e43c-31f4-4e3f-b404-13852ea1c68e/kin-ao.png",
+      "bytes": 11969,
+      "sha256": "56ffb1934d045268a1dba34bb5a6ab84bed4389dc30f6555437fb035819ca1c1"
+    },
+    {
+      "path": "cf33b9fd-4dd0-4662-b4d2-db3194b2a7fa/acico.png",
+      "bytes": 136025,
+      "sha256": "c060fc2ccb72a3d20df856f0468052cc813862c2a935c0c2d61430d7baf9305c"
+    },
+    {
+      "path": "d22a9544-afd1-42e9-b253-42d52e930b3a/acico.png",
+      "bytes": 136025,
+      "sha256": "c060fc2ccb72a3d20df856f0468052cc813862c2a935c0c2d61430d7baf9305c"
+    },
+    {
+      "path": "d5d7c0e4-dcd7-4c7a-b8b0-ecf5e538b15f/草コマンド説明_005.png",
+      "bytes": 6910,
+      "sha256": "bc197dfb3f2527b9a3bd804aa575e9fe8fea95e97ed9a6bbdc6ecc700ca59ce1"
+    },
+    {
+      "path": "dc01a920-fb28-46d4-9537-e579f792bf20/newspapers-4565916_1920.jpg",
+      "bytes": 327076,
+      "sha256": "b378377eff20afbf06547423fc3d5bd45de11c55af3037916e05593764c92c59"
+    },
+    {
+      "path": "e1507a8e-4ed9-41fa-b5e7-2d8c53ef1f9c/image_2026-07-15_095728508.png",
+      "bytes": 21515,
+      "sha256": "04db4260eaac671e273d2e24f38d488e14c2772c4fe24b7deb544da1800197a0"
+    },
+    {
+      "path": "e1560a13-f13e-4842-927f-bec328df9ffd/2021-01-17_15.03.32.jpg",
+      "bytes": 682360,
+      "sha256": "1257e656d433b00aa7b5381f8d2b83404495802cf92f276f64255f6ce4c5accd"
+    },
+    {
+      "path": "e28c731b-3d06-4c0c-adb0-b58a6e353c98/enc2-1.png",
+      "bytes": 91393,
+      "sha256": "0d045907357849276f7786abc30f6fa5d40b4e4e6f367839df17210ff66e85fa"
+    },
+    {
+      "path": "e29da8a6-5fab-477d-bb26-dea5674e8754/rob-ao.png",
+      "bytes": 3784,
+      "sha256": "cb7fb4e9ff445f19d85a349bb2d462ad46d291791a5a8d6e2a68b908d7de4df9"
+    },
+    {
+      "path": "e3045046-19f0-46cc-8eed-d1d3cd219443/2023-03-06_21.18.26.png",
+      "bytes": 89515,
+      "sha256": "b1fa77eb2ad20b84cdec4d49504cd6e005d6b06b0daa170ed539c9a196c19746"
+    },
+    {
+      "path": "e358d8a6-cf3a-44e8-b108-1dcf52eec7b7/2021-02-20_13.41.33-コピー.png",
+      "bytes": 523989,
+      "sha256": "dd4a56d3f376a39641da9700b715c200ece6aa24ea285044dc5fc2f9f06f086b"
+    },
+    {
+      "path": "e66e89ac-89d4-48e2-a06b-be63362df1e3/草.png",
+      "bytes": 553815,
+      "sha256": "798d917634a2adb35eab98ea299dd2f962305ef04dc6c65329d17a37fac02ffc"
+    },
+    {
+      "path": "e7df6024-5f8e-4fd5-b755-24aa114d3f3c/1.png",
+      "bytes": 485380,
+      "sha256": "6bcd9dd10e70291cfb1e2b41a7093d8715ebb23c35d1153f45371222cf9b7a41"
+    },
+    {
+      "path": "ea4bd809-8b83-4877-9c1b-3137bdd7df42/kin-aka.png",
+      "bytes": 8377,
+      "sha256": "3da53ad8c28a28eb48c34ebf48368d13be7df5a32cd43db8eba33ffa3761c64f"
+    },
+    {
+      "path": "edbd5757-78bf-47cf-9a02-725bf24eb1d1/2021-02-20_14.49.13.png",
+      "bytes": 652225,
+      "sha256": "1cb320c9719d79184e0ee035bcd8894facf27c58c09ce5f799ea2693bb000ab2"
+    },
+    {
+      "path": "f04546c4-90f8-4e85-8f3e-ae872aea8af3/草コマンド説明_012.png",
+      "bytes": 24228,
+      "sha256": "9cf63ed0879f14d5e84fe44a0d4cd8e4784ed7603b89a1163832bcd7c908c113"
+    },
+    {
+      "path": "f321c219-5fe8-47b3-aa96-65be69436dc7/hahahaw.png",
+      "bytes": 73479,
+      "sha256": "377a14625daa106c023b26dbf12f33906f6f90879990ad56b0901492d6ed230f"
+    },
+    {
+      "path": "f3fae514-e9f7-44c7-9ac7-281e77ef7045/砂漠の少年.png",
+      "bytes": 338403,
+      "sha256": "74ebd483ea1af0f52857d904dbd490da8419cca220e1ae4009be85b5ca039bfd"
+    },
+    {
+      "path": "f42c284e-8aff-4273-b386-ed715991c4c8/kas-ki.png",
+      "bytes": 6506,
+      "sha256": "33dc6db02b536dd8a6d6083e017e77a3c83d13d6d4e1ac15d17cddf6a871c98f"
+    },
+    {
+      "path": "f4f00cbf-0c4d-46b3-88f0-c301e1cb53fe/2023-03-10_15.16.01.png",
+      "bytes": 2390336,
+      "sha256": "d28d45e54d00efd1835a8c8995ff30ac695eba7eb380390d8a0be7113a7c9953"
+    },
+    {
+      "path": "f7446e60-3908-48ce-a4a6-7f5683d3b585/joshua-earle-ICE__bo2Vws-unsplash.jpg",
+      "bytes": 915962,
+      "sha256": "a528c21d25bd456a8e097429da8d049561981ae1cae33f0ad317827e02eb49fd"
+    },
+    {
+      "path": "fabac395-edbc-490e-9617-a2b1236afabc/kin-kin.png",
+      "bytes": 7015,
+      "sha256": "32514b51cf08c2e6445bc3a75c623f1bcc0e5e63acc85307ac62543ec72b8152"
+    },
+    {
+      "path": "ffb17b13-6201-47c3-b93e-04c2234f0e9e/ラルクルウッド・ゲー背景無し.png",
+      "bytes": 8446344,
+      "sha256": "387e6cd1c593a25dc8db0344f764c6206c7f13cea481e291236dbfd0fd6876a5"
+    }
+  ]
+}

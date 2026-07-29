@@ -1,0 +1,1410 @@
+{
+  "schemaVersion": 1,
+  "migrationPreparedOn": "2026-07-29",
+  "sourceExport": {
+    "directory": "migration/newt-full-export-2026-07-29",
+    "manifestPath": "migration/newt-full-export-2026-07-29/manifest.json",
+    "manifestBytes": 1172,
+    "manifestSha256": "a7b42a3c1d048dad44db4f491843109f5dc1ebd9f24084997c4cd1ef562049d5",
+    "exportedAt": "2026-07-28T15:39:44.637Z",
+    "source": {
+      "spaceUid": "aceserver",
+      "appUid": "wiki",
+      "apiType": "api",
+      "depth": 2
+    },
+    "files": [
+      {
+        "modelUid": "article",
+        "fileName": "article.json",
+        "bytes": 144037,
+        "sha256": "af65a6c1380c68669d663dd55a594ed637b65efabea3923695167cedb3a1f8ae",
+        "total": 32,
+        "items": 32,
+        "uniqueIds": 32
+      },
+      {
+        "modelUid": "category",
+        "fileName": "category.json",
+        "bytes": 4478,
+        "sha256": "2b0f856e9dfa304eb1c42262a8650b7ff8627dc5d596d7fa65cfb703cea482aa",
+        "total": 9,
+        "items": 9,
+        "uniqueIds": 9
+      },
+      {
+        "modelUid": "link",
+        "fileName": "link.json",
+        "bytes": 1579,
+        "sha256": "d283d9b587acbfd5f8f259fa7a1bc283f605d90eeae021ea481c021e8106a7f3",
+        "total": 3,
+        "items": 3,
+        "uniqueIds": 3
+      }
+    ]
+  },
+  "uiEvidence": {
+    "evidencePath": "migration/newt-full-export-2026-07-29/model-view-schema.json",
+    "evidenceBytes": 2964,
+    "evidenceSha256": "074003a7c9713d07cf463cc2eded30ace45de821984648f9eff7cb34a837afd1",
+    "observedOn": "2026-07-29",
+    "source": {
+      "spaceUid": "aceserver",
+      "appUid": "wiki",
+      "appName": "エースサーバーWIKI",
+      "captureMethod": "Newt management UI JSON preview and view settings"
+    },
+    "appExport": {
+      "availableOnCurrentPlan": false,
+      "result": "plan-unavailable"
+    },
+    "models": [
+      {
+        "name": "投稿",
+        "uid": "article",
+        "fields": [
+          "title",
+          "slug",
+          "meta.title",
+          "meta.description",
+          "meta.ogImage",
+          "body",
+          "category",
+          "sortOrder"
+        ]
+      },
+      {
+        "name": "カテゴリ",
+        "uid": "category",
+        "fields": [
+          "name",
+          "sortOrder"
+        ]
+      },
+      {
+        "name": "リンク",
+        "uid": "link",
+        "fields": [
+          "text",
+          "href"
+        ]
+      }
+    ],
+    "views": [
+      {
+        "name": "投稿",
+        "modelName": "投稿",
+        "modelUid": "article",
+        "uid": "article",
+        "type": "table"
+      },
+      {
+        "name": "カテゴリ",
+        "modelName": "カテゴリ",
+        "modelUid": "category",
+        "uid": "category",
+        "type": "table"
+      },
+      {
+        "name": "リンク",
+        "modelName": "リンク",
+        "modelUid": "link",
+        "uid": "link",
+        "type": "table"
+      }
+    ]
+  },
+  "inventory": {
+    "newtArticleCount": 32,
+    "publicMarkdownCount": 15,
+    "draftMarkdownCount": 17,
+    "totalMarkdownCount": 32,
+    "retainedPublicAssetCount": 11,
+    "publicDraftAssetCount": 0,
+    "archivedDraftAssetCount": 7,
+    "exactExistingPublicAssetMatchCount": 1,
+    "uniqueDraftAssetCount": 7,
+    "deferredDraftAssetReferenceCount": 8,
+    "newtCategoryCount": 9,
+    "newtLinkCount": 3,
+    "formerlyPublishedDraftCount": 16,
+    "neverPublishedDraftCount": 1,
+    "emptyBodyDraftCount": 1
+  },
+  "sourceInventory": {
+    "categories": [
+      {
+        "newtId": "67c9569b395b530d6401f83a",
+        "name": "ロビーサーバー",
+        "sortOrder": 23,
+        "publishedAt": null
+      },
+      {
+        "newtId": "67c9514e33281c1d6502bd9e",
+        "name": "ディスコードについて",
+        "sortOrder": 22,
+        "publishedAt": "2025-03-06T07:42:40.692Z"
+      },
+      {
+        "newtId": "67c94e6c395b530d64ff9669",
+        "name": "その他サーバーについて",
+        "sortOrder": 21,
+        "publishedAt": "2025-03-06T07:42:43.624Z"
+      },
+      {
+        "newtId": "635d02e606cfd5386b3720de",
+        "name": "資源サーバー",
+        "sortOrder": 26,
+        "publishedAt": null
+      },
+      {
+        "newtId": "635d016906cfd5386b370c3e",
+        "name": "アズカバンサーバー",
+        "sortOrder": 29,
+        "publishedAt": null
+      },
+      {
+        "newtId": "635d007306cfd5386b36f752",
+        "name": "生活鯖について",
+        "sortOrder": 20,
+        "publishedAt": "2026-07-18T14:58:57.312Z"
+      },
+      {
+        "newtId": "635cac9d06cfd5386b36b3dc",
+        "name": "コミュニティについて",
+        "sortOrder": 40,
+        "publishedAt": "2022-10-29T04:33:40.644Z"
+      },
+      {
+        "newtId": "61e936ac8b1cc500187ad308",
+        "name": "その他",
+        "sortOrder": 50,
+        "publishedAt": "2022-10-29T04:33:22.757Z"
+      },
+      {
+        "newtId": "61e92e9f616290001858f8a4",
+        "name": "イントロダクション",
+        "sortOrder": 10,
+        "publishedAt": "2023-03-12T13:16:37.919Z"
+      }
+    ],
+    "links": [
+      {
+        "newtId": "641696afb836a015edcad52a",
+        "text": "ワールドマップ",
+        "href": "https://asv.acecore.net/world-map/",
+        "publishedAt": "2025-03-11T17:49:01.867Z"
+      },
+      {
+        "newtId": "6347cd906892c6a352914f05",
+        "text": "Acecore",
+        "href": "https://acecore.net",
+        "publishedAt": "2026-03-12T17:33:41.662Z"
+      },
+      {
+        "newtId": "6347cd5f6892c6a352914185",
+        "text": "エースサーバーポータル",
+        "href": "https://asv.acecore.net",
+        "publishedAt": "2025-03-11T17:54:48.946Z"
+      }
+    ]
+  },
+  "sourceCollisionAudit": {
+    "articleIdExactCollisionCount": 0,
+    "sourceSlugExactCollisionCount": 0,
+    "sourceSlugNfcCaseInsensitiveCollisionCount": 0,
+    "sourceBodySha256ExactCollisionCount": 0,
+    "titleCollisionGroupCount": 2,
+    "titleCollisionGroups": [
+      {
+        "title": "ルール",
+        "articles": [
+          {
+            "newtId": "67d56eb21c808a95b6824af7",
+            "originalSlug": "discord-rule",
+            "currentlyPublished": true
+          },
+          {
+            "newtId": "635d1140350db340aac3584f",
+            "originalSlug": "SurvivalRules",
+            "currentlyPublished": false
+          }
+        ]
+      },
+      {
+        "title": "プラグイン一覧",
+        "articles": [
+          {
+            "newtId": "635be0c506cfd5386b2fee26",
+            "originalSlug": "AzkabanPluginsList",
+            "currentlyPublished": false
+          },
+          {
+            "newtId": "635bdd2b06cfd5386b2f3c46",
+            "originalSlug": "ResetServerPluginsList",
+            "currentlyPublished": false
+          },
+          {
+            "newtId": "635966e2f8dd31b69e7a6ccb",
+            "originalSlug": "SurvivalPluginsList",
+            "currentlyPublished": true
+          }
+        ]
+      }
+    ]
+  },
+  "publicEvidence": {
+    "manifestPath": "migration/newt-public-payload-manifest.json",
+    "manifestSha256": "559972dbe3e225c0a88b9afb2bb2637e6fb2f27560cfb7af0d3ca1005a7c9dcd",
+    "snapshotPath": "migration/newt-public-content-snapshot.json",
+    "snapshotBytes": 272487,
+    "snapshotSha256": "434808037b459837c5a69ae3f42d17dab9b4c69559b8fe40d6a084d02d000019",
+    "snapshotOrigin": "https://bba3fffa.aceserver-wiki.pages.dev",
+    "snapshotCapturedAt": "2026-07-27T11:39:46.639Z",
+    "categoryNameChanges": [
+      {
+        "newtId": "63628c7db48748bdc77e6f61",
+        "originalSlug": "Hoe Kingdom",
+        "categoryId": "635cac9d06cfd5386b36b3dc",
+        "snapshotName": "コミュニティ紹介",
+        "fullApiName": "コミュニティについて"
+      },
+      {
+        "newtId": "63c6641ef6bd29a2e7b03c03",
+        "originalSlug": "Asutan　Kingdom",
+        "categoryId": "635cac9d06cfd5386b36b3dc",
+        "snapshotName": "コミュニティ紹介",
+        "fullApiName": "コミュニティについて"
+      }
+    ]
+  },
+  "publicInventory": [
+    {
+      "newtId": "6a585343d2c46e306ca40722",
+      "originalSlug": "other-server",
+      "targetSlug": "other-server",
+      "markdownPath": "src/content/wiki/other-server.md",
+      "sourceCategoryId": "635d007306cfd5386b36f752",
+      "sourceCategoryName": "生活鯖について",
+      "snapshotCategoryName": "生活鯖について",
+      "targetCategory": "生活鯖について",
+      "sourceMeta": {
+        "title": "その他サーバーについて",
+        "description": "その他サーバーについて解説します",
+        "ogImage": null
+      },
+      "sourceMetaSha256": "304437fb32601f5f6ee7553c0c4bbad5160902cfbeaac4b30a09dd2a8fb028cb",
+      "snapshotMetaSha256": "304437fb32601f5f6ee7553c0c4bbad5160902cfbeaac4b30a09dd2a8fb028cb",
+      "sourceCategoryRawSha256": "04a683ee5bda51bdbab780c33ed926d63c998575b442b57995cc67d9ee904de5",
+      "snapshotCategoryRawSha256": "04a683ee5bda51bdbab780c33ed926d63c998575b442b57995cc67d9ee904de5",
+      "sourceBodySha256": "f9ae4214db0f7b4795b6a7718db49613395dac926eb4f68a4c13d91c7291e843",
+      "markdownSha256": "84260c060fb33df7638522d4b7b2287eab6a6c10ff6d8792b94c3039e96ea2ba",
+      "draft": false
+    },
+    {
+      "newtId": "6a578bb7d2c46e306ca21a78",
+      "originalSlug": "hub-intro",
+      "targetSlug": "hub-intro",
+      "markdownPath": "src/content/wiki/hub-intro.md",
+      "sourceCategoryId": "635d007306cfd5386b36f752",
+      "sourceCategoryName": "生活鯖について",
+      "snapshotCategoryName": "生活鯖について",
+      "targetCategory": "生活鯖について",
+      "sourceMeta": {
+        "title": "hub紹介",
+        "description": "hub紹介について解説します",
+        "ogImage": null
+      },
+      "sourceMetaSha256": "ca5fe869eca1fcfa5a97489e623b028795ac199705001e050281aaed651dee7d",
+      "snapshotMetaSha256": "ca5fe869eca1fcfa5a97489e623b028795ac199705001e050281aaed651dee7d",
+      "sourceCategoryRawSha256": "04a683ee5bda51bdbab780c33ed926d63c998575b442b57995cc67d9ee904de5",
+      "snapshotCategoryRawSha256": "04a683ee5bda51bdbab780c33ed926d63c998575b442b57995cc67d9ee904de5",
+      "sourceBodySha256": "7d6a2011cf9971798882a3747aea19eef0ecd8fadb1e1171ec7e467d5383db29",
+      "markdownSha256": "7c08d0fcaa4ad16c42ab711cd8dd8f2e2ec8ca031eb017756e23bd1a565a351e",
+      "draft": false
+    },
+    {
+      "newtId": "67d56eb21c808a95b6824af7",
+      "originalSlug": "discord-rule",
+      "targetSlug": "discord-rule",
+      "markdownPath": "src/content/wiki/discord-rule.md",
+      "sourceCategoryId": "67c9514e33281c1d6502bd9e",
+      "sourceCategoryName": "ディスコードについて",
+      "snapshotCategoryName": "ディスコードについて",
+      "targetCategory": "ディスコードについて",
+      "sourceMeta": {
+        "title": "ディスコードのルール",
+        "description": "ディスコードのルールについて説明する",
+        "ogImage": null
+      },
+      "sourceMetaSha256": "cbcdebf1c5b8194cb8d1ae9ecef1273606e4b3782978b379a3a11e7bad2a3c9a",
+      "snapshotMetaSha256": "cbcdebf1c5b8194cb8d1ae9ecef1273606e4b3782978b379a3a11e7bad2a3c9a",
+      "sourceCategoryRawSha256": "ae64b81cf23893671be53bb4eead8989dbc0c71f03e7f563627aa516679a2a15",
+      "snapshotCategoryRawSha256": "ae64b81cf23893671be53bb4eead8989dbc0c71f03e7f563627aa516679a2a15",
+      "sourceBodySha256": "d531fa6db16ccd6835dfba3713b53100c4c7e81cc637d8ad00bd340929591474",
+      "markdownSha256": "268a6290729554bc1206f40b7bc94837f9b34a861d758362f48f3ff8b5eebee6",
+      "draft": false
+    },
+    {
+      "newtId": "63453173d2720e3d2d563c0a",
+      "originalSlug": "rule",
+      "targetSlug": "rule",
+      "markdownPath": "src/content/wiki/rule.md",
+      "sourceCategoryId": "635d007306cfd5386b36f752",
+      "sourceCategoryName": "生活鯖について",
+      "snapshotCategoryName": "生活鯖について",
+      "targetCategory": "生活鯖について",
+      "sourceMeta": {
+        "title": "ルール",
+        "description": "サーバー内での基本的なルールについて解説します。",
+        "ogImage": null
+      },
+      "sourceMetaSha256": "fb4c1e3c3f4c19ccdbf1c91abdfcfc72a3f956c8931c9e64a0ae203a64988824",
+      "snapshotMetaSha256": "fb4c1e3c3f4c19ccdbf1c91abdfcfc72a3f956c8931c9e64a0ae203a64988824",
+      "sourceCategoryRawSha256": "04a683ee5bda51bdbab780c33ed926d63c998575b442b57995cc67d9ee904de5",
+      "snapshotCategoryRawSha256": "04a683ee5bda51bdbab780c33ed926d63c998575b442b57995cc67d9ee904de5",
+      "sourceBodySha256": "c4558b942ed6aa0e4e2f58b35c75f73953d32d1d73bf24a783b013701dfe58ad",
+      "markdownSha256": "3db061154d951e87d96caec0c3ccbc096907c67f3afacfcc93f1ed363a908aa4",
+      "draft": false
+    },
+    {
+      "newtId": "67d56f2d1c808a95b68259e1",
+      "originalSlug": "discord-roles",
+      "targetSlug": "discord-roles",
+      "markdownPath": "src/content/wiki/discord-roles.md",
+      "sourceCategoryId": "67c9514e33281c1d6502bd9e",
+      "sourceCategoryName": "ディスコードについて",
+      "snapshotCategoryName": "ディスコードについて",
+      "targetCategory": "ディスコードについて",
+      "sourceMeta": {
+        "title": "ディスコードのロールについて",
+        "description": "ディスコードのロールについて説明する",
+        "ogImage": null
+      },
+      "sourceMetaSha256": "d5d149be44fabcb30474b8548d271c2409db344153f9fba46a09fcc0caef896f",
+      "snapshotMetaSha256": "d5d149be44fabcb30474b8548d271c2409db344153f9fba46a09fcc0caef896f",
+      "sourceCategoryRawSha256": "ae64b81cf23893671be53bb4eead8989dbc0c71f03e7f563627aa516679a2a15",
+      "snapshotCategoryRawSha256": "ae64b81cf23893671be53bb4eead8989dbc0c71f03e7f563627aa516679a2a15",
+      "sourceBodySha256": "d8b7937fabfb2cbf77d957edaf45ebf909dfcd0d366806b06f6eb8f12e2d3986",
+      "markdownSha256": "0124cad675b1d8607222a0a9098fe1f08c91dc429b647db7217dc96e6eccb1d6",
+      "draft": false
+    },
+    {
+      "newtId": "6406fcb64279ec68fbbc4bf2",
+      "originalSlug": "how to discordsrv link",
+      "targetSlug": "how-to-discordsrv-link",
+      "markdownPath": "src/content/wiki/how-to-discordsrv-link.md",
+      "sourceCategoryId": "635d007306cfd5386b36f752",
+      "sourceCategoryName": "生活鯖について",
+      "snapshotCategoryName": "生活鯖について",
+      "targetCategory": "生活鯖について",
+      "sourceMeta": {
+        "title": "",
+        "description": "",
+        "ogImage": null
+      },
+      "sourceMetaSha256": "04c5e4d9b9e990a175ad0305f61c31dc5d3846a6cff9299bc8fc6826d8cf6648",
+      "snapshotMetaSha256": "04c5e4d9b9e990a175ad0305f61c31dc5d3846a6cff9299bc8fc6826d8cf6648",
+      "sourceCategoryRawSha256": "04a683ee5bda51bdbab780c33ed926d63c998575b442b57995cc67d9ee904de5",
+      "snapshotCategoryRawSha256": "04a683ee5bda51bdbab780c33ed926d63c998575b442b57995cc67d9ee904de5",
+      "sourceBodySha256": "145b2bbd64cb73b472a25875a6cafd5557124d10e4957fb57fcb1d9e6fdc2632",
+      "markdownSha256": "b7cbe61cbd8522e68f2d8c128e4768f65129c91b02abb07f362ea7dddd07e466",
+      "draft": false
+    },
+    {
+      "newtId": "61e93243616290001858fe14",
+      "originalSlug": "rinen",
+      "targetSlug": "rinen",
+      "markdownPath": "src/content/wiki/rinen.md",
+      "sourceCategoryId": "61e92e9f616290001858f8a4",
+      "sourceCategoryName": "イントロダクション",
+      "snapshotCategoryName": "イントロダクション",
+      "targetCategory": "イントロダクション",
+      "sourceMeta": {
+        "title": "サーバー理念",
+        "description": "サーバー理念",
+        "ogImage": {
+          "_id": "6345303dd2720e3d2d5389c1",
+          "altText": "",
+          "description": "",
+          "fileName": "acico.png",
+          "fileSize": 136025,
+          "fileType": "image/png",
+          "height": 512,
+          "metadata": {},
+          "src": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/cf33b9fd-4dd0-4662-b4d2-db3194b2a7fa%2Facico.png",
+          "title": "",
+          "width": 512
+        }
+      },
+      "sourceMetaSha256": "c35df0790ee39eef1cbd01725b6062e347c0b101d2bb490291a0bc3051f48e95",
+      "snapshotMetaSha256": "c35df0790ee39eef1cbd01725b6062e347c0b101d2bb490291a0bc3051f48e95",
+      "sourceCategoryRawSha256": "a1ef709ca75f7dcc879ecc7afc02b2dea1f6fd68491a0b6bae4f70d1699118d5",
+      "snapshotCategoryRawSha256": "a1ef709ca75f7dcc879ecc7afc02b2dea1f6fd68491a0b6bae4f70d1699118d5",
+      "sourceBodySha256": "e21805227529214ade6763fdf63ea77d730a3863a473d7eeec1c8477282fe033",
+      "markdownSha256": "280faf0119a62679e50b32b1dd9d02f06fe5d6c6469ad0201587bd64bb09d5d1",
+      "draft": false
+    },
+    {
+      "newtId": "635e74f0e069d0741c37c397",
+      "originalSlug": "SurvivalCommand",
+      "targetSlug": "SurvivalCommand",
+      "markdownPath": "src/content/wiki/SurvivalCommand.md",
+      "sourceCategoryId": "635d007306cfd5386b36f752",
+      "sourceCategoryName": "生活鯖について",
+      "snapshotCategoryName": "生活鯖について",
+      "targetCategory": "生活鯖について",
+      "sourceMeta": {
+        "title": "コマンドについて",
+        "description": "使用できるコマンドの使い方を説明する。",
+        "ogImage": null
+      },
+      "sourceMetaSha256": "57ac13144e2abcf0c28e1729d74968c0155c287e753d63f5e516fb60d9449970",
+      "snapshotMetaSha256": "57ac13144e2abcf0c28e1729d74968c0155c287e753d63f5e516fb60d9449970",
+      "sourceCategoryRawSha256": "04a683ee5bda51bdbab780c33ed926d63c998575b442b57995cc67d9ee904de5",
+      "snapshotCategoryRawSha256": "04a683ee5bda51bdbab780c33ed926d63c998575b442b57995cc67d9ee904de5",
+      "sourceBodySha256": "4d5ab7778e076e1e310068fef6c6979196b91542d603f956df56a05e26e83296",
+      "markdownSha256": "7680c2feadd9d152fda34e5cc147b0c6bc16cc5e1574dfbc270ea9dd2e15d026",
+      "draft": false
+    },
+    {
+      "newtId": "634531c7d2720e3d2d56ef9c",
+      "originalSlug": "in",
+      "targetSlug": "in",
+      "markdownPath": "src/content/wiki/in.md",
+      "sourceCategoryId": "61e92e9f616290001858f8a4",
+      "sourceCategoryName": "イントロダクション",
+      "snapshotCategoryName": "イントロダクション",
+      "targetCategory": "イントロダクション",
+      "sourceMeta": {
+        "title": "参加方法",
+        "description": "参加方法について解説します。",
+        "ogImage": null
+      },
+      "sourceMetaSha256": "122f1cbab6767a7ef2a4273087431870ea4da8a8ae9eef4cccd4323c5d8711a7",
+      "snapshotMetaSha256": "122f1cbab6767a7ef2a4273087431870ea4da8a8ae9eef4cccd4323c5d8711a7",
+      "sourceCategoryRawSha256": "a1ef709ca75f7dcc879ecc7afc02b2dea1f6fd68491a0b6bae4f70d1699118d5",
+      "snapshotCategoryRawSha256": "a1ef709ca75f7dcc879ecc7afc02b2dea1f6fd68491a0b6bae4f70d1699118d5",
+      "sourceBodySha256": "a7377c41348b31d04743f29d0b269ac1ff46e16a8f48f3c68cbf440a6f6092bd",
+      "markdownSha256": "c2eecbce643af25fcb91bdc8f77d1f361a0db48211237a41df687dfd4d4ba7f1",
+      "draft": false
+    },
+    {
+      "newtId": "635966e2f8dd31b69e7a6ccb",
+      "originalSlug": "SurvivalPluginsList",
+      "targetSlug": "SurvivalPluginsList",
+      "markdownPath": "src/content/wiki/SurvivalPluginsList.md",
+      "sourceCategoryId": "635d007306cfd5386b36f752",
+      "sourceCategoryName": "生活鯖について",
+      "snapshotCategoryName": "生活鯖について",
+      "targetCategory": "生活鯖について",
+      "sourceMeta": {
+        "title": "エース鯖(メイン鯖)のプラグイン一覧",
+        "description": "エース鯖(メイン鯖)のプラグイン一覧を紹介する。",
+        "ogImage": null
+      },
+      "sourceMetaSha256": "284589211e821b8db1ed40fd46ca3e888b10acf0c04d4a0961abaaa177ae6f25",
+      "snapshotMetaSha256": "284589211e821b8db1ed40fd46ca3e888b10acf0c04d4a0961abaaa177ae6f25",
+      "sourceCategoryRawSha256": "04a683ee5bda51bdbab780c33ed926d63c998575b442b57995cc67d9ee904de5",
+      "snapshotCategoryRawSha256": "04a683ee5bda51bdbab780c33ed926d63c998575b442b57995cc67d9ee904de5",
+      "sourceBodySha256": "ea4fde03085cba360232bbbf3f1315e5caec83ee8723528c221741405794e206",
+      "markdownSha256": "c0d383dc09ff24d76afcf1a7a60b13ebd78e9a2cca72bc461865e5bf8d5e0d7a",
+      "draft": false
+    },
+    {
+      "newtId": "634530dfd2720e3d2d54e7ec",
+      "originalSlug": "howto",
+      "targetSlug": "howto",
+      "markdownPath": "src/content/wiki/howto.md",
+      "sourceCategoryId": "61e92e9f616290001858f8a4",
+      "sourceCategoryName": "イントロダクション",
+      "snapshotCategoryName": "イントロダクション",
+      "targetCategory": "イントロダクション",
+      "sourceMeta": {
+        "title": "遊び方",
+        "description": "遊び方について解説します",
+        "ogImage": null
+      },
+      "sourceMetaSha256": "c3121407199f470dedbded0e6954d1ff3733777a2f497be20f38483c966f388a",
+      "snapshotMetaSha256": "c3121407199f470dedbded0e6954d1ff3733777a2f497be20f38483c966f388a",
+      "sourceCategoryRawSha256": "a1ef709ca75f7dcc879ecc7afc02b2dea1f6fd68491a0b6bae4f70d1699118d5",
+      "snapshotCategoryRawSha256": "a1ef709ca75f7dcc879ecc7afc02b2dea1f6fd68491a0b6bae4f70d1699118d5",
+      "sourceBodySha256": "1d902bb720ac266b3a637179da85223f68b3412734ab72e40a21eff830464222",
+      "markdownSha256": "c9ce1e5e3de4f76ab5e0f7295caac97fdce5adf2a3d21824eae641df1028e1fe",
+      "draft": false
+    },
+    {
+      "newtId": "641a68535297515063afd957",
+      "originalSlug": "About management team",
+      "targetSlug": "about-management-team",
+      "markdownPath": "src/content/wiki/about-management-team.md",
+      "sourceCategoryId": "61e936ac8b1cc500187ad308",
+      "sourceCategoryName": "その他",
+      "snapshotCategoryName": "その他",
+      "targetCategory": "その他",
+      "sourceMeta": {
+        "title": "",
+        "description": "",
+        "ogImage": null
+      },
+      "sourceMetaSha256": "04c5e4d9b9e990a175ad0305f61c31dc5d3846a6cff9299bc8fc6826d8cf6648",
+      "snapshotMetaSha256": "04c5e4d9b9e990a175ad0305f61c31dc5d3846a6cff9299bc8fc6826d8cf6648",
+      "sourceCategoryRawSha256": "a8d9c815a386d685f93f8ed7996ce3076a834bf74462bace351025b75cb68bcf",
+      "snapshotCategoryRawSha256": "a8d9c815a386d685f93f8ed7996ce3076a834bf74462bace351025b75cb68bcf",
+      "sourceBodySha256": "fbe0c5a3d55f2b99b932bc0e26f8b8e9efef6874efcb1642a7ffc7761423553d",
+      "markdownSha256": "3d49c02bc0e8384179a109da1addab67e51df46a88eafeb03abf382e34086310",
+      "draft": false
+    },
+    {
+      "newtId": "63628c7db48748bdc77e6f61",
+      "originalSlug": "Hoe Kingdom",
+      "targetSlug": "hoe-kingdom",
+      "markdownPath": "src/content/wiki/hoe-kingdom.md",
+      "sourceCategoryId": "635cac9d06cfd5386b36b3dc",
+      "sourceCategoryName": "コミュニティについて",
+      "snapshotCategoryName": "コミュニティ紹介",
+      "targetCategory": "コミュニティ紹介",
+      "sourceMeta": null,
+      "sourceMetaSha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "snapshotMetaSha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "sourceCategoryRawSha256": "989a530a01d1d8c789d54c647b7c27dc936596803619b2d214acfe7f69ad4d1c",
+      "snapshotCategoryRawSha256": "989a530a01d1d8c789d54c647b7c27dc936596803619b2d214acfe7f69ad4d1c",
+      "sourceBodySha256": "f1f16de7f3e3d8bdcde111324d7f873d641f5ff88a3632c4c68396f1a2656233",
+      "markdownSha256": "145fd69c9d7ad88f316bfc7df465759a7a1541463875383529d81166cfd9219a",
+      "draft": false
+    },
+    {
+      "newtId": "63c6641ef6bd29a2e7b03c03",
+      "originalSlug": "Asutan　Kingdom",
+      "targetSlug": "asutan-kingdom",
+      "markdownPath": "src/content/wiki/asutan-kingdom.md",
+      "sourceCategoryId": "635cac9d06cfd5386b36b3dc",
+      "sourceCategoryName": "コミュニティについて",
+      "snapshotCategoryName": "コミュニティ紹介",
+      "targetCategory": "コミュニティ紹介",
+      "sourceMeta": null,
+      "sourceMetaSha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "snapshotMetaSha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "sourceCategoryRawSha256": "989a530a01d1d8c789d54c647b7c27dc936596803619b2d214acfe7f69ad4d1c",
+      "snapshotCategoryRawSha256": "989a530a01d1d8c789d54c647b7c27dc936596803619b2d214acfe7f69ad4d1c",
+      "sourceBodySha256": "42d2b4c837e972029fb8bcc49b3519c5a0d24cd7dd87f86c39af7c54cb1d1b73",
+      "markdownSha256": "c97f1cb38168dd82231d5265dccad0763f61482a13cc57e85c1b5d8b2ea3a756",
+      "draft": false
+    },
+    {
+      "newtId": "634532c6d2720e3d2d5801f3",
+      "originalSlug": "promotion",
+      "targetSlug": "promotion",
+      "markdownPath": "src/content/wiki/promotion.md",
+      "sourceCategoryId": "61e936ac8b1cc500187ad308",
+      "sourceCategoryName": "その他",
+      "snapshotCategoryName": "その他",
+      "targetCategory": "その他",
+      "sourceMeta": {
+        "title": "プロモーション",
+        "description": "プロモーション情報",
+        "ogImage": null
+      },
+      "sourceMetaSha256": "ce2010cc09efe3aab5459ba074304aa3dcaf42a7cd9793df61c1117c96587658",
+      "snapshotMetaSha256": "ce2010cc09efe3aab5459ba074304aa3dcaf42a7cd9793df61c1117c96587658",
+      "sourceCategoryRawSha256": "a8d9c815a386d685f93f8ed7996ce3076a834bf74462bace351025b75cb68bcf",
+      "snapshotCategoryRawSha256": "a8d9c815a386d685f93f8ed7996ce3076a834bf74462bace351025b75cb68bcf",
+      "sourceBodySha256": "77d1a051de02f6218a86a380fc4d7164f581e7585c43e1b039ca831ee1731382",
+      "markdownSha256": "2c267fbae06af79074772e74b6e040880a4f3a5e2ae72a6a8ef4e81968c30533",
+      "draft": false
+    }
+  ],
+  "draftInventory": [
+    {
+      "newtId": "67c98735395b530d642e4a86",
+      "originalSlug": "Communication",
+      "targetSlug": "communication",
+      "title": "コミュニケーション",
+      "sourceCategoryId": "635cac9d06cfd5386b36b3dc",
+      "sourceCategoryName": "コミュニティについて",
+      "targetCategory": "コミュニティ紹介",
+      "sourceSortOrder": 2,
+      "sourceFirstPublishedAt": null,
+      "sourcePublishedAt": null,
+      "targetOrder": 160,
+      "sourceBodyBytes": 0,
+      "sourceBodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "markdownPath": "src/content/wiki/communication.md",
+      "markdownBytes": 224,
+      "markdownSha256": "48f30849d788e11c5f6bcefe5d4f1d37cd5cd3515c849526e646f64fc8bce97c",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 0,
+      "removedSourceElements": [],
+      "normalizedSourceElements": [],
+      "draft": true
+    },
+    {
+      "newtId": "67c9553333281c1d6508140f",
+      "originalSlug": "Reset",
+      "targetSlug": "reset",
+      "title": "資源鯖",
+      "sourceCategoryId": "67c94e6c395b530d64ff9669",
+      "sourceCategoryName": "その他サーバーについて",
+      "targetCategory": "その他サーバーについて",
+      "sourceSortOrder": 2,
+      "sourceFirstPublishedAt": "2025-03-06T07:58:29.737Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 170,
+      "sourceBodyBytes": 662,
+      "sourceBodySha256": "85f37119c77e79fd4c808ef40037d7e54051acbb2105d298faa2be0d94caef6b",
+      "markdownPath": "src/content/wiki/reset.md",
+      "markdownBytes": 851,
+      "markdownSha256": "15c62ed8caef3266585542d9494bcb87e5e72fdf8fe296283a42b8b4adc3654b",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 0,
+      "removedSourceElements": [],
+      "normalizedSourceElements": [
+        {
+          "element": "h1-to-h2",
+          "count": 2
+        }
+      ],
+      "draft": true
+    },
+    {
+      "newtId": "67c952cc395b530d64002c05",
+      "originalSlug": "Azkaban",
+      "targetSlug": "azkaban",
+      "title": "アズカバン",
+      "sourceCategoryId": "67c94e6c395b530d64ff9669",
+      "sourceCategoryName": "その他サーバーについて",
+      "targetCategory": "その他サーバーについて",
+      "sourceSortOrder": 1,
+      "sourceFirstPublishedAt": "2025-03-06T07:49:34.703Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 180,
+      "sourceBodyBytes": 2700,
+      "sourceBodySha256": "dcebb5e2749af8f25edf01e257ddaf6fabf0134c18f520f2e7e728c8d9eb782e",
+      "markdownPath": "src/content/wiki/azkaban.md",
+      "markdownBytes": 2324,
+      "markdownSha256": "79777feada2442a160407b1623c57cca1e0bcf7e2f67a27c193621790a95c48c",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 1,
+      "removedSourceElements": [
+        {
+          "element": "style",
+          "count": 1
+        }
+      ],
+      "normalizedSourceElements": [
+        {
+          "element": "h1-to-h2",
+          "count": 2
+        },
+        {
+          "element": "image-to-deferred-note",
+          "count": 1
+        },
+        {
+          "element": "table-to-markdown",
+          "count": 1
+        }
+      ],
+      "draft": true
+    },
+    {
+      "newtId": "6416a306b836a015edcee1b0",
+      "originalSlug": "LoginPassword",
+      "targetSlug": "login-password",
+      "title": "ログインパスワードについて",
+      "sourceCategoryId": "635d007306cfd5386b36f752",
+      "sourceCategoryName": "生活鯖について",
+      "targetCategory": "生活鯖について",
+      "sourceSortOrder": 20,
+      "sourceFirstPublishedAt": "2023-03-19T11:39:51.050Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 190,
+      "sourceBodyBytes": 2775,
+      "sourceBodySha256": "6b678c4e235ec5e28708e5f0b51fa604bd5e343e207add0d4434ba52535de03b",
+      "markdownPath": "src/content/wiki/login-password.md",
+      "markdownBytes": 2080,
+      "markdownSha256": "f5b875331b27d824241d4400a1ee08e3734db1725e616aea7b4ac40f2666b557",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 2,
+      "removedSourceElements": [
+        {
+          "element": "style",
+          "count": 1
+        }
+      ],
+      "normalizedSourceElements": [
+        {
+          "element": "h1-to-h2",
+          "count": 4
+        },
+        {
+          "element": "heading-marker-repair",
+          "count": 4
+        },
+        {
+          "element": "image-to-deferred-note",
+          "count": 2
+        },
+        {
+          "element": "table-to-markdown",
+          "count": 1
+        }
+      ],
+      "draft": true
+    },
+    {
+      "newtId": "64166697b836a015edbf22da",
+      "originalSlug": "Application method",
+      "targetSlug": "application-method",
+      "title": "各種申請方法",
+      "sourceCategoryId": "61e92e9f616290001858f8a4",
+      "sourceCategoryName": "イントロダクション",
+      "targetCategory": "イントロダクション",
+      "sourceSortOrder": 60,
+      "sourceFirstPublishedAt": "2025-03-06T07:16:19.172Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 200,
+      "sourceBodyBytes": 240,
+      "sourceBodySha256": "d2014a1d488f3d9f0afdca3b2734061063115d6aa5e1ececebb2d52fd47141f7",
+      "markdownPath": "src/content/wiki/application-method.md",
+      "markdownBytes": 329,
+      "markdownSha256": "ed54892c082d8ce5a0d2ca6a2276c030ade912c624cbce26fe49bce947460988",
+      "descriptionSource": "explicit-empty-description-map",
+      "deferredAssetCount": 0,
+      "removedSourceElements": [
+        {
+          "element": "style",
+          "count": 1
+        }
+      ],
+      "normalizedSourceElements": [],
+      "draft": true
+    },
+    {
+      "newtId": "640521c30bc1cc52f761ec40",
+      "originalSlug": "Q&A",
+      "targetSlug": "faq",
+      "title": "よくある問い合わせ",
+      "sourceCategoryId": "61e92e9f616290001858f8a4",
+      "sourceCategoryName": "イントロダクション",
+      "targetCategory": "イントロダクション",
+      "sourceSortOrder": 40,
+      "sourceFirstPublishedAt": "2023-06-30T01:05:28.363Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 210,
+      "sourceBodyBytes": 8275,
+      "sourceBodySha256": "98d945667c867a41eb732374b6cf80c6e87abc92ff8d2d376b9f0ad5cc252252",
+      "markdownPath": "src/content/wiki/faq.md",
+      "markdownBytes": 6001,
+      "markdownSha256": "12f9158ab6a78a0a321715915d6176ab6aa9fa8c521a068bf18f5ad16b3b9986",
+      "descriptionSource": "explicit-empty-description-map",
+      "deferredAssetCount": 0,
+      "removedSourceElements": [
+        {
+          "element": "style",
+          "count": 1
+        }
+      ],
+      "normalizedSourceElements": [
+        {
+          "element": "details-to-heading",
+          "count": 23
+        }
+      ],
+      "draft": true
+    },
+    {
+      "newtId": "63629edfb48748bdc780b9de",
+      "originalSlug": "Lobby",
+      "targetSlug": "lobby",
+      "title": "ロビーサーバー",
+      "sourceCategoryId": "67c94e6c395b530d64ff9669",
+      "sourceCategoryName": "その他サーバーについて",
+      "targetCategory": "その他サーバーについて",
+      "sourceSortOrder": 0,
+      "sourceFirstPublishedAt": "2022-11-02T16:46:23.185Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 220,
+      "sourceBodyBytes": 462,
+      "sourceBodySha256": "a8736de3c0a2dae585d21d6a09e2de2ff222938170a8c5037de1b14cfc9097a8",
+      "markdownPath": "src/content/wiki/lobby.md",
+      "markdownBytes": 658,
+      "markdownSha256": "1f6cf4af0c20db86c9dd2417e78e6491fd61051f588ab9990dbc50f8d0a07d20",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 0,
+      "removedSourceElements": [],
+      "normalizedSourceElements": [
+        {
+          "element": "h1-to-h2",
+          "count": 1
+        }
+      ],
+      "draft": true
+    },
+    {
+      "newtId": "635d1cb3350db340aac57fc5",
+      "originalSlug": "ResetOverview",
+      "targetSlug": "reset-overview",
+      "title": "概要",
+      "sourceCategoryId": "635d02e606cfd5386b3720de",
+      "sourceCategoryName": "資源サーバー",
+      "targetCategory": "その他サーバーについて",
+      "sourceSortOrder": 10,
+      "sourceFirstPublishedAt": "2022-10-29T12:29:39.646Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 230,
+      "sourceBodyBytes": 557,
+      "sourceBodySha256": "847755d78a58d85833238095a691e67810d872999aae2a2ff8e703a5613ac220",
+      "markdownPath": "src/content/wiki/reset-overview.md",
+      "markdownBytes": 704,
+      "markdownSha256": "7c1a8a37f3b47e663e79e88046080ed80bc922cc255e88896f3d024a18d0ade2",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 0,
+      "removedSourceElements": [],
+      "normalizedSourceElements": [],
+      "draft": true
+    },
+    {
+      "newtId": "635d1277350db340aac3d4b1",
+      "originalSlug": "SurvivalGuideFacility",
+      "targetSlug": "survival-guide-facility",
+      "title": "施設案内",
+      "sourceCategoryId": "635d007306cfd5386b36f752",
+      "sourceCategoryName": "生活鯖について",
+      "targetCategory": "生活鯖について",
+      "sourceSortOrder": 30,
+      "sourceFirstPublishedAt": "2022-10-29T11:45:59.944Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 240,
+      "sourceBodyBytes": 4499,
+      "sourceBodySha256": "9eb0e64dd17c366f5330a783db2e65c505fd9c6a5d6b2c9c1aecfd74fdee3381",
+      "markdownPath": "src/content/wiki/survival-guide-facility.md",
+      "markdownBytes": 3944,
+      "markdownSha256": "612d2659ad4b3ecc94dee9662b5a5b0e0a411768868f39d59ba6b0551853c358",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 0,
+      "removedSourceElements": [
+        {
+          "element": "style",
+          "count": 1
+        }
+      ],
+      "normalizedSourceElements": [
+        {
+          "element": "list-indent-repair",
+          "count": 1
+        }
+      ],
+      "draft": true
+    },
+    {
+      "newtId": "635d1140350db340aac3584f",
+      "originalSlug": "SurvivalRules",
+      "targetSlug": "survival-rules-legacy",
+      "title": "ルール",
+      "sourceCategoryId": "635d007306cfd5386b36f752",
+      "sourceCategoryName": "生活鯖について",
+      "targetCategory": "生活鯖について",
+      "sourceSortOrder": 3,
+      "sourceFirstPublishedAt": "2022-10-29T11:42:51.445Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 250,
+      "sourceBodyBytes": 7684,
+      "sourceBodySha256": "4541e900cc54dc0cdf0c53bfd38b2544377a73c6941e8f937eefa8ba8ce9db60",
+      "markdownPath": "src/content/wiki/survival-rules-legacy.md",
+      "markdownBytes": 7274,
+      "markdownSha256": "c4cb90a74444d46f894da403d0a1d5f99543d217f7b3e2d682c8b4e390fa6550",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 1,
+      "removedSourceElements": [],
+      "normalizedSourceElements": [
+        {
+          "element": "h1-to-h2",
+          "count": 8
+        },
+        {
+          "element": "image-to-deferred-note",
+          "count": 1
+        },
+        {
+          "element": "legacy-url-rewrite",
+          "count": 1
+        }
+      ],
+      "draft": true
+    },
+    {
+      "newtId": "635d082a06cfd5386b37a26c",
+      "originalSlug": "AzkabanOverview",
+      "targetSlug": "azkaban-overview",
+      "title": "概要 (overview)",
+      "sourceCategoryId": "635d016906cfd5386b370c3e",
+      "sourceCategoryName": "アズカバンサーバー",
+      "targetCategory": "その他サーバーについて",
+      "sourceSortOrder": 10,
+      "sourceFirstPublishedAt": "2022-10-29T11:24:42.006Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 260,
+      "sourceBodyBytes": 783,
+      "sourceBodySha256": "f7d06de76c42f9362732309be85242df1f06f4b2fd2c5a01d9e4206e6b821479",
+      "markdownPath": "src/content/wiki/azkaban-overview.md",
+      "markdownBytes": 754,
+      "markdownSha256": "cbe6fad41a7c1cb1faf13d99f8667fdc86e19a1ada93e27a782619b148b0614e",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 1,
+      "removedSourceElements": [
+        {
+          "element": "style",
+          "count": 1
+        }
+      ],
+      "normalizedSourceElements": [
+        {
+          "element": "image-to-deferred-note",
+          "count": 1
+        }
+      ],
+      "draft": true
+    },
+    {
+      "newtId": "635be0c506cfd5386b2fee26",
+      "originalSlug": "AzkabanPluginsList",
+      "targetSlug": "azkaban-plugins-list",
+      "title": "プラグイン一覧",
+      "sourceCategoryId": "635d016906cfd5386b370c3e",
+      "sourceCategoryName": "アズカバンサーバー",
+      "targetCategory": "その他サーバーについて",
+      "sourceSortOrder": 30,
+      "sourceFirstPublishedAt": "2022-10-28T15:39:51.306Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 270,
+      "sourceBodyBytes": 1874,
+      "sourceBodySha256": "c6bf3d96ad244d6e9943d980da8d734b9279a8a59752d95aa9172f4b52012d1b",
+      "markdownPath": "src/content/wiki/azkaban-plugins-list.md",
+      "markdownBytes": 1726,
+      "markdownSha256": "3b6045e4fb11f83d8e0e40835234be2342b378216440c90300546c0987c97355",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 0,
+      "removedSourceElements": [],
+      "normalizedSourceElements": [
+        {
+          "element": "table-to-markdown",
+          "count": 1
+        }
+      ],
+      "draft": true
+    },
+    {
+      "newtId": "635bdd2b06cfd5386b2f3c46",
+      "originalSlug": "ResetServerPluginsList",
+      "targetSlug": "reset-server-plugins-list",
+      "title": "プラグイン一覧",
+      "sourceCategoryId": "635d02e606cfd5386b3720de",
+      "sourceCategoryName": "資源サーバー",
+      "targetCategory": "その他サーバーについて",
+      "sourceSortOrder": 20,
+      "sourceFirstPublishedAt": "2022-10-28T13:55:43.682Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 280,
+      "sourceBodyBytes": 89,
+      "sourceBodySha256": "e9a3579cd0986c2dc12fb55e7731035ff8d74ff3cf444e516edb23111f27f3be",
+      "markdownPath": "src/content/wiki/reset-server-plugins-list.md",
+      "markdownBytes": 281,
+      "markdownSha256": "cd71fa60f98230a04d93f42dcc4dfa057410af155b90eec5f28457eecb550ea4",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 0,
+      "removedSourceElements": [],
+      "normalizedSourceElements": [],
+      "draft": true
+    },
+    {
+      "newtId": "634d364c5466d2023bf0fcf1",
+      "originalSlug": "community",
+      "targetSlug": "community",
+      "title": "コミュニティ紹介",
+      "sourceCategoryId": "635cac9d06cfd5386b36b3dc",
+      "sourceCategoryName": "コミュニティについて",
+      "targetCategory": "コミュニティ紹介",
+      "sourceSortOrder": 1,
+      "sourceFirstPublishedAt": "2022-10-29T13:29:10.471Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 290,
+      "sourceBodyBytes": 3509,
+      "sourceBodySha256": "cb8a31ce799d2fc9c0f82dd6c868de58a2a061a91f9ee85185cff97525b0308b",
+      "markdownPath": "src/content/wiki/community.md",
+      "markdownBytes": 2984,
+      "markdownSha256": "4e9bd60e366e8b3569077a808a103e74fd6633ea2b401409f33fa4f5fd2f09e9",
+      "descriptionSource": "explicit-empty-description-map",
+      "deferredAssetCount": 0,
+      "removedSourceElements": [
+        {
+          "element": "style",
+          "count": 1
+        }
+      ],
+      "normalizedSourceElements": [],
+      "draft": true
+    },
+    {
+      "newtId": "634532eed2720e3d2d580a91",
+      "originalSlug": "member",
+      "targetSlug": "member",
+      "title": "メンバー紹介",
+      "sourceCategoryId": "61e936ac8b1cc500187ad308",
+      "sourceCategoryName": "その他",
+      "targetCategory": "その他",
+      "sourceSortOrder": 60,
+      "sourceFirstPublishedAt": "2022-10-11T09:10:06.280Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 300,
+      "sourceBodyBytes": 8545,
+      "sourceBodySha256": "3ef1fbfaa19af52cf370839ba249857b3ba8358ad80e2ff9bd722e2d276ca76b",
+      "markdownPath": "src/content/wiki/member.md",
+      "markdownBytes": 1941,
+      "markdownSha256": "d304ad27c77ffb7796038d2811d4f868866b624f3434228da3d5341667eccdb4",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 1,
+      "removedSourceElements": [
+        {
+          "element": "script",
+          "count": 2
+        },
+        {
+          "element": "style",
+          "count": 1
+        }
+      ],
+      "normalizedSourceElements": [
+        {
+          "element": "image-to-deferred-note",
+          "count": 1
+        },
+        {
+          "element": "select-to-list",
+          "count": 2
+        }
+      ],
+      "draft": true
+    },
+    {
+      "newtId": "63453283d2720e3d2d57fc85",
+      "originalSlug": "event",
+      "targetSlug": "event",
+      "title": "イベント",
+      "sourceCategoryId": "61e936ac8b1cc500187ad308",
+      "sourceCategoryName": "その他",
+      "targetCategory": "その他",
+      "sourceSortOrder": 40,
+      "sourceFirstPublishedAt": "2022-10-11T09:08:19.147Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 310,
+      "sourceBodyBytes": 1384,
+      "sourceBodySha256": "9d58659caf161e2300d921f79f1729f7f949befe780ec55cbe414db7f3c9e9ba",
+      "markdownPath": "src/content/wiki/event.md",
+      "markdownBytes": 1327,
+      "markdownSha256": "3f31ee9f2dc117217fb685b4676d5c6d048b310b23286c7c5cdfc89b0ddce2a3",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 1,
+      "removedSourceElements": [],
+      "normalizedSourceElements": [
+        {
+          "element": "image-to-deferred-note",
+          "count": 1
+        }
+      ],
+      "draft": true
+    },
+    {
+      "newtId": "6345322dd2720e3d2d5794dd",
+      "originalSlug": "world",
+      "targetSlug": "world",
+      "title": "ワールド案内",
+      "sourceCategoryId": "61e92e9f616290001858f8a4",
+      "sourceCategoryName": "イントロダクション",
+      "targetCategory": "イントロダクション",
+      "sourceSortOrder": 10,
+      "sourceFirstPublishedAt": "2022-10-11T09:06:53.301Z",
+      "sourcePublishedAt": null,
+      "targetOrder": 320,
+      "sourceBodyBytes": 4451,
+      "sourceBodySha256": "47832ddf5f7d9e505b3dae0478e1def2fc35379baa7dcd5656e225286bfefa8d",
+      "markdownPath": "src/content/wiki/world.md",
+      "markdownBytes": 3304,
+      "markdownSha256": "f02d32965e23a888218b3598af2bc5d8e457150c989cd970272fe9b632ecba3c",
+      "descriptionSource": "newt-meta-description",
+      "deferredAssetCount": 1,
+      "removedSourceElements": [
+        {
+          "element": "style",
+          "count": 1
+        }
+      ],
+      "normalizedSourceElements": [
+        {
+          "element": "details-to-heading",
+          "count": 5
+        },
+        {
+          "element": "heading-marker-repair",
+          "count": 8
+        },
+        {
+          "element": "image-to-deferred-note",
+          "count": 1
+        },
+        {
+          "element": "strong-boundary-repair",
+          "count": 1
+        }
+      ],
+      "draft": true
+    }
+  ],
+  "publicationPolicy": {
+    "allImportedArticlesRemainDraft": true,
+    "editorialReviewRequiredBeforePublishing": true,
+    "additionalSecurityReview": [
+      {
+        "newtId": "635d1140350db340aac3584f",
+        "targetSlug": "survival-rules-legacy",
+        "status": "review-required",
+        "checks": [
+          "Treat this as the superseded predecessor of the current public rule article; normally do not publish it.",
+          "Confirm that the Discord invite remains intended for public use.",
+          "Review the deferred source image before copying or publishing it."
+        ]
+      },
+      {
+        "newtId": "634532eed2720e3d2d580a91",
+        "targetSlug": "member",
+        "status": "review-required",
+        "checks": [
+          "Confirm that named members and roles are current.",
+          "Confirm consent before republishing member-identifying information.",
+          "Review the deferred source image before copying or publishing it."
+        ]
+      }
+    ]
+  },
+  "knownDuplicateContent": [
+    {
+      "containingArticleId": "67c952cc395b530d64002c05",
+      "containingOriginalSlug": "Azkaban",
+      "containedArticleId": "635be0c506cfd5386b2fee26",
+      "containedOriginalSlug": "AzkabanPluginsList",
+      "relation": "source-body-contains-exact-source-body",
+      "containedSourceBodySha256": "c6bf3d96ad244d6e9943d980da8d734b9279a8a59752d95aa9172f4b52012d1b"
+    }
+  ],
+  "knownSupersededContent": [
+    {
+      "legacyNewtId": "635d1140350db340aac3584f",
+      "legacyOriginalSlug": "SurvivalRules",
+      "archivedTargetSlug": "survival-rules-legacy",
+      "currentPublicNewtId": "63453173d2720e3d2d563c0a",
+      "currentPublicTargetSlug": "rule",
+      "relation": "legacy-article-redirects-to-current-public-article",
+      "redirectFrom": "/article/SurvivalRules/",
+      "redirectTo": "/article/rule/",
+      "publicationDefault": "do-not-publish"
+    }
+  ],
+  "draftAssetArchive": {
+    "observedOn": "2026-07-29",
+    "observedHttpStatus": 200,
+    "allSourcesReachableAtObservation": true,
+    "publicDraftAssetCount": 0,
+    "assets": [
+      {
+        "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/2c8452ac-7ba8-45e4-abf3-b0c53717ec6b%2Funknown.png",
+        "observedHttpStatus": 200,
+        "bytes": 2607210,
+        "sha256": "3a03a7db524ca3c0d9f0631fe58b4c307d9ea57ba94346b1b0975731d816bd7c",
+        "archivePath": "migration/newt-draft-assets-2026-07-29/azkaban-server.png"
+      },
+      {
+        "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/8f553592-b8d5-4581-b752-5efd617ceae1%2FLoginSecurity_register.png",
+        "observedHttpStatus": 200,
+        "bytes": 22999,
+        "sha256": "4a2805173589f6196fa66954f2a9382276ac87041cdf96d72a79809625e60aea",
+        "archivePath": "migration/newt-draft-assets-2026-07-29/login-security-register.png"
+      },
+      {
+        "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/cac5710f-19ce-4154-a5bb-77431261a2af%2FLoginSecurity_passlimit.png",
+        "observedHttpStatus": 200,
+        "bytes": 70853,
+        "sha256": "ed7d95c4f95514c2a54488eec238552177dd0e9e78434abd2594d702f6051de5",
+        "archivePath": "migration/newt-draft-assets-2026-07-29/login-security-pass-limit.png"
+      },
+      {
+        "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/bf936ca1-2f07-46bb-ad23-9e2a6290ad25%2Fshaking-hands.jpg",
+        "observedHttpStatus": 200,
+        "bytes": 140587,
+        "sha256": "1a5fcfc9be301d1ca188e3825bb92b8eddf6945d22e55d73c73ce3e96382edbb",
+        "archivePath": "migration/newt-draft-assets-2026-07-29/rule-handshake.jpg",
+        "existingLocalPath": "public/uploads/wiki/rule-handshake.jpg",
+        "existingAssetExact": true
+      },
+      {
+        "sourceUrl": "https://cdn.pixabay.com/photo/2020/05/18/16/17/social-media-5187243_960_720.png",
+        "observedHttpStatus": 200,
+        "bytes": 111592,
+        "sha256": "643d832e9d8f278dbe1eae7aea0595853167372ab9a4593dbb009de6fc447f31",
+        "archivePath": "migration/newt-draft-assets-2026-07-29/member-header.png"
+      },
+      {
+        "sourceUrl": "https://cdn.pixabay.com/photo/2016/11/23/15/48/audience-1853662_960_720.jpg",
+        "observedHttpStatus": 200,
+        "bytes": 214847,
+        "sha256": "33af7060da4fc07120481bc5cc21b296136723954d8ceba65119780c846a6efb",
+        "archivePath": "migration/newt-draft-assets-2026-07-29/event-header.jpg"
+      },
+      {
+        "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/0c380442-a2f7-42dd-9905-54dc76df8e58%2F2020-11-07_10.42.49.png",
+        "observedHttpStatus": 200,
+        "bytes": 2636141,
+        "sha256": "c918c588c4253f8b9e6b448c6b55b55849cc7d94326bc658d05cf8293fd52a42",
+        "archivePath": "migration/newt-draft-assets-2026-07-29/world-guide.png"
+      }
+    ]
+  },
+  "retainedPublicAssets": [
+    {
+      "localPath": "public/uploads/wiki/rule-handshake.jpg",
+      "bytes": 140587,
+      "sha256": "1a5fcfc9be301d1ca188e3825bb92b8eddf6945d22e55d73c73ce3e96382edbb"
+    },
+    {
+      "localPath": "public/uploads/wiki/rule-circuit-board.jpg",
+      "bytes": 171335,
+      "sha256": "468f4ff041be113891747455cd4bf672de91aac4a362ca816e0127cfdcda361b"
+    },
+    {
+      "localPath": "public/uploads/wiki/discord-link-step-a.png",
+      "bytes": 21515,
+      "sha256": "04db4260eaac671e273d2e24f38d488e14c2772c4fe24b7deb544da1800197a0"
+    },
+    {
+      "localPath": "public/uploads/wiki/discord-link-server.png",
+      "bytes": 1346932,
+      "sha256": "d938207f74af8e1d759cb3e755e2fb3ebd74df8d4ad78866cc09d0b96ed7a129"
+    },
+    {
+      "localPath": "public/uploads/wiki/server-philosophy-icon.png",
+      "bytes": 139548,
+      "sha256": "c83056b983c1420ede6de165a6fd607cb90a1e3e3aa9d323a34fef571e501216"
+    },
+    {
+      "localPath": "public/uploads/wiki/server-philosophy-og.png",
+      "bytes": 136025,
+      "sha256": "c060fc2ccb72a3d20df856f0468052cc813862c2a935c0c2d61430d7baf9305c"
+    },
+    {
+      "localPath": "public/uploads/wiki/join-header.jpg",
+      "bytes": 145805,
+      "sha256": "7a36b772ee876ccb68bca3dfebb35d1c0f72144e695f5fecfd9848e8ebb5fdb9"
+    },
+    {
+      "localPath": "public/uploads/wiki/play-header.jpg",
+      "bytes": 195798,
+      "sha256": "99f1887163763747672c3a5efd77be72fee4603cdbfe190adfddfd1a73b595d5"
+    },
+    {
+      "localPath": "public/uploads/wiki/promotion-header.jpg",
+      "bytes": 250829,
+      "sha256": "7cf9c0f5cc716235079abf3ff03c515c1858a342756ba9c7e506b7295942005f"
+    },
+    {
+      "localPath": "public/uploads/wiki/wiki-icon.png",
+      "bytes": 155424,
+      "sha256": "651915783c3c94ce513e38ac971c0336173b4dff68cddd65f88fc3611f35fd6b"
+    },
+    {
+      "localPath": "public/uploads/wiki/wiki-cover.png",
+      "bytes": 2968610,
+      "sha256": "fb6fac81285c1d12e1b8ef90bc4d51a4a4c33cde7fa0584f8ffb20c58459c1e4"
+    }
+  ],
+  "deferredDraftAssets": [
+    {
+      "articleId": "67c952cc395b530d64002c05",
+      "originalSlug": "Azkaban",
+      "context": "body.img",
+      "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/2c8452ac-7ba8-45e4-abf3-b0c53717ec6b%2Funknown.png",
+      "alt": "unknown.png",
+      "disposition": "inventory-only-not-copied",
+      "preservedAt": "migration/newt-draft-assets-2026-07-29/azkaban-server.png",
+      "preservedSha256": "3a03a7db524ca3c0d9f0631fe58b4c307d9ea57ba94346b1b0975731d816bd7c"
+    },
+    {
+      "articleId": "6416a306b836a015edcee1b0",
+      "originalSlug": "LoginPassword",
+      "context": "body.img",
+      "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/8f553592-b8d5-4581-b752-5efd617ceae1%2FLoginSecurity_register.png",
+      "alt": "",
+      "disposition": "inventory-only-not-copied",
+      "preservedAt": "migration/newt-draft-assets-2026-07-29/login-security-register.png",
+      "preservedSha256": "4a2805173589f6196fa66954f2a9382276ac87041cdf96d72a79809625e60aea"
+    },
+    {
+      "articleId": "6416a306b836a015edcee1b0",
+      "originalSlug": "LoginPassword",
+      "context": "body.img",
+      "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/cac5710f-19ce-4154-a5bb-77431261a2af%2FLoginSecurity_passlimit.png",
+      "alt": "",
+      "disposition": "inventory-only-not-copied",
+      "preservedAt": "migration/newt-draft-assets-2026-07-29/login-security-pass-limit.png",
+      "preservedSha256": "ed7d95c4f95514c2a54488eec238552177dd0e9e78434abd2594d702f6051de5"
+    },
+    {
+      "articleId": "635d1140350db340aac3584f",
+      "originalSlug": "SurvivalRules",
+      "context": "body.img",
+      "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/bf936ca1-2f07-46bb-ad23-9e2a6290ad25%2Fshaking-hands.jpg",
+      "alt": "",
+      "disposition": "inventory-only-not-copied",
+      "preservedAt": "migration/newt-draft-assets-2026-07-29/rule-handshake.jpg",
+      "preservedSha256": "1a5fcfc9be301d1ca188e3825bb92b8eddf6945d22e55d73c73ce3e96382edbb"
+    },
+    {
+      "articleId": "635d082a06cfd5386b37a26c",
+      "originalSlug": "AzkabanOverview",
+      "context": "body.img",
+      "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/2c8452ac-7ba8-45e4-abf3-b0c53717ec6b%2Funknown.png",
+      "alt": "unknown.png",
+      "disposition": "inventory-only-not-copied",
+      "preservedAt": "migration/newt-draft-assets-2026-07-29/azkaban-server.png",
+      "preservedSha256": "3a03a7db524ca3c0d9f0631fe58b4c307d9ea57ba94346b1b0975731d816bd7c"
+    },
+    {
+      "articleId": "634532eed2720e3d2d580a91",
+      "originalSlug": "member",
+      "context": "body.img",
+      "sourceUrl": "https://cdn.pixabay.com/photo/2020/05/18/16/17/social-media-5187243_960_720.png",
+      "alt": "社会的なメディア, 社交, マーケティング, インターネット, モバイル, メディア, ネットワーキング",
+      "disposition": "inventory-only-not-copied",
+      "preservedAt": "migration/newt-draft-assets-2026-07-29/member-header.png",
+      "preservedSha256": "643d832e9d8f278dbe1eae7aea0595853167372ab9a4593dbb009de6fc447f31"
+    },
+    {
+      "articleId": "63453283d2720e3d2d57fc85",
+      "originalSlug": "event",
+      "context": "body.img",
+      "sourceUrl": "https://cdn.pixabay.com/photo/2016/11/23/15/48/audience-1853662_960_720.jpg",
+      "alt": "観客, バンド, コンサート, 群衆, お祭り, ライト, 音楽, ミュージシャン, 人, パフォーマンス",
+      "disposition": "inventory-only-not-copied",
+      "preservedAt": "migration/newt-draft-assets-2026-07-29/event-header.jpg",
+      "preservedSha256": "33af7060da4fc07120481bc5cc21b296136723954d8ceba65119780c846a6efb"
+    },
+    {
+      "articleId": "6345322dd2720e3d2d5794dd",
+      "originalSlug": "world",
+      "context": "body.img",
+      "sourceUrl": "https://storage.googleapis.com/p_631ae0ff4b26e8e308048763/0c380442-a2f7-42dd-9905-54dc76df8e58%2F2020-11-07_10.42.49.png",
+      "alt": "2020-11-07_10.42.49.png",
+      "disposition": "inventory-only-not-copied",
+      "preservedAt": "migration/newt-draft-assets-2026-07-29/world-guide.png",
+      "preservedSha256": "c918c588c4253f8b9e6b448c6b55b55849cc7d94326bc658d05cf8293fd52a42"
+    }
+  ]
+}

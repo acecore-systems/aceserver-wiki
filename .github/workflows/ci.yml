@@ -54,6 +54,9 @@ jobs:
       - name: Verify archived migration evidence
         run: npm run test:migration
 
+      - name: Verify self-contained Newt migration archive
+        run: npm run test:migration:archive
+
       - name: Build and validate Astro Wiki
         run: npm run build
 

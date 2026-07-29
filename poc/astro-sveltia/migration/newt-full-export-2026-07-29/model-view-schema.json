@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-07-29",
+  "source": {
+    "spaceUid": "aceserver",
+    "appUid": "wiki",
+    "appName": "エースサーバーWIKI",
+    "captureMethod": "Newt management UI JSON preview and view settings"
+  },
+  "models": [
+    {
+      "name": "投稿",
+      "uid": "article",
+      "example": {
+        "_id": "_id",
+        "_sys": {
+          "createdAt": "2023-01-01T00:00:00.000Z",
+          "updatedAt": "2023-01-01T00:00:00.000Z",
+          "customOrder": 3,
+          "raw": {
+            "createdAt": "2023-01-01T00:00:00.000Z",
+            "updatedAt": "2023-01-01T00:00:00.000Z",
+            "firstPublishedAt": "2023-01-01T00:00:00.000Z",
+            "publishedAt": "2023-01-01T00:00:00.000Z"
+          }
+        },
+        "title": "text",
+        "slug": "text",
+        "meta": {
+          "title": "text",
+          "description": "text",
+          "ogImage": {
+            "_id": "imageId",
+            "src": "imageUrl",
+            "fileName": "example.png",
+            "fileType": "image/png",
+            "fileSize": 12345678,
+            "width": 600,
+            "height": 400,
+            "title": "example",
+            "altText": "example image",
+            "description": "",
+            "metadata": {}
+          }
+        },
+        "body": "<p>Plain text is available using the fmt operator.</p>",
+        "category": "referenceId",
+        "sortOrder": 1
+      }
+    },
+    {
+      "name": "カテゴリ",
+      "uid": "category",
+      "example": {
+        "_id": "_id",
+        "_sys": {
+          "createdAt": "2023-01-01T00:00:00.000Z",
+          "updatedAt": "2023-01-01T00:00:00.000Z",
+          "customOrder": 3,
+          "raw": {
+            "createdAt": "2023-01-01T00:00:00.000Z",
+            "updatedAt": "2023-01-01T00:00:00.000Z",
+            "firstPublishedAt": "2023-01-01T00:00:00.000Z",
+            "publishedAt": "2023-01-01T00:00:00.000Z"
+          }
+        },
+        "name": "text",
+        "sortOrder": 1
+      }
+    },
+    {
+      "name": "リンク",
+      "uid": "link",
+      "example": {
+        "_id": "_id",
+        "_sys": {
+          "createdAt": "2023-01-01T00:00:00.000Z",
+          "updatedAt": "2023-01-01T00:00:00.000Z",
+          "customOrder": 3,
+          "raw": {
+            "createdAt": "2023-01-01T00:00:00.000Z",
+            "updatedAt": "2023-01-01T00:00:00.000Z",
+            "firstPublishedAt": "2023-01-01T00:00:00.000Z",
+            "publishedAt": "2023-01-01T00:00:00.000Z"
+          }
+        },
+        "text": "text",
+        "href": "text"
+      }
+    }
+  ],
+  "views": [
+    {
+      "name": "投稿",
+      "type": "table",
+      "modelName": "投稿",
+      "modelUid": "article"
+    },
+    {
+      "name": "カテゴリ",
+      "type": "table",
+      "modelName": "カテゴリ",
+      "modelUid": "category"
+    },
+    {
+      "name": "リンク",
+      "type": "table",
+      "modelName": "リンク",
+      "modelUid": "link"
+    }
+  ]
+}

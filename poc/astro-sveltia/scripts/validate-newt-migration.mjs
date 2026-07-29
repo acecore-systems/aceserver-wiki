@@ -36,7 +36,7 @@ validateArchivedEvidence()
 if (validateCurrent) {
   const parity = await validateCurrentMigration()
   console.log(
-    `Validated the current 15-article migration: ${parity.nonTableTextMatches}/15 non-table text bodies, ${parity.tableCount} semantic tables, ${parity.links.source} source links (${parity.links.exact} exact, ${parity.links.rewritten} rewritten, ${parity.links.retired} retired with labels preserved), ${parity.links.added} added links, ${parity.images.preserved}/${parity.images.source} preserved article images, ${parity.search.query} search ${parity.search.source} source/${parity.search.current} current results with no source loss, 11 hashed stored assets, and four redirects.`,
+    `Validated the current 15-article legacy migration: ${parity.nonTableTextMatches}/15 non-table text bodies, ${parity.tableCount} semantic tables, ${parity.links.source} source links (${parity.links.exact} exact, ${parity.links.rewritten} rewritten, ${parity.links.retired} retired with labels preserved), ${parity.links.added} added links, ${parity.images.preserved}/${parity.images.source} preserved article images, ${parity.search.query} search ${parity.search.source} source/${parity.search.current} current results with no source loss, 11 hashed stored assets, and four redirects.`,
   )
 } else {
   console.log(
@@ -255,11 +255,14 @@ function validateArchivedEvidence() {
 async function validateCurrentMigration() {
   const contentFiles = (await readdir(contentDirectory)).toSorted()
   const mediaFiles = (await readdir(mediaDirectory)).toSorted()
+  const expectedPublicFiles = manifest.articles.map(
+    ({ targetSlug }) => `${targetSlug}.md`,
+  )
 
   assertDeepEqual(
-    contentFiles,
-    manifest.articles.map(({ targetSlug }) => `${targetSlug}.md`).toSorted(),
-    'Markdown file inventory differs from the migration manifest.',
+    expectedPublicFiles.filter((fileName) => !contentFiles.includes(fileName)),
+    [],
+    'A Markdown file from the legacy 15-article migration is missing.',
   )
   assertDeepEqual(
     mediaFiles,
@@ -288,6 +291,10 @@ async function validateCurrentMigration() {
     assert(
       parsed.data.order === article.order,
       `Markdown order differs from migration evidence: ${article.targetSlug}`,
+    )
+    assert(
+      parsed.data.draft === false,
+      `Published migration article is not explicitly public: ${article.targetSlug}`,
     )
     assert(
       !/<(?:!--[\s\S]*?--|!doctype\b[^>]*|\/?[a-z][a-z0-9:-]*(?:\s[^<>]*?)?\s*\/?>)/iu.test(

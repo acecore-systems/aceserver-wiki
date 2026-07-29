@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "exportedAt": "2026-07-28T15:39:44.637Z",
+  "source": {
+    "spaceUid": "aceserver",
+    "appUid": "wiki",
+    "apiType": "api",
+    "depth": 2
+  },
+  "files": [
+    {
+      "modelUid": "article",
+      "fileName": "article.json",
+      "bytes": 144037,
+      "sha256": "af65a6c1380c68669d663dd55a594ed637b65efabea3923695167cedb3a1f8ae",
+      "total": 32,
+      "items": 32,
+      "uniqueIds": 32
+    },
+    {
+      "modelUid": "category",
+      "fileName": "category.json",
+      "bytes": 4478,
+      "sha256": "2b0f856e9dfa304eb1c42262a8650b7ff8627dc5d596d7fa65cfb703cea482aa",
+      "total": 9,
+      "items": 9,
+      "uniqueIds": 9
+    },
+    {
+      "modelUid": "link",
+      "fileName": "link.json",
+      "bytes": 1579,
+      "sha256": "d283d9b587acbfd5f8f259fa7a1bc283f605d90eeae021ea481c021e8106a7f3",
+      "total": 3,
+      "items": 3,
+      "uniqueIds": 3
+    }
+  ],
+  "recheckTotals": [
+    {
+      "modelUid": "article",
+      "status": 200,
+      "total": 32
+    },
+    {
+      "modelUid": "category",
+      "status": 200,
+      "total": 9
+    },
+    {
+      "modelUid": "link",
+      "status": 200,
+      "total": 3
+    }
+  ]
+}
