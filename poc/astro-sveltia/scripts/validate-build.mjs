@@ -22,10 +22,21 @@ const expectedHeaderLinks = [
   'https://asv.acecore.net',
 ]
 const articles = await readPublishedArticles()
-const [adminInit, adminStyles] = await Promise.all([
+const [adminInit, adminStyles, globalStyles] = await Promise.all([
   readFile(new URL('admin/init.js', dist), 'utf8'),
   readFile(new URL('admin/shell.css', dist), 'utf8'),
+  readFile(new URL('src/styles/global.css', root), 'utf8'),
 ])
+const normalizedGlobalStyles = normalizeCss(globalStyles)
+const tabletHeaderStyles = normalizeCss(
+  cssMediaBlock(globalStyles, '(min-width: 600px)'),
+)
+const desktopHeaderStyles = normalizeCss(
+  cssMediaBlock(globalStyles, '(min-width: 896px)'),
+)
+const compactDesktopHeaderStyles = normalizeCss(
+  cssMediaBlock(globalStyles, '(min-width: 896px) and (max-width: 960px)'),
+)
 
 assert(
   cmsConfig.output?.omit_empty_optional_fields === true,
@@ -40,6 +51,40 @@ assert(
 assert(
   adminStyles.includes('.cms-publish-notice'),
   'CMS publication guidance must be styled.',
+)
+assert(
+  normalizedGlobalStyles.includes(
+    '.site-search button { height: 32px; flex: 0 0 auto; padding: 4px 9px; white-space: nowrap; }',
+  ),
+  'The desktop search button must remain readable without wrapping.',
+)
+assert(
+  tabletHeaderStyles.includes(
+    '.site-links { display: flex; margin-left: auto; }',
+  ) &&
+    tabletHeaderStyles.includes(
+      '.site-links a:not(.edit-link) { display: none; }',
+    ) &&
+    tabletHeaderStyles.includes('.mobile-menu { margin-left: 8px; }') &&
+    !tabletHeaderStyles.includes('.site-search { display: flex; }') &&
+    !tabletHeaderStyles.includes('.mobile-menu { display: none; }'),
+  'The 600-895px header must keep the edit CTA visible without the crowded desktop navigation.',
+)
+assert(
+  desktopHeaderStyles.includes('.site-links { margin-left: 3rem; }') &&
+    desktopHeaderStyles.includes(
+      '.site-links a:not(.edit-link) { display: inline; }',
+    ) &&
+    desktopHeaderStyles.includes('.site-search { display: flex; }') &&
+    desktopHeaderStyles.includes('.mobile-menu { display: none; }'),
+  'The complete desktop header must start at 896px.',
+)
+assert(
+  compactDesktopHeaderStyles.includes(
+    '.site-links a { padding-right: 7px; padding-left: 7px; }',
+  ) &&
+    compactDesktopHeaderStyles.includes('.site-search input { width: 11rem; }'),
+  'Compact desktop header rules must cover 896-960px.',
 )
 
 const rootDocument = await readHtml('index.html')
@@ -451,6 +496,32 @@ function assertDeepEqual(actual, expected, message) {
     JSON.stringify(actual) === JSON.stringify(expected),
     `${message}\nExpected: ${JSON.stringify(expected)}\nReceived: ${JSON.stringify(actual)}`,
   )
+}
+
+function cssMediaBlock(source, query) {
+  const marker = `@media ${query}`
+  const markerIndex = source.indexOf(marker)
+  assert(markerIndex >= 0, `CSS media query is missing: ${query}`)
+
+  const openingBraceIndex = source.indexOf('{', markerIndex + marker.length)
+  assert(openingBraceIndex >= 0, `CSS media query is invalid: ${query}`)
+
+  let depth = 0
+  for (let index = openingBraceIndex; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1
+    if (source[index] !== '}') continue
+
+    depth -= 1
+    if (depth === 0) {
+      return source.slice(openingBraceIndex + 1, index)
+    }
+  }
+
+  throw new Error(`CSS media query is not closed: ${query}`)
+}
+
+function normalizeCss(source) {
+  return source.replace(/\s+/gu, ' ').trim()
 }
 
 function assert(condition, message = 'Build validation failed.') {

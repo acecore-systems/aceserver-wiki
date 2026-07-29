@@ -248,7 +248,9 @@ a:hover {
 
 .site-search button {
   height: 32px;
+  flex: 0 0 auto;
   padding: 4px 9px;
+  white-space: nowrap;
 }
 
 .site-search button:hover,
@@ -804,17 +806,21 @@ a:hover {
     padding: 9px 60px;
   }
 
-  .site-links,
-  .site-search {
+  .site-links {
     display: flex;
+    margin-left: auto;
+  }
+
+  .site-links a:not(.edit-link) {
+    display: none;
+  }
+
+  .mobile-menu {
+    margin-left: 8px;
   }
 
   .side-navigation {
     display: block;
-  }
-
-  .mobile-menu {
-    display: none;
   }
 
   .home,
@@ -825,7 +831,25 @@ a:hover {
   }
 }
 
-@media (min-width: 600px) and (max-width: 960px) {
+@media (min-width: 896px) {
+  .site-links {
+    margin-left: 3rem;
+  }
+
+  .site-links a:not(.edit-link) {
+    display: inline;
+  }
+
+  .site-search {
+    display: flex;
+  }
+
+  .mobile-menu {
+    display: none;
+  }
+}
+
+@media (min-width: 896px) and (max-width: 960px) {
   .site-links a {
     padding-right: 7px;
     padding-left: 7px;
