@@ -729,8 +729,7 @@ a:hover {
     scrollbar-color: var(--color-border-strong) transparent;
   }
 
-  .side-navigation a:focus-visible,
-  .side-navigation summary:focus-visible {
+  .side-navigation a:focus-visible {
     outline-offset: -3px;
   }
 
@@ -742,36 +741,15 @@ a:hover {
     border-block-start: 1px solid var(--color-border);
   }
 
-  .side-navigation__category > summary {
+  .side-navigation__category > h2 {
     display: flex;
     min-height: 2.75rem;
     align-items: center;
-    justify-content: space-between;
+    margin: 0;
     padding: 0.55rem 0.3rem;
     color: var(--color-heading);
     font-size: 0.84rem;
     font-weight: 750;
-    list-style: none;
-    cursor: pointer;
-  }
-
-  .side-navigation__category > summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .side-navigation__category > summary::after {
-    width: 0.45rem;
-    height: 0.45rem;
-    margin-inline: 0.5rem;
-    border-inline-end: 1.5px solid currentColor;
-    border-block-end: 1.5px solid currentColor;
-    content: '';
-    transform: rotate(45deg) translateY(-0.1rem);
-    transition: transform 140ms ease;
-  }
-
-  .side-navigation__category[open] > summary::after {
-    transform: rotate(225deg) translate(-0.1rem, -0.1rem);
   }
 
   .side-navigation__category ul {

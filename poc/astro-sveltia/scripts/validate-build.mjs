@@ -100,6 +100,9 @@ assert(
 )
 
 const rootDocument = await readHtml('index.html')
+const sideNavigation = findElements(rootDocument, 'nav').find(
+  (node) => getAttribute(node, 'aria-label') === '記事一覧',
+)
 
 assert(
   elementText(findElement(rootDocument, 'title')) ===
@@ -156,6 +159,17 @@ assert(
 assert(
   elementText(rootDocument).includes('現在、公開中の記事はありません。'),
   'Empty categories must remain explicit instead of rendering a blank list.',
+)
+assert(sideNavigation, 'The desktop article navigation is missing.')
+assert(
+  findElements(sideNavigation, 'details').length === 0 &&
+    findElements(sideNavigation, 'summary').length === 0,
+  'Desktop article categories must stay expanded without disclosure controls.',
+)
+assert(
+  findElements(sideNavigation, 'section').length > 1 &&
+    findElements(sideNavigation, 'h2').length > 1,
+  'Desktop article categories must render as visible grouped lists.',
 )
 
 const searchDocument = await readHtml('search/index.html')
