@@ -11,28 +11,32 @@ const { categories, currentId } = Astro.props
 
 <nav class="side-navigation" aria-label="記事一覧">
   {
-    categories.map((category) => {
-      const containsCurrentArticle = category.articles.some(
-        (article) => article.id === currentId,
-      )
-
-      return (
-        <details class="side-navigation__category" open={containsCurrentArticle}>
-          <summary>{category.name}</summary>
-          <ul>
-            {category.articles.map((article) => (
-              <li>
-                <a
-                  href={articlePath(article.id)}
-                  aria-current={currentId === article.id ? 'page' : undefined}
-                >
-                  {article.data.title}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )
-    })
+    categories.map((category) => (
+      <section class="side-navigation__category">
+        <h2>{category.name}</h2>
+        {
+          category.articles.length > 0 ? (
+            <ul>
+              {category.articles.map((article) => (
+                <li>
+                  <a
+                    href={articlePath(article.id)}
+                    aria-current={
+                      currentId === article.id ? 'page' : undefined
+                    }
+                  >
+                    {article.data.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="side-navigation__empty">
+              現在、公開中の記事はありません。
+            </p>
+          )
+        }
+      </section>
+    ))
   }
 </nav>

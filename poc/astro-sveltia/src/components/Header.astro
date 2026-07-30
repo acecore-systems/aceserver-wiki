@@ -13,6 +13,7 @@ interface Props {
 }
 
 const { categories, currentId } = Astro.props
+const isHome = Astro.url.pathname === '/'
 ---
 
 <header class="site-header">
@@ -46,13 +47,16 @@ const { categories, currentId } = Astro.props
     </form>
 
     <details class="mobile-menu">
-      <summary aria-label="記事メニューを開く">
-        <span aria-hidden="true"></span>
+      <summary aria-label="記事メニュー">
+        <span class="mobile-menu__icon" aria-hidden="true"></span>
+        <span class="mobile-menu__label" aria-hidden="true">メニュー</span>
       </summary>
       <div class="mobile-menu__panel">
         <nav aria-label="モバイル記事メニュー">
           <ul class="mobile-menu__primary">
-            <li><a href="/" aria-current={!currentId ? 'page' : undefined}>トップ</a></li>
+            <li>
+              <a href="/" aria-current={isHome ? 'page' : undefined}>トップ</a>
+            </li>
             {
               WIKI_HEADER_LINKS.map((link) => (
                 <li>
@@ -87,20 +91,26 @@ const { categories, currentId } = Astro.props
             categories.map((category) => (
               <section class="mobile-menu__category">
                 <h2>{category.name}</h2>
-                <ul>
-                  {category.articles.map((article) => (
-                    <li>
-                      <a
-                        href={articlePath(article.id)}
-                        aria-current={
-                          currentId === article.id ? 'page' : undefined
-                        }
-                      >
-                        {article.data.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                {category.articles.length > 0 ? (
+                  <ul>
+                    {category.articles.map((article) => (
+                      <li>
+                        <a
+                          href={articlePath(article.id)}
+                          aria-current={
+                            currentId === article.id ? 'page' : undefined
+                          }
+                        >
+                          {article.data.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p class="mobile-menu__empty">
+                    現在、公開中の記事はありません。
+                  </p>
+                )}
               </section>
             ))
           }
@@ -109,3 +119,10 @@ const { categories, currentId } = Astro.props
     </details>
   </div>
 </header>
+
+<script
+  is:inline
+  nonce="__CSP_NONCE__"
+  src="/mobile-menu.js"
+  defer
+></script>

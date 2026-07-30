@@ -10,6 +10,7 @@ import {
 } from '../config/wiki'
 import type { WikiCategoryGroup } from '../lib/wiki'
 import '../styles/global.css'
+import '../styles/markdown.css'
 
 interface Props {
   title: string
@@ -88,9 +89,11 @@ const absoluteOgImage = ogImage
     <a class="skip-link" href="#main-content">本文へ移動</a>
     <div class="wrapper">
       <Header categories={categories} currentId={currentId} />
-      <main id="main-content" class="main">
+      <main class="main">
         <Navigation categories={categories} currentId={currentId} />
-        <slot />
+        <div id="main-content" class="content" tabindex="-1">
+          <slot />
+        </div>
       </main>
     </div>
   </body>

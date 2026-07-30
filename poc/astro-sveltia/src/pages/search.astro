@@ -18,6 +18,7 @@ const categories = groupWikiArticles(await getWikiArticles())
 >
   <section class="search-page">
     <h1>サイト内検索</h1>
+    <p class="search-page__description">{SEARCH_DESCRIPTION}</p>
     <form class="search-page__form" action="/search/" method="get" role="search">
       <label class="visually-hidden" for="search-query">検索語</label>
       <input

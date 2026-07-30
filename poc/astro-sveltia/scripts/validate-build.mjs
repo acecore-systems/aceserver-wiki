@@ -3,6 +3,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { parse } from 'parse5'
 import { parse as parseYaml } from 'yaml'
 
+import { WIKI_CATEGORIES, WIKI_QUICK_ARTICLE_IDS } from '../src/config/wiki.ts'
 import { isExternalHttpUrl } from '../src/lib/external-link-policy.ts'
 
 const root = new URL('../', import.meta.url)
@@ -21,22 +22,52 @@ const expectedHeaderLinks = [
   'https://acecore.net',
   'https://asv.acecore.net',
 ]
+const cspNoncePlaceholder = '__CSP_NONCE__'
+const emptyCategoryMessage = '現在、公開中の記事はありません。'
 const articles = await readPublishedArticles()
-const [adminInit, adminStyles, globalStyles] = await Promise.all([
+const publishedArticleCountByCategory = new Map(
+  WIKI_CATEGORIES.map(({ name }) => [
+    name,
+    articles.filter(({ data }) => data.category === name).length,
+  ]),
+)
+const quickArticles = WIKI_QUICK_ARTICLE_IDS.flatMap((id) => {
+  const article = articles.find(({ slug }) => slug === id)
+  return article ? [article] : []
+})
+const expectedQuickArticlePaths = quickArticles.map(({ slug }) =>
+  articlePath(slug),
+)
+const startArticle =
+  articles.find(({ slug }) => slug === 'rinen') ??
+  quickArticles.at(0) ??
+  articles.at(0)
+const [
+  adminInit,
+  adminStyles,
+  globalStyles,
+  markdownStyles,
+  wikiLayout,
+  mobileMenuScript,
+] = await Promise.all([
   readFile(new URL('admin/init.js', dist), 'utf8'),
   readFile(new URL('admin/shell.css', dist), 'utf8'),
   readFile(new URL('src/styles/global.css', root), 'utf8'),
+  readFile(new URL('src/styles/markdown.css', root), 'utf8'),
+  readFile(new URL('src/layouts/WikiLayout.astro', root), 'utf8'),
+  readFile(new URL('mobile-menu.js', dist), 'utf8'),
 ])
 const normalizedGlobalStyles = normalizeCss(globalStyles)
-const tabletHeaderStyles = normalizeCss(
-  cssMediaBlock(globalStyles, '(min-width: 600px)'),
-)
+const normalizedMarkdownStyles = normalizeCss(markdownStyles)
 const desktopHeaderStyles = normalizeCss(
-  cssMediaBlock(globalStyles, '(min-width: 896px)'),
+  cssMediaBlock(globalStyles, '(min-width: 67.5rem)'),
 )
-const compactDesktopHeaderStyles = normalizeCss(
-  cssMediaBlock(globalStyles, '(min-width: 896px) and (max-width: 960px)'),
-)
+const sideNavigationDeclarations = [
+  ...normalizedGlobalStyles.matchAll(/\.side-navigation\s*\{([^{}]*)\}/gu),
+].map((match) => match[1])
+const desktopSideNavigationDeclarations = [
+  ...desktopHeaderStyles.matchAll(/\.side-navigation\s*\{([^{}]*)\}/gu),
+].map((match) => match[1])
 
 assert(
   cmsConfig.output?.omit_empty_optional_fields === true,
@@ -53,41 +84,74 @@ assert(
   'CMS publication guidance must be styled.',
 )
 assert(
-  normalizedGlobalStyles.includes(
-    '.site-search button { height: 32px; flex: 0 0 auto; padding: 4px 9px; white-space: nowrap; }',
-  ),
-  'The desktop search button must remain readable without wrapping.',
+  wikiLayout.includes("import '../styles/global.css'") &&
+    wikiLayout.includes("import '../styles/markdown.css'") &&
+    wikiLayout.indexOf("import '../styles/global.css'") <
+      wikiLayout.indexOf("import '../styles/markdown.css'"),
+  'The Wiki layout must load the shared Markdown stylesheet after the global shell styles.',
 )
 assert(
-  tabletHeaderStyles.includes(
-    '.site-links { display: flex; margin-left: auto; }',
+  mobileMenuScript.trim().length > 0,
+  'The CSP-compatible mobile menu script must be included in the build output.',
+)
+assert(
+  normalizedMarkdownStyles.includes(
+    '.article__body { width: min(100%, var(--reading-width));',
   ) &&
-    tabletHeaderStyles.includes(
-      '.site-links a:not(.edit-link) { display: none; }',
+    normalizedMarkdownStyles.includes(
+      '.article__body table { display: block;',
     ) &&
-    tabletHeaderStyles.includes('.mobile-menu { margin-left: 8px; }') &&
-    !tabletHeaderStyles.includes('.site-search { display: flex; }') &&
-    !tabletHeaderStyles.includes('.mobile-menu { display: none; }'),
-  'The 600-895px header must keep the edit CTA visible without the crowded desktop navigation.',
+    normalizedMarkdownStyles.includes(
+      '.article__body :where(img, video) { display: block; max-width: 100%;',
+    ),
+  'Markdown content must preserve a readable measure, local table scrolling, and responsive media.',
 )
 assert(
-  desktopHeaderStyles.includes('.site-links { margin-left: 3rem; }') &&
-    desktopHeaderStyles.includes(
-      '.site-links a:not(.edit-link) { display: inline; }',
-    ) &&
+  normalizedGlobalStyles.includes(
+    '.site-links, .site-search { display: none; }',
+  ) &&
+    normalizedGlobalStyles.includes(
+      '.mobile-menu { margin-inline-start: auto; }',
+    ),
+  'Mobile must default to the menu while hiding the desktop links and search.',
+)
+assert(
+  desktopHeaderStyles.includes('.site-links { display: flex;') &&
     desktopHeaderStyles.includes('.site-search { display: flex; }') &&
     desktopHeaderStyles.includes('.mobile-menu { display: none; }'),
-  'The complete desktop header must start at 896px.',
+  'The complete desktop header must start at the shared 67.5rem shell breakpoint.',
 )
 assert(
-  compactDesktopHeaderStyles.includes(
-    '.site-links a { padding-right: 7px; padding-left: 7px; }',
+  desktopSideNavigationDeclarations.some((declarations) =>
+    /(?:^|;)\s*display:\s*block\s*(?:;|$)/u.test(declarations),
   ) &&
-    compactDesktopHeaderStyles.includes('.site-search input { width: 11rem; }'),
-  'Compact desktop header rules must cover 896-960px.',
+    sideNavigationDeclarations.every(
+      (declarations) =>
+        !/(?:^|;)\s*(?:position\s*:\s*(?:sticky|fixed|absolute)\b|max-(?:height|block-size)\s*:|overflow(?:-(?:x|y|block|inline))?\s*:)/u.test(
+          declarations,
+        ),
+    ),
+  'Desktop article navigation must remain in document flow without an internal scrollbar.',
+)
+assert(
+  !globalStyles.includes('@media (min-width: 600px)') &&
+    !globalStyles.includes('@media (min-width: 896px)'),
+  'Legacy header breakpoints must not reintroduce a duplicate tablet/desktop navigation state.',
+)
+assert(
+  normalizedGlobalStyles.includes(
+    "button, input[type='search'] { min-height: 2.75rem; }",
+  ) &&
+    normalizedGlobalStyles.includes(
+      '.mobile-menu > summary { display: inline-flex; min-height: 2.75rem;',
+    ),
+  'Primary form and menu controls must preserve a 44px minimum target size.',
 )
 
 const rootDocument = await readHtml('index.html')
+const sideNavigation = findElements(rootDocument, 'nav').find(
+  (node) => getAttribute(node, 'aria-label') === '記事一覧',
+)
 
 assert(
   elementText(findElement(rootDocument, 'title')) ===
@@ -120,10 +184,82 @@ assert(
   editLinks.length === 2,
   'Desktop and mobile edit links must use the clear Wiki edit CTA.',
 )
-assert(
-  hasAnchorWithText(rootDocument, '/article/rinen/', 'Wikiを読む'),
-  'The Nuxt home-page start CTA is missing.',
+const startArticleLink = findElements(rootDocument, 'a').find((node) =>
+  hasClass(node, 'home__start'),
 )
+if (startArticle) {
+  assert(
+    getAttribute(startArticleLink, 'href') === articlePath(startArticle.slug) &&
+      elementText(startArticleLink).trim() === 'Wikiを読む',
+    'The root start CTA differs from the current published article inventory.',
+  )
+} else {
+  assert(
+    !startArticleLink,
+    'The root must omit its start CTA when no articles are published.',
+  )
+}
+const mainContent = findElements(rootDocument, 'div').find(
+  (node) => getAttribute(node, 'id') === 'main-content',
+)
+assert(
+  mainContent && getAttribute(mainContent, 'tabindex') === '-1',
+  'The skip link target must focus the page content after the side navigation.',
+)
+assert(
+  hasAnchorWithText(rootDocument, '#main-content', '本文へ移動'),
+  'The page must provide a content skip link.',
+)
+assertTrustedScriptNonce(rootDocument, '/mobile-menu.js')
+assertExecutableScriptsAreTrusted(rootDocument, 'Root')
+const quickArticleNavigation = findElements(rootDocument, 'nav').find((node) =>
+  hasClass(node, 'home__quick-links'),
+)
+if (expectedQuickArticlePaths.length === 0) {
+  assert(
+    !quickArticleNavigation,
+    'The root must omit quick navigation when no quick articles are published.',
+  )
+} else {
+  assert(quickArticleNavigation, 'The root quick navigation is missing.')
+  assertDeepEqual(
+    findElements(quickArticleNavigation, 'a').map((node) =>
+      getAttribute(node, 'href'),
+    ),
+    expectedQuickArticlePaths,
+    'The root quick links differ from the current published article inventory.',
+  )
+}
+assert(sideNavigation, 'The desktop article navigation is missing.')
+assert(
+  findElements(sideNavigation, 'details').length === 0 &&
+    findElements(sideNavigation, 'summary').length === 0,
+  'Desktop article categories must stay expanded without disclosure controls.',
+)
+assert(
+  findElements(sideNavigation, 'section').length > 1 &&
+    findElements(sideNavigation, 'h2').length > 1,
+  'Desktop article categories must render as visible grouped lists.',
+)
+for (const surface of [
+  {
+    label: 'Home',
+    sectionClass: 'home__category',
+    emptyClass: 'home__empty',
+  },
+  {
+    label: 'Mobile navigation',
+    sectionClass: 'mobile-menu__category',
+    emptyClass: 'mobile-menu__empty',
+  },
+  {
+    label: 'Side navigation',
+    sectionClass: 'side-navigation__category',
+    emptyClass: 'side-navigation__empty',
+  },
+]) {
+  assertCategoryEmptyStates(rootDocument, surface)
+}
 
 const searchDocument = await readHtml('search/index.html')
 assert(
@@ -139,14 +275,24 @@ assert(
   hasScriptSource(searchDocument, '/search.js'),
   'Search must load its CSP-compatible same-origin external script.',
 )
+assertTrustedScriptNonce(searchDocument, '/mobile-menu.js')
 assertTrustedScriptNonce(searchDocument, '/search.js')
+assertExecutableScriptsAreTrusted(searchDocument, 'Search')
 assert(
   !hasScriptSource(searchDocument, adsenseSource),
   'Unmoderated search results must not load AdSense.',
 )
+assert(
+  elementText(searchDocument).includes(
+    'エースサーバー公式Wikiの記事をタイトルと本文から検索できます。',
+  ),
+  'Search must explain what the query covers.',
+)
 
 const notFoundDocument = await readHtml('404.html')
 assert(metaContent(notFoundDocument, 'name', 'robots') === 'noindex, nofollow')
+assertTrustedScriptNonce(notFoundDocument, '/mobile-menu.js')
+assertExecutableScriptsAreTrusted(notFoundDocument, '404')
 assert(
   !hasScriptSource(notFoundDocument, adsenseSource),
   'The 404 page must not load advertising.',
@@ -193,21 +339,30 @@ for (const article of articles) {
     !hasScriptSource(document, adsenseSource),
     `Unmoderated article must not load AdSense: ${article.slug}`,
   )
+  assertTrustedScriptNonce(document, '/mobile-menu.js')
+  assertExecutableScriptsAreTrusted(document, `Article: ${article.slug}`)
   const articleBody = findElements(document, 'div').find((node) =>
     getAttribute(node, 'class').split(/\s+/u).includes('article__body'),
   )
   assert(articleBody, `Article body is missing: ${article.slug}`)
+  const breadcrumbs = findElements(document, 'nav').find(
+    (node) => getAttribute(node, 'aria-label') === 'パンくずリスト',
+  )
+  assert(
+    breadcrumbs && elementText(breadcrumbs).includes(article.data.title),
+    `Article breadcrumb is missing: ${article.slug}`,
+  )
+  const visibleDescription = findElements(document, 'p').find((node) =>
+    getAttribute(node, 'class').split(/\s+/u).includes('article__description'),
+  )
+  assert(
+    elementText(visibleDescription).trim() === article.data.description,
+    `Article description must be visible: ${article.slug}`,
+  )
   assertExternalLinksAreUgc(articleBody, article.slug)
 }
 
-const builtArticleDirectories = (
-  await readdir(new URL('article/', dist), {
-    withFileTypes: true,
-  })
-)
-  .filter((entry) => entry.isDirectory())
-  .map((entry) => entry.name)
-  .toSorted()
+const builtArticleDirectories = await readBuiltArticleDirectories()
 assertDeepEqual(
   builtArticleDirectories,
   articles.map(({ slug }) => slug).toSorted(),
@@ -363,11 +518,27 @@ assert(
 )
 
 console.log(
-  `Validated ${articles.length} current published articles, canonicals, keyword/vector search corpora, sitemap, robots, SEO, OG, disabled AdSense on UGC surfaces, and CSP-compatible search script.`,
+  `Validated ${articles.length} current published articles, category states, canonicals, keyword/vector search corpora, sitemap, robots, SEO, OG, disabled AdSense on UGC surfaces, and CSP-compatible scripts.`,
 )
 
 async function readHtml(path) {
   return parse(await readFile(new URL(path, dist), 'utf8'))
+}
+
+async function readBuiltArticleDirectories() {
+  try {
+    return (
+      await readdir(new URL('article/', dist), {
+        withFileTypes: true,
+      })
+    )
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .toSorted()
+  } catch (error) {
+    if (error?.code === 'ENOENT') return []
+    throw error
+  }
 }
 
 function findElements(rootNode, tagName) {
@@ -386,6 +557,10 @@ function findElement(rootNode, tagName) {
 
 function getAttribute(node, name) {
   return node?.attrs?.find((attribute) => attribute.name === name)?.value ?? ''
+}
+
+function hasClass(node, className) {
+  return getAttribute(node, 'class').split(/\s+/u).includes(className)
 }
 
 function elementText(node) {
@@ -424,9 +599,71 @@ function assertTrustedScriptNonce(document, source) {
   )
 
   assert(
-    getAttribute(script, 'nonce') === '__CSP_NONCE__',
+    getAttribute(script, 'nonce') === cspNoncePlaceholder,
     `Trusted script is missing its CSP nonce placeholder: ${source}`,
   )
+}
+
+function assertExecutableScriptsAreTrusted(document, label) {
+  for (const script of findElements(document, 'script')) {
+    const type = getAttribute(script, 'type')
+      .split(';', 1)[0]
+      .trim()
+      .toLowerCase()
+    const isExecutable =
+      type === '' ||
+      type === 'module' ||
+      /^(?:application|text)\/(?:java|ecma)script$/u.test(type)
+
+    if (!isExecutable) continue
+
+    const source = getAttribute(script, 'src') || '(inline)'
+    assert(
+      getAttribute(script, 'nonce') === cspNoncePlaceholder,
+      `${label} executable script is missing its CSP nonce placeholder: ${source}`,
+    )
+  }
+}
+
+function assertCategoryEmptyStates(
+  document,
+  { label, sectionClass, emptyClass },
+) {
+  const sections = findElements(document, 'section').filter((node) =>
+    hasClass(node, sectionClass),
+  )
+
+  assert(
+    sections.length === WIKI_CATEGORIES.length,
+    `${label} category count differs from the configured inventory.`,
+  )
+
+  for (const [index, category] of WIKI_CATEGORIES.entries()) {
+    const section = sections[index]
+    const articleCount = publishedArticleCountByCategory.get(category.name) ?? 0
+    const expectedEmpty = articleCount === 0
+    const emptyMessages = findElements(section, 'p').filter((node) =>
+      hasClass(node, emptyClass),
+    )
+    const lists = findElements(section, 'ul')
+
+    assert(
+      elementText(findElement(section, 'h2')).trim() === category.name,
+      `${label} category order or name differs: ${category.name}`,
+    )
+    assert(
+      emptyMessages.length === (expectedEmpty ? 1 : 0),
+      `${label} empty state differs: ${category.name}`,
+    )
+    assert(
+      expectedEmpty
+        ? lists.length === 0 &&
+            elementText(emptyMessages[0]).trim() === emptyCategoryMessage
+        : lists.length === 1 &&
+            findElements(lists[0], 'li').length === articleCount,
+      `${label} category content differs: ${category.name}`,
+    )
+  }
 }
 
 function hasAnchorHref(document, href) {
