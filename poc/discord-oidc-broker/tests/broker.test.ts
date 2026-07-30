@@ -256,9 +256,6 @@ describe('OIDC metadata', () => {
       ],
     })
     expect(body.claims_supported).toContain('discord_guild_id')
-    expect(body.claims_supported).toContain(
-      'discord_membership_verified_at',
-    )
     expect(body).not.toHaveProperty('userinfo_endpoint')
     expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull()
   })
@@ -487,10 +484,6 @@ describe('Discord callback and token endpoint', () => {
       nonce: 'nonce-12345678901234567890',
       sub: DISCORD_ID,
     })
-    expect(claims.discord_membership_verified_at).toBe(
-      String(claims.auth_time),
-    )
-    expect(claims.discord_membership_verified_at).toMatch(/^\d{10}$/u)
     expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull()
     await expect(verifyJwtSignature(body.id_token)).resolves.toBe(true)
 

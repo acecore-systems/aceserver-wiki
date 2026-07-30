@@ -10,15 +10,6 @@ describe('Sveltia config delivery', () => {
     expect(adminInit).toContain('削除が必要な場合は管理者へ依頼してください')
   })
 
-  it('所属確認期限切れ時にAccess logoutから再認証できる', () => {
-    expect(adminInit).toContain("data?.reauthenticate === true")
-    expect(adminInit).toContain('/cdn-cgi/access/logout')
-    expect(adminInit).toContain('再ログインして所属を確認')
-    expect(adminInit).toContain(
-      "querySelector('button.cms-status__retry')",
-    )
-  })
-
   it('rewrites GitHub API roots to the current protected origin', async () => {
     const next = vi.fn(async (request: Request) => {
       expect(request.headers.get('If-Modified-Since')).toBeNull()

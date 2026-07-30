@@ -1,12 +1,11 @@
 const root = document.getElementById('nc-root') || document.body
 
 class CmsStartupError extends Error {
-  constructor(kind, message, detail = '', reauthenticate = false) {
+  constructor(kind, message, detail = '') {
     super(message)
     this.name = 'CmsStartupError'
     this.kind = kind
     this.detail = detail
-    this.reauthenticate = reauthenticate
   }
 }
 
@@ -110,16 +109,6 @@ async function getGatewayJson(path, stage) {
   if (response.ok) return data
 
   if (response.status === 401) {
-    if (data?.reauthenticate === true) {
-      throw new CmsStartupError(
-        'reauthenticate',
-        'Discord サーバーへの所属を再確認してください。',
-        gatewayMessage ||
-          '再ログインすると、現在の Discord サーバー参加状態を確認します。',
-        true,
-      )
-    }
-
     throw new CmsStartupError(
       'access',
       'Cloudflare Access のログインを確認できませんでした。',
@@ -188,7 +177,6 @@ function describeError(error) {
       title: error.message,
       message: error.detail,
       kind: error.kind,
-      reauthenticate: error.reauthenticate,
     }
   }
 
@@ -205,7 +193,6 @@ function showStatus({
   message,
   kind = 'loading',
   isError = false,
-  reauthenticate = false,
   retry = false,
 }) {
   root.innerHTML = `
@@ -215,9 +202,7 @@ function showStatus({
         <h1>${escapeHtml(title)}</h1>
         ${message ? `<p class="cms-status__message">${escapeHtml(message)}</p>` : ''}
         ${
-          reauthenticate
-            ? '<a class="cms-status__retry" href="/cdn-cgi/access/logout">再ログインして所属を確認</a>'
-            : retry
+          retry
             ? '<button class="cms-status__retry" type="button">再読み込み</button>'
             : '<span class="cms-status__progress" aria-hidden="true"></span>'
         }
@@ -226,7 +211,7 @@ function showStatus({
   `
 
   root
-    .querySelector('button.cms-status__retry')
+    .querySelector('.cms-status__retry')
     ?.addEventListener('click', () => window.location.reload())
 }
 

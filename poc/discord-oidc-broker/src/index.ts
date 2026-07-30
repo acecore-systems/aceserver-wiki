@@ -410,14 +410,14 @@ async function handleCallback(
 
   try {
     const identity = await resolveDiscordIdentity(config, callback.code ?? '')
-    const membershipVerifiedAt = unixTime()
+    const authenticatedAt = unixTime()
     const brokerCode = randomToken()
     await createAuthorizationCode(
       env,
       brokerCode,
       {
         access_redirect_uri: authorization.access_redirect_uri,
-        authenticated_at: membershipVerifiedAt,
+        authenticated_at: authenticatedAt,
         discord_guild_id: identity.guildId,
         discord_id: identity.id,
         email: identity.email,
@@ -425,7 +425,7 @@ async function handleCallback(
         pkce_challenge: authorization.pkce_challenge,
         scope: authorization.scope,
       },
-      membershipVerifiedAt,
+      authenticatedAt,
     )
 
     const target = new URL(authorization.access_redirect_uri)
@@ -689,9 +689,6 @@ async function handleToken(
     auth_time: authorization.authenticated_at,
     discord_guild_id: authorization.discord_guild_id,
     discord_id: authorization.discord_id,
-    discord_membership_verified_at: String(
-      authorization.authenticated_at,
-    ),
     email: authorization.email,
     email_verified: true,
     exp: now + expiresIn,
@@ -729,7 +726,6 @@ function discovery(config: BrokerConfig): Response {
         'auth_time',
         'discord_guild_id',
         'discord_id',
-        'discord_membership_verified_at',
         'email',
         'email_verified',
         'exp',

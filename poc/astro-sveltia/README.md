@@ -31,22 +31,19 @@ Cloudflare Accessのメール許可ルールは広く設定できますが、gat
 エースサーバー公式Discord（`737538781024092170`）への参加手続きが完了した
 メンバーだけを編集可能にします。
 
-guildまたはroleで制限する場合は、OIDC brokerがDiscord membershipを確認し、
-次のcustom claimsをAccess JWTへ渡す必要があります。
+本番のguild認可では、OIDC brokerがDiscord membershipを確認し、次の
+custom claimsだけをAccess JWTへ渡します。
 
 - `custom.discord_id`
 - `custom.discord_guild_id`
-- `custom.discord_membership_verified_at`
-- `custom.discord_roles`（`role`モードだけで必要なrole IDの配列）
 
 Discordの通常OAuth2はOIDC ID tokenとJWKSを提供しないため、Cloudflare Accessの
 Generic OIDCへ直接接続しません。専用brokerがDiscordの
 `identify email guilds.members.read` scopeで本人情報と対象guildへの所属を
-確認し、OIDC ID tokenへ`discord_id`、`discord_guild_id`、
-`discord_membership_verified_at`を発行します。Access側は
+確認し、OIDC ID tokenへ`discord_id`と`discord_guild_id`を発行します。Access側は
 scopeを`openid email profile`、OIDC Claimsを
-`discord_id,discord_guild_id,discord_membership_verified_at`、email claimを
-`email`として設定し、Access JWTの`custom`へ渡します。`profile`はCloudflare
+`discord_id,discord_guild_id`、email claimを`email`として設定し、Access JWTの
+`custom`へ渡します。`profile`はCloudflare
 Access互換目的で受理しますが、brokerは名前・username・avatarなどのprofile
 claimを保存・発行しません。claimsが欠落・不正の場合、gatewayはfail closedで
 拒否します。Access JWT自身のtop-level `sub`はCloudflare側のsubjectなので、
@@ -55,10 +52,11 @@ Discord IDとして使用しません。
 `CMS_DISCORD_AUTHORIZATION_MODE=guild`では、brokerがguild membershipと
 Membership Screening完了を確認したうえで発行した`discord_guild_id`が一致すれば、
 そのguildのメンバーを編集可能にします。guildモードではrole claimを要求しません。
-`discord_membership_verified_at`は確認直後のUnix秒を文字列で保持します。
-gatewayは欠落、不正、61秒以上未来、確認から1200秒超のclaimをfail closedで
-拒否し、期限切れ時はAccess logoutから再ログインする導線を表示します。
-`role`では`discord_roles`と
+所属確認は新しいDiscordログイン時に行います。発行済みのCloudflare Access
+sessionは設定された期限または明示的な失効まで有効です。退会やkickを即時反映
+する場合は、対象Discord IDを`cms_bans`へ登録し、対象Access sessionを失効して
+からDiscordから除外します。詳細は`OPERATIONS.md`を参照してください。
+本番では使用しない`role`モードへ変更する場合は、追加の`discord_roles` claimと
 `CMS_DISCORD_ALLOWED_ROLE_IDS` の交差を必須にできます。Discord APIのmember
 rolesには暗黙の `@everyone` が含まれないため、`@everyone` role IDを
 role配列へ入れる前提にはしません。

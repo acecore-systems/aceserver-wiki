@@ -99,36 +99,22 @@ Current User Guild Member endpointが200、かつMembership Screeningが完了�
 どちらでも即時revokeします。
 
 Access側はscopeを`openid email profile`、email claimを`email`、
-OIDC Claimsを
-`discord_id,discord_guild_id,discord_membership_verified_at`、PKCEを
-有効にします。`profile`は現行Cloudflare AccessのGeneric OIDCが要求する
+OIDC Claimsを`discord_id,discord_guild_id`、PKCEを有効にします。
+`profile`は現行Cloudflare AccessのGeneric OIDCが要求する
 互換scopeであり、brokerは名前・username・avatarなどのprofile claimを
 保存・発行しません。Provider Testと実ログインで
 `custom.discord_id`がDiscord user snowflake、
-`custom.discord_guild_id`が`737538781024092170`、
-`custom.discord_membership_verified_at`がJSON stringの10桁Unix秒になることを
-確認します。
+`custom.discord_guild_id`が`737538781024092170`になることを確認します。
 Access JWT自身のtop-level `sub`をDiscord IDとして使用しません。
 
-membershipはログイン時点のsnapshotです。gatewayは確認時刻のclaimが欠落、
-不正、61秒以上未来、または確認から1200秒超の場合にfail closedで拒否します。
-期限切れ時はCMSに同一originの`/cdn-cgi/access/logout`を表示し、再ログインで
-Discord membershipを再確認します。この制御により、Access sessionが残っても
-古いmembership claimで編集できる時間を20分に制限します
-（分散clockの未来方向ずれだけ最大60秒許容）。
-
-Cloudflare Accessのglobal sessionは既定24時間、最小15分で、変更はZero Trust
-team全体へ影響します。CMS application/policy sessionを15分へ設定しても、
-global sessionが有効なら直近のIdP属性が再利用される場合があります。そのため
-20分のgateway期限を主制御とします。global sessionを15分へ変更する場合は、
-先に他のAccess applicationへの影響を棚卸しし、明示承認を得ます。
-CMS applicationで`Authenticate with Cloudflare One Client`を使用する場合も
-client sessionが他のsession設定を上書きするため、無効化または15分以下への
-変更を影響確認後に行います。
+membershipはOIDC brokerが新しいDiscordログインを処理する時点で確認します。
+発行済みのCloudflare Access sessionは、設定された期限または明示的な失効まで
+有効です。Discordから除外しただけでは既存sessionは即時失効しません。
 
 認可切替後はapplicationの`Revoke existing tokens`だけでなく、Zero Trustの
-対象user sessionまたはteam-domain sessionも失効し、全編集者に再ログイン
-させます。退会やkickを即時反映する手順は「対象Discord IDを`cms_bans`へ登録
+team-domain sessionを失効するか、既存編集者全員のuser sessionを列挙して
+失効し、全編集者に再ログインさせます。退会やkickを即時反映する手順は
+「対象Discord IDを`cms_bans`へ登録
 （gatewayで即時403）→ Zero Trust > Team & Resources > Usersのlast-seen
 identityで`oidc_fields.discord_id`を照合して対象userをRevoke → Discordから
 削除」です。userを特定できない場合はCMS applicationの全tokenをRevokeします。
@@ -144,17 +130,16 @@ Pagesを先に`guild`モードへ切り替えると、旧brokerと旧Access IdP�
 2. OIDC D1へ`0002_verified_discord_guild.sql`を適用し、pendingを0にする。
 3. reviewed commitからbrokerをdeployし、guild非参加者とMembership Screening
    未完了者が`access_denied`、参加完了者が認証成功になることを確認する。
-4. Access IdPのOIDC Claimsへ`discord_guild_id`と
-   `discord_membership_verified_at`を追加し、Provider Testでguild IDと
-   JSON stringの10桁Unix秒を確認する。
-5. CMS application/policy sessionを15分に設定する。global/client sessionは
-   現値と影響対象を棚卸しし、変更する場合は明示承認を得る。
-6. application tokenに加え、対象userまたはteam-domain sessionを失効する。
-7. PRをmergeし、GitHub push由来のPages production deploymentで`guild`モードを
+4. Access IdPのOIDC Claimsを`discord_id,discord_guild_id`の2つにし、
+   Provider Testで両方のsnowflakeとguild IDを確認する。
+5. 旧認可で発行済みのapplication tokenに加え、team-domain sessionを失効するか、
+   既存編集者全員のuser sessionを列挙して失効し、全編集者を新しいDiscord
+   ログインへ進ませる。
+6. PRをmergeし、GitHub push由来のPages production deploymentで`guild`モードを
    反映する。
-8. guild参加者の保存・D1 audit・GitHub commit・Pages再build、非参加者の拒否、
-   Access JWT `custom.discord_membership_verified_at`のJSON string型、
-   1200秒超のclaimで再ログイン導線が出ることを本番E2Eで確認する。
+7. guild参加者の保存・D1 audit・GitHub commit・Pages再build、非参加者と
+   Membership Screening未完了者の拒否、Access JWTの
+   `custom.discord_id`と`custom.discord_guild_id`を本番E2Eで確認する。
 
 切戻しで`account`モードへ戻すと認可を広げるため使用しません。障害時は
 `CMS_PUBLICATION_MODE=disabled`で保存をfail closedに停止し、brokerまたは

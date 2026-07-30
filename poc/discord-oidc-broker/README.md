@@ -18,15 +18,16 @@ RETURNING` で一度だけ消費します。Discord state と broker code はハ
 - Discord には `identify email guilds.members.read` だけを要求します。
   `/users/@me` の verified emailとsnowflake IDに加え、
   `/users/@me/guilds/737538781024092170/member` でエースサーバー公式Discordへの
-  所属を毎回確認します。Membership Screeningが`pending`の間は許可しません。
+  所属をログインのたびに確認します。Membership Screeningが`pending`の間は
+  許可しません。
 - Discord access token は本人情報取得後に即時 revoke します。revoke 失敗時も
   ID token を発行しません。
 - ID token の `sub` と `discord_id` はDiscord user snowflake、
   `discord_guild_id`は所属確認済みguild snowflakeです。Cloudflare Accessでは
-  custom claims `discord_id`、`discord_guild_id`、
-  `discord_membership_verified_at`を登録し、Wiki gatewayはAccess JWTの
-  3 claimを正規の編集者属性として使います。確認時刻はmembership API成功直後の
-  Unix秒を文字列で発行します。
+  custom claims `discord_id`と`discord_guild_id`を登録し、Wiki gatewayは
+  Access JWTの2 claimを正規の編集者属性として使います。所属確認は新しい
+  Discordログイン時に行い、発行済みのAccess sessionは設定された期限または
+  明示的な失効まで有効です。
 - `/authorize`、`/callback`、`/token` は D1 ベースの IP rate limit を
   fail-closed で適用します。bucketはAccess client secretを鍵にした
   HMAC-SHA-256で、raw IPやsaltなしhashを保存しません。
@@ -140,14 +141,10 @@ key と一致しなければ、Worker は自己検証に失敗して token を�
     `identify email guilds.members.read`で、名前・username・avatarなどの
     profile claimは保存・発行しません。
 - Email claim: `email`
-- OIDC Claims: `discord_id`, `discord_guild_id`,
-  `discord_membership_verified_at`
+- OIDC Claims: `discord_id`, `discord_guild_id`
 
 Identity providerのTestで`oidc_fields.discord_id`と
-`oidc_fields.discord_guild_id=737538781024092170`に加え、
-`oidc_fields.discord_membership_verified_at`がJSON stringの10桁Unix秒になる
-ことを
-確認します。Wiki
+`oidc_fields.discord_guild_id=737538781024092170`を確認します。Wiki
 admin application の policy は `Include > Login Methods > この broker` とし、
 メールdomainや個別アドレスでは絞りません。所属確認はbrokerとWiki gatewayの
 両方でfail closedに適用します。
@@ -162,11 +159,9 @@ custom domain または route が必須です。`workers_dev` は無効なので
 1. discovery の `issuer` と各 endpoint が実 URL と完全一致する。
 2. JWKS に `d`, `p`, `q`, `dp`, `dq`, `qi` がない。
 3. Access IdP Testが成功し、`oidc_fields.discord_id`と
-   `oidc_fields.discord_guild_id`が期待するsnowflake、
-   `oidc_fields.discord_membership_verified_at`がJSON stringの10桁Unix秒になる。
+   `oidc_fields.discord_guild_id`が期待するsnowflakeになる。
 4. `/admin/`ログイン後のAccess JWTに`custom.discord_id`と
-   `custom.discord_guild_id=737538781024092170`、
-   `custom.discord_membership_verified_at`がある。
+   `custom.discord_guild_id=737538781024092170`がある。
 5. guild参加者はログインでき、非参加者とMembership Screening未完了者は
    `access_denied`になる。
 6. 同じbroker codeの再交換と、誤ったPKCE verifierが拒否される。
