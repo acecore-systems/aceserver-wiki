@@ -269,6 +269,88 @@ protected `main`の同期scriptだけを実行します。
 `false`へ戻してGitHubへpushし、Pagesの`github:push` deploymentを通します。
 Direct Uploadや手動uploadを復旧経路にしません。
 
+## アルファくん WIKI案内チャット
+
+アルファくんは全公開ページからsame-originの`POST /api/alpha-chat`を呼び出します。
+このWikiの`SEARCH_INDEX`と`/vector-corpus.json`だけをRAGの情報源とし、
+回答モデルは`ALPHA_CHAT_MODEL=@cf/zai-org/glm-5.2`です。ルール、コマンド、
+参加条件などをポータルやモデルの固定知識から補いません。取得したWiki根拠で
+確認できない質問は「確認できない」と明示し、一般論から可否を推測しません。
+GLM 5.2はWorkers Paidが必要なため、planの前提をdashboardで確認し、
+Preview実呼び出しを通るまで利用可能と判定しません。
+
+応答の`answer`と`sources`は分離し、`sources`には根拠へ採用した同一originの
+`/article/` URLと記事タイトルだけを最大2件入れます。モデルには
+`response_format=json_schema`で根拠番号とWiki本文からの完全一致引用だけを選ばせ、
+サーバーが取得済みchunkに対して番号・引用・文字数を検証します。モデル生成文は
+公開せず、検証済み引用から
+サーバーが固定文を組み立てます。検証できない選択は`502`、回答根拠がない選択は
+固定の「確認できない」回答へ戻します。
+`/vector-corpus.json`はPagesの`ASSETS` bindingを優先してdeployment固有assetから
+読みます。ブラウザ側は
+`innerHTML`を使わず本文とリンクをDOM APIで構築します。入力上限は500文字です。
+
+AI呼び出し前に`CMS_DATABASE`の`semantic_search_rate_limits`を使用し、
+60秒窓でclient 5回、全体60回に制限します。clientは
+`CF-Connecting-IP`を優先し、取得できない場合は
+`X-Acecore-Chat-Client`のUUIDからSHA-256 keyを作ります。不正・欠落したUUIDは
+`anonymous`枠を共有します。超過は`429`と`Retry-After: 60`で拒否し、
+D1障害時はAIを呼ばず`503`でfail closedにします。
+
+`ALPHA_CHAT_ENABLED=false`はchat APIのkill switchです。緊急停止時は
+`wrangler.jsonc`のrootとpreviewを意図した値へ揃え、review済みcommitを
+GitHubへpushし、GitHub連携Pages deploymentから反映します。Direct Uploadや
+dashboardだけの恒久的な上書きを正本にしません。
+
+### Preview実AIゲート
+
+unit testやWrangler bundle成功だけではWorkers AIとVectorizeの実接続を証明
+できません。productionへ反映する前に、review対象commitから作られたPages
+Previewで次を確認します。
+
+1. Node.js 24.18.0で次のローカルgateを通す。
+
+   ```bash
+   cd poc/astro-sveltia
+   npm ci
+   npm run cf:typegen
+   npm run check
+   npm run test:unit -- tests/alpha-chat.test.ts
+   npm test
+   npm run build
+   npx wrangler pages functions build
+   ```
+
+2. Previewのbindingが`AI`、`aceserver-wiki-search-preview`の`SEARCH_INDEX`、
+   preview専用`CMS_DATABASE`であることを確認する。varsは
+   `ALPHA_CHAT_ENABLED=true`、
+   `ALPHA_CHAT_MODEL=@cf/zai-org/glm-5.2`、
+   `CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretは置かない。
+3. Previewへ同期済みcorpus versionと
+   `/.well-known/aceserver-wiki-build.json`のcommit・corpus versionが
+   review対象と一致することを確認する。
+4. UUIDをclient headerへ付け、根拠が存在する質問を実送信する。
+
+   ```bash
+   curl -sS -X POST "https://<PREVIEW_HOST>/api/alpha-chat" \
+     -H "Content-Type: application/json" \
+     -H "Origin: https://<PREVIEW_HOST>" \
+     -H "X-Acecore-Chat-Client: 11111111-1111-4111-8111-111111111111" \
+     --data '{"question":"サバイバルサーバーで使えるコマンドを教えて"}'
+   ```
+
+5. `200`、`ok: true`、空でない`answer`、1件以上のstructured `sources`を確認し、
+   各URLが実在する同一originの`/article/`で、回答内容がその記事の記載範囲内
+   であることを目視する。
+6. Wikiに記載がない可否質問も送信し、根拠のない断定をせず「確認できない」と
+   明示することを確認する。rate-limit境界は同一固定60秒窓の通算6回目が
+   `429`かつ`Retry-After: 60`になることを記録する。Pagesでは
+   `CF-Connecting-IP`をclient keyへ優先するため、同じ送信元からUUIDだけを
+   変えても枠は分離されない。
+7. Preview URL、deployment commit、corpus version、モデル名、質問、status、
+   出典URLをPRへ記録する。timeout時はrequest契約を再確認してから一度再試験し、
+   1回のtimeoutだけで実装不良または成功と判定しない。
+
 ## 保存と監査
 
 1回の保存は同じidempotency keyを持つ一時branchへcommitした後、非forceの
@@ -372,6 +454,10 @@ deployment成功まで確認します。
 - 公開ページにSEO、OGP、Bing verificationがある
 - 全公開ページがAdSense loaderを持たず、記事の外部リンクが`ugc nofollow`
 - 公開面はレスポンスごとに異なるnonceのstrict CSP、admin面は専用CSPが有効
+- 全公開ページにWikiアイコンのアルファくんdialogと外部`/alpha-chat.js`があり、
+  keyboard操作、500文字上限、message log、CSP nonceが有効
+- Previewの実AI質問がWiki根拠とstructured sourcesを返し、根拠なし質問を
+  「確認できない」と扱い、client 6回目/分を429で拒否する
 - `/admin/*`はDiscord Access loginなしでは到達できない
 - guild参加・Membership Screening完了済みのDiscord userだけがログインし、
   Markdownと画像を保存できる

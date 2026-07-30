@@ -1,0 +1,158 @@
+---
+import { WIKI_ICON_PATH } from '../config/wiki'
+import '../styles/alpha-guide.css'
+
+const prompts = [
+  {
+    label: '参加方法',
+    question: 'エースサーバーへの参加方法を教えて',
+  },
+  {
+    label: '基本ルール',
+    question: 'エースサーバーの基本ルールを教えて',
+  },
+  {
+    label: 'コマンド',
+    question: 'サバイバルサーバーで使えるコマンドを教えて',
+  },
+]
+---
+
+<div
+  id="alpha-guide"
+  class="alpha-widget"
+  data-alpha-widget
+  data-alpha-endpoint="/api/alpha-chat"
+  data-alpha-avatar={WIKI_ICON_PATH}
+  data-alpha-greeting="やあ、アルファくんだよ。公開中のAceserver WIKIから案内するね。"
+  data-alpha-loading="アルファくんがWIKIを調べているよ…"
+  data-alpha-error="いまはアルファくんの案内につながらなかったよ。少し時間をおいて試してね。"
+>
+  <dialog
+    id="alpha-guide-panel"
+    class="alpha-panel"
+    role="dialog"
+    aria-modal="false"
+    aria-labelledby="alpha-guide-title"
+    aria-describedby="alpha-guide-description"
+    data-alpha-panel
+  >
+    <header class="alpha-header">
+      <img
+        src={WIKI_ICON_PATH}
+        alt=""
+        aria-hidden="true"
+        width="40"
+        height="40"
+      />
+      <div>
+        <h2 id="alpha-guide-title">アルファくん</h2>
+        <p id="alpha-guide-description">WIKI案内チャット</p>
+      </div>
+      <button
+        type="button"
+        class="alpha-icon-button"
+        aria-label="アルファくんチャットを閉じる"
+        data-alpha-close
+      >
+        <svg
+          viewBox="0 0 24 24"
+          width="20"
+          height="20"
+          aria-hidden="true"
+        >
+          <path d="M6 6l12 12M18 6 6 18"></path>
+        </svg>
+      </button>
+    </header>
+
+    <div
+      class="alpha-messages"
+      role="log"
+      aria-live="polite"
+      aria-relevant="additions text"
+      aria-label="アルファくんとの会話"
+      data-alpha-messages
+    >
+    </div>
+
+    <div class="alpha-prompt-row" aria-label="質問例">
+      {
+        prompts.map((prompt) => (
+          <button
+            type="button"
+            data-alpha-prompt={prompt.question}
+            title={prompt.question}
+          >
+            {prompt.label}
+          </button>
+        ))
+      }
+    </div>
+
+    <form class="alpha-form" data-alpha-form>
+      <label class="visually-hidden" for="alpha-guide-question">
+        アルファくんに質問
+      </label>
+      <textarea
+        id="alpha-guide-question"
+        name="question"
+        rows="2"
+        maxlength="500"
+        autocomplete="off"
+        placeholder="例: 参加方法を教えて"
+        data-alpha-input></textarea>
+      <button type="submit" aria-label="送信" data-alpha-send>
+        <svg
+          viewBox="0 0 24 24"
+          width="21"
+          height="21"
+          aria-hidden="true"
+        >
+          <path d="m4 4 16 8-16 8 3-8-3-8Z"></path>
+          <path d="M7 12h13"></path>
+        </svg>
+      </button>
+    </form>
+
+    <nav class="alpha-links" aria-label="アルファくんの案内先">
+      <a href="/search/">サイト内検索</a>
+      <a
+        href="https://discord.gg/acsv"
+        target="_blank"
+        rel="noopener noreferrer">Discord</a
+      >
+      <a
+        href="https://asv.acecore.net/"
+        target="_blank"
+        rel="noopener noreferrer">参加ページ</a
+      >
+    </nav>
+  </dialog>
+
+  <button
+    type="button"
+    class="alpha-toggle"
+    aria-haspopup="dialog"
+    aria-controls="alpha-guide-panel"
+    aria-expanded="false"
+    aria-label="アルファくんに聞く"
+    data-alpha-toggle
+  >
+    <img
+      src={WIKI_ICON_PATH}
+      alt=""
+      aria-hidden="true"
+      width="56"
+      height="56"
+    />
+    <span>聞く</span>
+  </button>
+</div>
+
+<script
+  is:inline
+  nonce="__CSP_NONCE__"
+  src="/alpha-chat.js"
+  defer
+></script>

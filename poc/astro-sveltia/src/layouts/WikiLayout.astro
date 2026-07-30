@@ -1,4 +1,5 @@
 ---
+import AlphaGuide from '../components/AlphaGuide.astro'
 import Header from '../components/Header.astro'
 import Navigation from '../components/Navigation.astro'
 import {
@@ -93,6 +94,7 @@ const absoluteOgImage = ogImage
         <Navigation categories={categories} currentId={currentId} />
         <div id="main-content" class="content" tabindex="-1">
           <slot />
+          <AlphaGuide />
         </div>
       </main>
     </div>

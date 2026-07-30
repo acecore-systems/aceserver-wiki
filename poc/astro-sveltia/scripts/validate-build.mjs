@@ -3,7 +3,11 @@ import { readdir, readFile } from 'node:fs/promises'
 import { parse } from 'parse5'
 import { parse as parseYaml } from 'yaml'
 
-import { WIKI_CATEGORIES, WIKI_QUICK_ARTICLE_IDS } from '../src/config/wiki.ts'
+import {
+  WIKI_CATEGORIES,
+  WIKI_ICON_PATH,
+  WIKI_QUICK_ARTICLE_IDS,
+} from '../src/config/wiki.ts'
 import { isExternalHttpUrl } from '../src/lib/external-link-policy.ts'
 
 const root = new URL('../', import.meta.url)
@@ -47,18 +51,27 @@ const [
   adminStyles,
   globalStyles,
   markdownStyles,
+  alphaGuideStyles,
   wikiLayout,
   mobileMenuScript,
+  alphaChatScript,
 ] = await Promise.all([
   readFile(new URL('admin/init.js', dist), 'utf8'),
   readFile(new URL('admin/shell.css', dist), 'utf8'),
   readFile(new URL('src/styles/global.css', root), 'utf8'),
   readFile(new URL('src/styles/markdown.css', root), 'utf8'),
+  readFile(new URL('src/styles/alpha-guide.css', root), 'utf8'),
   readFile(new URL('src/layouts/WikiLayout.astro', root), 'utf8'),
   readFile(new URL('mobile-menu.js', dist), 'utf8'),
+  readFile(new URL('alpha-chat.js', dist), 'utf8'),
 ])
 const normalizedGlobalStyles = normalizeCss(globalStyles)
 const normalizedMarkdownStyles = normalizeCss(markdownStyles)
+const normalizedAlphaGuideStyles = normalizeCss(alphaGuideStyles)
+const shortAlphaGuideStyles = cssMediaBlock(
+  alphaGuideStyles,
+  '(max-height: 30rem)',
+)
 const desktopHeaderStyles = normalizeCss(
   cssMediaBlock(globalStyles, '(min-width: 67.5rem)'),
 )
@@ -93,6 +106,39 @@ assert(
 assert(
   mobileMenuScript.trim().length > 0,
   'The CSP-compatible mobile menu script must be included in the build output.',
+)
+assert(
+  alphaChatScript.trim().length > 0,
+  'The CSP-compatible Alpha chat script must be included in the build output.',
+)
+assert(
+  alphaChatScript.includes('/api/alpha-chat') &&
+    alphaChatScript.includes('X-Acecore-Chat-Client') &&
+    alphaChatScript.includes('MAX_HISTORY_CHARACTERS') &&
+    alphaChatScript.includes('compositionstart') &&
+    alphaChatScript.includes('アルファくん: ') &&
+    alphaChatScript.includes('あなた: '),
+  'Alpha chat must keep the endpoint, bounded history, IME guard, and accessible speaker labels.',
+)
+assert(
+  alphaChatScript.includes('createElement(') &&
+    alphaChatScript.includes('textContent') &&
+    !/\b(?:innerHTML|outerHTML|insertAdjacentHTML)\b/u.test(alphaChatScript) &&
+    !/\bdocument\s*\.\s*(?:write|writeln)\s*\(/u.test(alphaChatScript),
+  'Alpha chat must construct messages with safe DOM APIs instead of HTML string injection.',
+)
+assert(
+  normalizedAlphaGuideStyles.includes(
+    '.alpha-message__sources a { display: inline-flex; min-width: 2.75rem; min-height: 2.75rem; align-items: center; justify-content: center;',
+  ),
+  'Alpha chat source links must preserve a 44px square minimum touch target.',
+)
+assert(
+  normalizeCss(shortAlphaGuideStyles).includes(
+    '.alpha-prompt-row { display: none;',
+  ) &&
+    !/\.alpha-links\s*\{[^{}]*display:\s*none/gu.test(shortAlphaGuideStyles),
+  'Short Alpha chat viewports must hide prompts while keeping primary links available.',
 )
 assert(
   normalizedMarkdownStyles.includes(
@@ -210,7 +256,9 @@ assert(
   hasAnchorWithText(rootDocument, '#main-content', '本文へ移動'),
   'The page must provide a content skip link.',
 )
+assertAlphaGuideContract(rootDocument, 'Root')
 assertTrustedScriptNonce(rootDocument, '/mobile-menu.js')
+assertTrustedScriptNonce(rootDocument, '/alpha-chat.js')
 assertExecutableScriptsAreTrusted(rootDocument, 'Root')
 const quickArticleNavigation = findElements(rootDocument, 'nav').find((node) =>
   hasClass(node, 'home__quick-links'),
@@ -275,8 +323,10 @@ assert(
   hasScriptSource(searchDocument, '/search.js'),
   'Search must load its CSP-compatible same-origin external script.',
 )
+assertAlphaGuideContract(searchDocument, 'Search')
 assertTrustedScriptNonce(searchDocument, '/mobile-menu.js')
 assertTrustedScriptNonce(searchDocument, '/search.js')
+assertTrustedScriptNonce(searchDocument, '/alpha-chat.js')
 assertExecutableScriptsAreTrusted(searchDocument, 'Search')
 assert(
   !hasScriptSource(searchDocument, adsenseSource),
@@ -291,7 +341,9 @@ assert(
 
 const notFoundDocument = await readHtml('404.html')
 assert(metaContent(notFoundDocument, 'name', 'robots') === 'noindex, nofollow')
+assertAlphaGuideContract(notFoundDocument, '404')
 assertTrustedScriptNonce(notFoundDocument, '/mobile-menu.js')
+assertTrustedScriptNonce(notFoundDocument, '/alpha-chat.js')
 assertExecutableScriptsAreTrusted(notFoundDocument, '404')
 assert(
   !hasScriptSource(notFoundDocument, adsenseSource),
@@ -339,7 +391,9 @@ for (const article of articles) {
     !hasScriptSource(document, adsenseSource),
     `Unmoderated article must not load AdSense: ${article.slug}`,
   )
+  assertAlphaGuideContract(document, `Article: ${article.slug}`)
   assertTrustedScriptNonce(document, '/mobile-menu.js')
+  assertTrustedScriptNonce(document, '/alpha-chat.js')
   assertExecutableScriptsAreTrusted(document, `Article: ${article.slug}`)
   const articleBody = findElements(document, 'div').find((node) =>
     getAttribute(node, 'class').split(/\s+/u).includes('article__body'),
@@ -518,7 +572,7 @@ assert(
 )
 
 console.log(
-  `Validated ${articles.length} current published articles, category states, canonicals, keyword/vector search corpora, sitemap, robots, SEO, OG, disabled AdSense on UGC surfaces, and CSP-compatible scripts.`,
+  `Validated ${articles.length} current published articles, category states, canonicals, keyword/vector search corpora, sitemap, robots, SEO, OG, disabled AdSense on UGC surfaces, and the CSP-compatible site-wide Alpha Guide.`,
 )
 
 async function readHtml(path) {
@@ -617,12 +671,77 @@ function assertExecutableScriptsAreTrusted(document, label) {
 
     if (!isExecutable) continue
 
-    const source = getAttribute(script, 'src') || '(inline)'
+    const source = getAttribute(script, 'src')
+    assert(source, `${label} must not contain inline executable scripts.`)
     assert(
       getAttribute(script, 'nonce') === cspNoncePlaceholder,
       `${label} executable script is missing its CSP nonce placeholder: ${source}`,
     )
   }
+}
+
+function assertAlphaGuideContract(document, label) {
+  const widgets = findElementsWithAttribute(document, 'data-alpha-widget')
+  assert(
+    widgets.length === 1,
+    `${label} must include one site-wide Alpha Guide widget.`,
+  )
+
+  const widget = widgets[0]
+  assert(
+    getAttribute(widget, 'data-alpha-endpoint') === '/api/alpha-chat',
+    `${label} Alpha Guide must use the same-origin chat endpoint.`,
+  )
+  assert(
+    findElements(widget, 'img').some(
+      (image) => getAttribute(image, 'src') === WIKI_ICON_PATH,
+    ),
+    `${label} Alpha Guide must reuse the configured Wiki icon.`,
+  )
+
+  const panels = findElementsWithAttribute(widget, 'data-alpha-panel')
+  assert(
+    panels.length === 1 &&
+      getAttribute(panels[0], 'id') === 'alpha-guide-panel' &&
+      getAttribute(panels[0], 'role') === 'dialog',
+    `${label} Alpha Guide panel must expose its dialog contract.`,
+  )
+
+  const toggles = findElementsWithAttribute(widget, 'data-alpha-toggle')
+  assert(
+    toggles.length === 1 &&
+      getAttribute(toggles[0], 'aria-controls') === 'alpha-guide-panel',
+    `${label} Alpha Guide toggle must control the dialog.`,
+  )
+
+  const messageLogs = findElementsWithAttribute(widget, 'data-alpha-messages')
+  assert(
+    messageLogs.length === 1 && getAttribute(messageLogs[0], 'role') === 'log',
+    `${label} Alpha Guide messages must expose an accessible log.`,
+  )
+
+  const inputs = findElementsWithAttribute(widget, 'data-alpha-input')
+  assert(
+    inputs.length === 1 &&
+      inputs[0].tagName === 'textarea' &&
+      getAttribute(inputs[0], 'maxlength') === '500',
+    `${label} Alpha Guide must limit its textarea to 500 characters.`,
+  )
+}
+
+function findElementsWithAttribute(rootNode, attributeName) {
+  const matches = []
+  const visit = (node) => {
+    if (
+      node.tagName &&
+      node.attrs?.some((attribute) => attribute.name === attributeName)
+    ) {
+      matches.push(node)
+    }
+    for (const child of node.childNodes ?? []) visit(child)
+  }
+  visit(rootNode)
+  return matches
 }
 
 function assertCategoryEmptyStates(

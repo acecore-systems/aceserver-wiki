@@ -34,6 +34,8 @@
     "CMS_DISCORD_ALLOWED_ROLE_IDS": "",
     "SEARCH_ENABLED": "true",
     "SEARCH_MIN_SCORE": "0.40",
+    "ALPHA_CHAT_ENABLED": "true",
+    "ALPHA_CHAT_MODEL": "@cf/zai-org/glm-5.2",
   },
   "env": {
     "preview": {
@@ -67,6 +69,8 @@
         "CMS_DISCORD_ALLOWED_ROLE_IDS": "",
         "SEARCH_ENABLED": "true",
         "SEARCH_MIN_SCORE": "0.40",
+        "ALPHA_CHAT_ENABLED": "true",
+        "ALPHA_CHAT_MODEL": "@cf/zai-org/glm-5.2",
       },
     },
   },
