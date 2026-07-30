@@ -136,8 +136,7 @@ assert(
 assert(
   normalizeCss(shortAlphaGuideStyles).includes(
     '.alpha-prompt-row { display: none;',
-  ) &&
-    !/\.alpha-links\s*\{[^{}]*display:\s*none/gu.test(shortAlphaGuideStyles),
+  ) && !/\.alpha-links\s*\{[^{}]*display:\s*none/gu.test(shortAlphaGuideStyles),
   'Short Alpha chat viewports must hide prompts while keeping primary links available.',
 )
 assert(
@@ -454,10 +453,10 @@ const articleByUrl = new Map(
 )
 assert(vectorCorpus.schemaVersion === 1, 'Vector corpus schema must be v1.')
 assert(
-  vectorCorpus.embedding?.model === '@cf/baai/bge-m3' &&
-    vectorCorpus.embedding?.dimensions === 1024 &&
+  vectorCorpus.embedding?.model === 'text-embedding-3-large' &&
+    vectorCorpus.embedding?.dimensions === 1536 &&
     vectorCorpus.embedding?.metric === 'cosine',
-  'Vector corpus embedding contract differs from BGE-M3 1024/cosine.',
+  'Vector corpus embedding contract differs from text-embedding-3-large 1536/cosine.',
 )
 assert(
   vectorCorpus.chunking?.targetCharacters === 850 &&

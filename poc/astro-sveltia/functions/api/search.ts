@@ -1,5 +1,9 @@
-const EMBEDDING_MODEL = '@cf/baai/bge-m3'
-const EMBEDDING_DIMENSIONS = 1024
+import {
+  createOpenAiEmbeddings,
+  OPENAI_EMBEDDING_DIMENSIONS,
+  OPENAI_EMBEDDING_MODEL,
+} from './_openai'
+
 const SEARCH_LOCALE = 'ja'
 const DEFAULT_MIN_SCORE = 0.4
 const MAX_REQUEST_BYTES = 2048
@@ -15,8 +19,10 @@ const CLIENT_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
 
 type SemanticSearchEnv = {
-  AI?: Ai
   CMS_DATABASE?: D1Database
+  OPENAI_API_KEY?: string
+  OPENAI_EMBEDDING_DIMENSIONS?: string
+  OPENAI_EMBEDDING_MODEL?: string
   SEARCH_ENABLED?: string
   SEARCH_INDEX?: Vectorize
   SEARCH_MIN_SCORE?: string
@@ -46,160 +52,170 @@ type SearchResult = {
   url: string
 }
 
-export const onRequestPost: PagesFunction<SemanticSearchEnv> = async ({
-  request,
-  env,
-  waitUntil,
-}) => {
-  const startedAt = performance.now()
-  const requestId = crypto.randomUUID()
+export const createSearchHandler =
+  (openAiFetch: typeof fetch = fetch): PagesFunction<SemanticSearchEnv> =>
+  async ({ request, env, waitUntil }) => {
+    const startedAt = performance.now()
+    const requestId = crypto.randomUUID()
 
-  try {
-    if (!isSameOriginRequest(request)) {
-      return errorResponse('forbidden', 403, requestId, startedAt)
-    }
-
-    if (
-      !request.headers
-        .get('Content-Type')
-        ?.toLowerCase()
-        .startsWith('application/json')
-    ) {
-      return errorResponse('unsupported_media_type', 415, requestId, startedAt)
-    }
-
-    if (
-      env.SEARCH_ENABLED !== 'true' ||
-      !env.AI ||
-      !env.SEARCH_INDEX ||
-      !env.CMS_DATABASE
-    ) {
-      return errorResponse('unavailable', 503, requestId, startedAt)
-    }
-
-    let clientAllowed = false
-    let globalAllowed = false
     try {
-      const clientKey = await createClientRateLimitKey(request)
-      clientAllowed = await consumeRateLimit(
-        env.CMS_DATABASE,
-        `client:${clientKey}`,
-        CLIENT_RATE_LIMIT,
-      )
-      if (clientAllowed) {
-        globalAllowed = await consumeRateLimit(
-          env.CMS_DATABASE,
-          'global',
-          GLOBAL_RATE_LIMIT,
+      if (!isSameOriginRequest(request)) {
+        return errorResponse('forbidden', 403, requestId, startedAt)
+      }
+
+      if (
+        !request.headers
+          .get('Content-Type')
+          ?.toLowerCase()
+          .startsWith('application/json')
+      ) {
+        return errorResponse(
+          'unsupported_media_type',
+          415,
+          requestId,
+          startedAt,
         )
       }
-    } catch (error) {
-      logSearchError(
-        requestId,
-        'rate_limit',
-        getErrorCode(error, 'storage_error'),
-      )
-      return errorResponse('unavailable', 503, requestId, startedAt)
-    }
 
-    if (!clientAllowed || !globalAllowed) {
-      return errorResponse('rate_limited', 429, requestId, startedAt, {
-        'Retry-After': '60',
-      })
-    }
+      if (
+        env.SEARCH_ENABLED !== 'true' ||
+        !env.OPENAI_API_KEY?.trim() ||
+        !env.SEARCH_INDEX ||
+        !env.CMS_DATABASE
+      ) {
+        return errorResponse('unavailable', 503, requestId, startedAt)
+      }
 
-    if (requestId.endsWith('00')) {
-      waitUntil(
-        deleteExpiredRateLimits(env.CMS_DATABASE).catch((error) => {
-          logSearchError(
-            requestId,
-            'rate_limit_cleanup',
-            getErrorCode(error, 'storage_error'),
+      let clientAllowed = false
+      let globalAllowed = false
+      let clientKey = ''
+      try {
+        clientKey = await createClientRateLimitKey(request)
+        clientAllowed = await consumeRateLimit(
+          env.CMS_DATABASE,
+          `client:${clientKey}`,
+          CLIENT_RATE_LIMIT,
+        )
+        if (clientAllowed) {
+          globalAllowed = await consumeRateLimit(
+            env.CMS_DATABASE,
+            'global',
+            GLOBAL_RATE_LIMIT,
           )
-        }),
+        }
+      } catch (error) {
+        logSearchError(
+          requestId,
+          'rate_limit',
+          getErrorCode(error, 'storage_error'),
+        )
+        return errorResponse('unavailable', 503, requestId, startedAt)
+      }
+
+      if (!clientAllowed || !globalAllowed) {
+        return errorResponse('rate_limited', 429, requestId, startedAt, {
+          'Retry-After': '60',
+        })
+      }
+
+      if (requestId.endsWith('00')) {
+        waitUntil(
+          deleteExpiredRateLimits(env.CMS_DATABASE).catch((error) => {
+            logSearchError(
+              requestId,
+              'rate_limit_cleanup',
+              getErrorCode(error, 'storage_error'),
+            )
+          }),
+        )
+      }
+
+      const requestText = await readBoundedRequestText(
+        request,
+        MAX_REQUEST_BYTES,
       )
-    }
+      if (requestText === null) {
+        return errorResponse('request_too_large', 413, requestId, startedAt)
+      }
 
-    const requestText = await readBoundedRequestText(request, MAX_REQUEST_BYTES)
-    if (requestText === null) {
-      return errorResponse('request_too_large', 413, requestId, startedAt)
-    }
+      let parsedPayload: unknown
+      try {
+        parsedPayload = JSON.parse(requestText)
+      } catch {
+        return errorResponse('invalid_json', 400, requestId, startedAt)
+      }
+      if (!isJsonObject(parsedPayload)) {
+        return errorResponse('invalid_request', 400, requestId, startedAt)
+      }
 
-    let parsedPayload: unknown
-    try {
-      parsedPayload = JSON.parse(requestText)
-    } catch {
-      return errorResponse('invalid_json', 400, requestId, startedAt)
-    }
-    if (!isJsonObject(parsedPayload)) {
-      return errorResponse('invalid_request', 400, requestId, startedAt)
-    }
+      const payload = parsedPayload as SearchPayload
+      const query = normalizeQuery(payload.query)
+      if (!query || !isJapaneseLocale(payload.locale)) {
+        return errorResponse('invalid_request', 400, requestId, startedAt)
+      }
 
-    const payload = parsedPayload as SearchPayload
-    const query = normalizeQuery(payload.query)
-    if (!query || !isJapaneseLocale(payload.locale)) {
-      return errorResponse('invalid_request', 400, requestId, startedAt)
-    }
+      let embedding: number[]
+      try {
+        const embeddings = await createOpenAiEmbeddings({
+          apiKey: env.OPENAI_API_KEY,
+          input: query,
+          model: env.OPENAI_EMBEDDING_MODEL || OPENAI_EMBEDDING_MODEL,
+          dimensions: Number(
+            env.OPENAI_EMBEDDING_DIMENSIONS || OPENAI_EMBEDDING_DIMENSIONS,
+          ),
+          user: clientKey,
+          fetchImpl: openAiFetch,
+        })
+        embedding = embeddings[0]
+      } catch (error) {
+        logSearchError(
+          requestId,
+          'embedding',
+          getErrorCode(error, 'provider_error'),
+        )
+        return errorResponse('provider_error', 502, requestId, startedAt)
+      }
 
-    let embeddingResult: unknown
-    try {
-      embeddingResult = await env.AI.run(EMBEDDING_MODEL, {
-        text: [query],
-        truncate_inputs: true,
-      })
+      let matches: VectorizeMatches
+      try {
+        matches = await env.SEARCH_INDEX.query(embedding, {
+          namespace: SEARCH_LOCALE,
+          topK: QUERY_TOP_K,
+          returnMetadata: 'all',
+          returnValues: false,
+        })
+      } catch (error) {
+        logSearchError(
+          requestId,
+          'vectorize',
+          getErrorCode(error, 'provider_error'),
+        )
+        return errorResponse('provider_error', 502, requestId, startedAt)
+      }
+
+      const results = normalizeMatches(
+        matches,
+        normalizeMinScore(env.SEARCH_MIN_SCORE),
+        request.url,
+      )
+
+      return jsonResponse(
+        {
+          ok: true,
+          requestId,
+          results,
+        },
+        200,
+        requestId,
+        startedAt,
+      )
     } catch (error) {
-      logSearchError(
-        requestId,
-        'embedding',
-        getErrorCode(error, 'provider_error'),
-      )
-      return errorResponse('provider_error', 502, requestId, startedAt)
+      logSearchError(requestId, 'request', getErrorCode(error, 'unknown_error'))
+      return errorResponse('internal_error', 500, requestId, startedAt)
     }
-
-    const embedding = extractEmbedding(embeddingResult)
-    if (!embedding) {
-      logSearchError(requestId, 'embedding', 'invalid_embedding')
-      return errorResponse('provider_error', 502, requestId, startedAt)
-    }
-
-    let matches: VectorizeMatches
-    try {
-      matches = await env.SEARCH_INDEX.query(embedding, {
-        namespace: SEARCH_LOCALE,
-        topK: QUERY_TOP_K,
-        returnMetadata: 'all',
-        returnValues: false,
-      })
-    } catch (error) {
-      logSearchError(
-        requestId,
-        'vectorize',
-        getErrorCode(error, 'provider_error'),
-      )
-      return errorResponse('provider_error', 502, requestId, startedAt)
-    }
-
-    const results = normalizeMatches(
-      matches,
-      normalizeMinScore(env.SEARCH_MIN_SCORE),
-      request.url,
-    )
-
-    return jsonResponse(
-      {
-        ok: true,
-        requestId,
-        results,
-      },
-      200,
-      requestId,
-      startedAt,
-    )
-  } catch (error) {
-    logSearchError(requestId, 'request', getErrorCode(error, 'unknown_error'))
-    return errorResponse('internal_error', 500, requestId, startedAt)
   }
-}
+
+export const onRequestPost = createSearchHandler()
 
 function normalizeQuery(value: unknown): string | null {
   if (typeof value !== 'string') return null
@@ -326,22 +342,6 @@ function normalizeMinScore(value: string | undefined): number {
   return Number.isFinite(score) && score >= 0 && score <= 1
     ? score
     : DEFAULT_MIN_SCORE
-}
-
-function extractEmbedding(result: unknown): number[] | null {
-  if (!result || typeof result !== 'object') return null
-
-  const data = (result as { data?: unknown }).data
-  if (!Array.isArray(data) || !Array.isArray(data[0])) return null
-
-  const values = data[0]
-  if (
-    values.length !== EMBEDDING_DIMENSIONS ||
-    values.some((value) => !Number.isFinite(value))
-  ) {
-    return null
-  }
-  return values as number[]
 }
 
 function normalizeMatches(

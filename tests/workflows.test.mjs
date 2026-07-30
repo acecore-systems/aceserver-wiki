@@ -14,6 +14,10 @@ const vitestConfigUrl = new URL(
   '../poc/astro-sveltia/vitest.config.ts',
   import.meta.url,
 )
+const wranglerConfigUrl = new URL(
+  '../poc/astro-sveltia/wrangler.jsonc',
+  import.meta.url,
+)
 
 function getStepBlock(workflow, name) {
   const lines = workflow.split(/\r?\n/u)
@@ -49,7 +53,7 @@ test('CMS rollback always checks out main before pushing to main', async () => {
   assert.doesNotMatch(workflow, /git push[^\n]*--force/u)
 })
 
-test('Vectorize secrets are used only by protected-main sync steps', async () => {
+test('Vectorize and OpenAI secrets are used only by protected-main sync steps', async () => {
   const workflow = await readFile(vectorizeWorkflowUrl, 'utf8')
   const protectedCheckout = getStepBlock(
     workflow,
@@ -103,6 +107,16 @@ test('Vectorize secrets are used only by protected-main sync steps', async () =>
     workflow.match(/CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN/gmu)?.length,
     2,
   )
+  assert.equal(workflow.match(/secrets\.OPENAI_API_KEY/gmu)?.length, 2)
+  assert.equal(workflow.match(/OPENAI_API_KEY/gmu)?.length, 8)
+  assert.match(
+    previewSync,
+    /VECTORIZE_INDEX_NAME: aceserver-wiki-search-openai-1536-preview/u,
+  )
+  assert.match(
+    productionSync,
+    /VECTORIZE_INDEX_NAME: aceserver-wiki-search-openai-1536-production/u,
+  )
   assert.match(
     workflow,
     /https:\/\/asv-wiki\.acecore\.net\/\.well-known\/aceserver-wiki-build\.json/u,
@@ -119,4 +133,18 @@ test('Vitest never opens remote AI or Vectorize binding sessions', async () => {
 
   assert.match(config, /cloudflareTest\(\{\s+remoteBindings: false,/u)
   assert.doesNotMatch(config, /remoteBindings:\s*true/u)
+})
+
+test('Production search stays disabled until the OpenAI index rollout completes', async () => {
+  const config = await readFile(wranglerConfigUrl, 'utf8')
+  const previewOffset = config.indexOf('"env"')
+
+  assert.notEqual(previewOffset, -1)
+
+  const productionConfig = config.slice(0, previewOffset)
+  const previewConfig = config.slice(previewOffset)
+
+  assert.match(productionConfig, /"SEARCH_ENABLED": "false"/u)
+  assert.doesNotMatch(productionConfig, /"SEARCH_ENABLED": "true"/u)
+  assert.match(previewConfig, /"SEARCH_ENABLED": "true"/u)
 })

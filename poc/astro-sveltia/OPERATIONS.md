@@ -200,26 +200,29 @@ asset側のETagを除去します。CSS、画像、JSON等の静的assetはこ�
 ## Vectorize検索
 
 通常の`/search-index.json`による文字列検索を常に残し、その結果を先に表示します。
-Vectorizeは同じ検索画面へ意味の近い記事を補う用途に限定し、Workers AI、
+Vectorizeは同じ検索画面へ意味の近い記事を補う用途に限定し、OpenAI API、
 Vectorize、D1のいずれかが失敗・timeout・rate limitになった場合は、文字列検索
 だけで応答します。
 
-- embedding model: `@cf/baai/bge-m3`
-- index: 1024 dimensions / cosine
-- preview index: `aceserver-wiki-search-preview`
-- production index: `aceserver-wiki-search-production`
+- embedding model: OpenAI `text-embedding-3-large`
+- index: 1536 dimensions / cosine
+- preview index: `aceserver-wiki-search-openai-1536-preview`
+- production index: `aceserver-wiki-search-openai-1536-production`
 - namespace: `ja`
 - corpus: 公開対象Markdown 15記事からbuild時に生成する
   `dist/vector-corpus.json`
 - API: same-originの`POST /api/search`
-- minimum score: `0.40`（2026-07-28の25質問評価に基づく）
+- minimum score: `0.40`（新embeddingでPreview評価し、production切替前に再調整する）
 - rate limit: `CMS_DATABASE`の`semantic_search_rate_limits`を使用し、
   client 20回/分、全体300回/分
 - kill switch: `SEARCH_ENABLED`
 
 corpusのchunk IDは本文・記事URL・見出しから決定的に生成します。同期scriptは
 現行indexとの差分だけをupsertし、削除はupsert後に行います。管理外ID、index名の
-allowlist外、1024/cosine以外、20%を超える削除を既定で拒否します。
+allowlist外、1536/cosine以外、20%を超える削除を既定で拒否します。
+Vectorizeのdimensionsは作成後に変更できないため、旧1024次元indexは再利用しません。
+新しい1536次元indexを作成・同期・Preview検証してからbindingを切り替え、旧indexは
+productionの実API確認とrollback期間が終わるまで残します。
 
 ### 初回導入
 
@@ -231,12 +234,12 @@ npm ci
 npm run build
 npm run search:sync:dry-run
 
-npx wrangler vectorize create aceserver-wiki-search-preview \
-  --dimensions 1024 --metric cosine \
-  --description "Ace Server Wiki preview semantic search (BGE-M3)"
-npx wrangler vectorize create aceserver-wiki-search-production \
-  --dimensions 1024 --metric cosine \
-  --description "Ace Server Wiki production semantic search (BGE-M3)"
+npx wrangler vectorize create aceserver-wiki-search-openai-1536-preview \
+  --dimensions 1536 --metric cosine \
+  --description "Ace Server Wiki preview semantic search (OpenAI text-embedding-3-large, 1536 dimensions)"
+npx wrangler vectorize create aceserver-wiki-search-openai-1536-production \
+  --dimensions 1536 --metric cosine \
+  --description "Ace Server Wiki production semantic search (OpenAI text-embedding-3-large, 1536 dimensions)"
 
 npx wrangler d1 migrations apply CMS_DATABASE --env preview --remote
 npx wrangler d1 migrations apply CMS_DATABASE --remote
@@ -247,17 +250,21 @@ npx wrangler d1 migrations list CMS_DATABASE --remote
 GitHub Environmentsを次の2つに分け、どちらもdeployment branchを`main`だけに
 制限します。
 
-| Environment                         | Secret                                        |
-| ----------------------------------- | --------------------------------------------- |
-| `cloudflare-wiki-search-preview`    | `CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN`    |
-| `cloudflare-wiki-search-production` | `CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN` |
+| Environment                         | Secrets                                                         |
+| ----------------------------------- | --------------------------------------------------------------- |
+| `cloudflare-wiki-search-preview`    | `CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN`, `OPENAI_API_KEY`    |
+| `cloudflare-wiki-search-production` | `CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN`, `OPENAI_API_KEY` |
 
-tokenは環境ごとに分離し、対象accountのWorkers AI ReadとVectorize Writeに
-必要な最小権限だけを付与します。workflowは任意PRのcodeへsecretを渡さず、
+Cloudflare tokenは環境ごとに分離し、対象accountのVectorize Writeに必要な
+最小権限だけを付与します。OpenAI keyはこの用途専用projectへ限定し、project側の
+rate limitと予算上限を設定します。workflowは任意PRのcodeへsecretを渡さず、
 protected `main`の同期scriptだけを実行します。
+このGitHub Actions secretとは別に、PagesのPreview/production両環境へ
+runtime secret `OPENAI_API_KEY`を設定します。値を`wrangler.jsonc`、`.dev.vars.example`、
+workflow logへ書きません。
 
 1. `Sync Wiki Vectorize index`を`preview`指定で手動実行する。
-2. Preview deploymentの`/api/search`が200を返し、BGE-M3の日本語評価queryで
+2. Preview deploymentの`/api/search`が200を返し、日本語評価queryで
    関連記事を返すことを確認する。
 3. PRをmergeし、GitHub repository連携によるPages production deploymentと
    `/.well-known/aceserver-wiki-build.json`のcommit/corpus version一致を確認する。
@@ -273,15 +280,17 @@ Direct Uploadや手動uploadを復旧経路にしません。
 
 アルファくんは全公開ページからsame-originの`POST /api/alpha-chat`を呼び出します。
 このWikiの`SEARCH_INDEX`と`/vector-corpus.json`だけをRAGの情報源とし、
-回答モデルは`ALPHA_CHAT_MODEL=@cf/zai-org/glm-5.2`です。ルール、コマンド、
+Pages FunctionからOpenAIへ直接接続します。回答モデルはResponses APIの
+`OPENAI_RESPONSE_MODEL=gpt-5.6-luna`、
+`OPENAI_REASONING_EFFORT=low`、`store=false`です。Cloudflare AI Gatewayや
+Workers AIは経由しません。ルール、コマンド、
 参加条件などをポータルやモデルの固定知識から補いません。取得したWiki根拠で
 確認できない質問は「確認できない」と明示し、一般論から可否を推測しません。
-GLM 5.2はWorkers Paidが必要なため、planの前提をdashboardで確認し、
-Preview実呼び出しを通るまで利用可能と判定しません。
 
 応答の`answer`と`sources`は分離し、`sources`には根拠へ採用した同一originの
 `/article/` URLと記事タイトルだけを最大2件入れます。モデルには
-`response_format=json_schema`で根拠番号とWiki本文からの完全一致引用だけを選ばせ、
+Responses APIのstrictな`text.format` JSON Schemaで根拠番号とWiki本文からの
+完全一致引用だけを選ばせ、
 サーバーが取得済みchunkに対して番号・引用・文字数を検証します。モデル生成文は
 公開せず、検証済み引用から
 サーバーが固定文を組み立てます。検証できない選択は`502`、回答根拠がない選択は
@@ -304,7 +313,7 @@ dashboardだけの恒久的な上書きを正本にしません。
 
 ### Preview実AIゲート
 
-unit testやWrangler bundle成功だけではWorkers AIとVectorizeの実接続を証明
+unit testやWrangler bundle成功だけではOpenAI APIとVectorizeの実接続を証明
 できません。productionへ反映する前に、review対象commitから作られたPages
 Previewで次を確認します。
 
@@ -321,10 +330,15 @@ Previewで次を確認します。
    npx wrangler pages functions build
    ```
 
-2. Previewのbindingが`AI`、`aceserver-wiki-search-preview`の`SEARCH_INDEX`、
-   preview専用`CMS_DATABASE`であることを確認する。varsは
+2. Previewのbindingが
+   `aceserver-wiki-search-openai-1536-preview`の`SEARCH_INDEX`と
+   preview専用`CMS_DATABASE`であり、Workers AI bindingがないことを確認する。
+   secretは`OPENAI_API_KEY`、varsは
    `ALPHA_CHAT_ENABLED=true`、
-   `ALPHA_CHAT_MODEL=@cf/zai-org/glm-5.2`、
+   `OPENAI_RESPONSE_MODEL=gpt-5.6-luna`、
+   `OPENAI_REASONING_EFFORT=low`、
+   `OPENAI_EMBEDDING_MODEL=text-embedding-3-large`、
+   `OPENAI_EMBEDDING_DIMENSIONS=1536`、
    `CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretは置かない。
 3. Previewへ同期済みcorpus versionと
    `/.well-known/aceserver-wiki-build.json`のcommit・corpus versionが

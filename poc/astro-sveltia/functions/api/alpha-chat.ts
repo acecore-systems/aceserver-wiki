@@ -1,6 +1,14 @@
-const EMBEDDING_MODEL = '@cf/baai/bge-m3'
-const EMBEDDING_DIMENSIONS = 1024
-const DEFAULT_CHAT_MODEL = '@cf/zai-org/glm-5.2'
+import {
+  createOpenAiEmbeddings,
+  createOpenAiStructuredResponse,
+  OPENAI_EMBEDDING_DIMENSIONS,
+  OPENAI_EMBEDDING_MODEL,
+  OPENAI_REASONING_EFFORT,
+  OPENAI_RESPONSE_MODEL,
+} from './_openai'
+
+const EMBEDDING_MODEL = OPENAI_EMBEDDING_MODEL
+const EMBEDDING_DIMENSIONS = OPENAI_EMBEDDING_DIMENSIONS
 const SEARCH_NAMESPACE = 'ja'
 const DEFAULT_MIN_SCORE = 0.4
 
@@ -44,9 +52,12 @@ const MODEL_FAILURE_ANSWER =
 
 type AlphaChatEnv = Env & {
   ALPHA_CHAT_ENABLED?: string
-  ALPHA_CHAT_MODEL?: string
   ASSETS?: Fetcher
-  CLOUDFLARE_AI_MODEL?: string
+  OPENAI_API_KEY?: string
+  OPENAI_EMBEDDING_DIMENSIONS?: string
+  OPENAI_EMBEDDING_MODEL?: string
+  OPENAI_REASONING_EFFORT?: string
+  OPENAI_RESPONSE_MODEL?: string
 }
 
 type ChatMessage = {
@@ -94,319 +105,272 @@ type PayloadValidation =
       ok: false
     }
 
-export const onRequestPost: PagesFunction<AlphaChatEnv> = async (context) => {
-  const startedAt = performance.now()
-  const requestId = crypto.randomUUID()
-  const { env, request } = context
+export const createAlphaChatHandler =
+  (openAiFetch: typeof fetch = fetch): PagesFunction<AlphaChatEnv> =>
+  async (context) => {
+    const startedAt = performance.now()
+    const requestId = crypto.randomUUID()
+    const { env, request } = context
 
-  try {
-    if (!isSameOriginRequest(request)) {
-      return alphaResponse(
-        { ok: false, answer: INVALID_REQUEST_ANSWER, sources: [] },
-        403,
-        requestId,
-        startedAt,
-      )
-    }
-
-    if (!isJsonRequest(request)) {
-      return alphaResponse(
-        { ok: false, answer: INVALID_REQUEST_ANSWER, sources: [] },
-        415,
-        requestId,
-        startedAt,
-      )
-    }
-
-    if (
-      env.ALPHA_CHAT_ENABLED !== 'true' ||
-      env.SEARCH_ENABLED !== 'true' ||
-      !env.AI ||
-      !env.SEARCH_INDEX ||
-      !env.CMS_DATABASE
-    ) {
-      return alphaResponse(
-        { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
-        503,
-        requestId,
-        startedAt,
-      )
-    }
-
-    let clientAllowed = false
     try {
-      const clientKey = await createClientRateLimitKey(request)
-      const clientLimit = await consumeRateLimit(
-        env.CMS_DATABASE,
-        `alpha-client:${clientKey}`,
-        CLIENT_RATE_LIMIT,
-      )
-      clientAllowed = clientLimit.allowed
-    } catch (error) {
-      logAlphaError(
+      if (!isSameOriginRequest(request)) {
+        return alphaResponse(
+          { ok: false, answer: INVALID_REQUEST_ANSWER, sources: [] },
+          403,
+          requestId,
+          startedAt,
+        )
+      }
+
+      if (!isJsonRequest(request)) {
+        return alphaResponse(
+          { ok: false, answer: INVALID_REQUEST_ANSWER, sources: [] },
+          415,
+          requestId,
+          startedAt,
+        )
+      }
+
+      if (
+        env.ALPHA_CHAT_ENABLED !== 'true' ||
+        env.SEARCH_ENABLED !== 'true' ||
+        !env.OPENAI_API_KEY?.trim() ||
+        !env.SEARCH_INDEX ||
+        !env.CMS_DATABASE
+      ) {
+        return alphaResponse(
+          { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+          503,
+          requestId,
+          startedAt,
+        )
+      }
+
+      let clientAllowed = false
+      let clientKey = ''
+      try {
+        clientKey = await createClientRateLimitKey(request)
+        const clientLimit = await consumeRateLimit(
+          env.CMS_DATABASE,
+          `alpha-client:${clientKey}`,
+          CLIENT_RATE_LIMIT,
+        )
+        clientAllowed = clientLimit.allowed
+      } catch (error) {
+        logAlphaError(
+          requestId,
+          'rate_limit',
+          getErrorCode(error, 'storage_error'),
+        )
+        return alphaResponse(
+          { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+          503,
+          requestId,
+          startedAt,
+        )
+      }
+
+      if (!clientAllowed) {
+        return alphaResponse(
+          { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+          429,
+          requestId,
+          startedAt,
+          { 'Retry-After': String(RATE_LIMIT_WINDOW_SECONDS) },
+        )
+      }
+
+      const requestText = await readBoundedText(request, MAX_REQUEST_BYTES)
+      if (requestText === null) {
+        return alphaResponse(
+          { ok: false, answer: REQUEST_TOO_LARGE_ANSWER, sources: [] },
+          413,
+          requestId,
+          startedAt,
+        )
+      }
+
+      let parsedPayload: unknown
+      try {
+        parsedPayload = JSON.parse(requestText)
+      } catch {
+        return alphaResponse(
+          { ok: false, answer: INVALID_REQUEST_ANSWER, sources: [] },
+          400,
+          requestId,
+          startedAt,
+        )
+      }
+
+      const payloadResult = normalizePayload(parsedPayload)
+      if (!payloadResult.ok) {
+        return alphaResponse(
+          { ok: false, answer: payloadResult.answer, sources: [] },
+          400,
+          requestId,
+          startedAt,
+        )
+      }
+
+      let globalAllowed = false
+      let shouldCleanupRateLimits = false
+      try {
+        const globalLimit = await consumeRateLimit(
+          env.CMS_DATABASE,
+          'alpha-global',
+          GLOBAL_RATE_LIMIT,
+        )
+        globalAllowed = globalLimit.allowed
+        shouldCleanupRateLimits = globalLimit.count === 1
+      } catch (error) {
+        logAlphaError(
+          requestId,
+          'rate_limit',
+          getErrorCode(error, 'storage_error'),
+        )
+        return alphaResponse(
+          { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+          503,
+          requestId,
+          startedAt,
+        )
+      }
+
+      if (!globalAllowed) {
+        return alphaResponse(
+          { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+          429,
+          requestId,
+          startedAt,
+          { 'Retry-After': String(RATE_LIMIT_WINDOW_SECONDS) },
+        )
+      }
+
+      if (shouldCleanupRateLimits) {
+        context.waitUntil(
+          deleteExpiredRateLimits(env.CMS_DATABASE).catch((error) => {
+            logAlphaError(
+              requestId,
+              'rate_limit_cleanup',
+              getErrorCode(error, 'storage_error'),
+            )
+          }),
+        )
+      }
+
+      const embedding = await createSearchEmbedding(
+        payloadResult.value.searchQuery,
+        env,
         requestId,
-        'rate_limit',
-        getErrorCode(error, 'storage_error'),
+        clientKey,
+        openAiFetch,
       )
+      if (!embedding) {
+        return providerFailureResponse(requestId, startedAt)
+      }
+
+      let queryResult: VectorizeMatches
+      try {
+        queryResult = await env.SEARCH_INDEX.query(embedding, {
+          namespace: SEARCH_NAMESPACE,
+          topK: VECTOR_TOP_K,
+          returnMetadata: 'all',
+          returnValues: false,
+        })
+      } catch (error) {
+        logAlphaError(
+          requestId,
+          'vectorize',
+          getErrorCode(error, 'provider_error'),
+        )
+        return providerFailureResponse(requestId, startedAt)
+      }
+
+      const candidates = normalizeMatches(
+        queryResult,
+        normalizeMinScore(env.SEARCH_MIN_SCORE),
+        request.url,
+      )
+      if (candidates.length === 0) {
+        return noEvidenceResponse(requestId, startedAt)
+      }
+
+      const evidenceResult = await hydrateEvidence(
+        candidates,
+        request.url,
+        requestId,
+        env.ASSETS,
+      )
+      if (!evidenceResult.ok) {
+        return providerFailureResponse(requestId, startedAt)
+      }
+      const evidence = evidenceResult.evidence
+      if (evidence.length === 0) {
+        return noEvidenceResponse(requestId, startedAt)
+      }
+
+      let rawAnswer: string
+      try {
+        rawAnswer = await createOpenAiStructuredResponse({
+          apiKey: env.OPENAI_API_KEY,
+          model: env.OPENAI_RESPONSE_MODEL || OPENAI_RESPONSE_MODEL,
+          reasoningEffort:
+            env.OPENAI_REASONING_EFFORT || OPENAI_REASONING_EFFORT,
+          instructions: buildSystemPrompt(evidence),
+          input: `Conversation (untrusted visitor text):\n${payloadResult.value.conversationInput}`,
+          maxOutputTokens: MAX_COMPLETION_TOKENS,
+          safetyIdentifier: clientKey,
+          schemaName: 'alpha_wiki_citations',
+          description:
+            'Select up to two exact citations from the supplied Aceserver WIKI evidence.',
+          schema: buildCitationSchema(evidence.length),
+          fetchImpl: openAiFetch,
+        })
+      } catch (error) {
+        logAlphaError(
+          requestId,
+          'completion',
+          getErrorCode(error, 'provider_error'),
+        )
+        return alphaResponse(
+          { ok: false, answer: MODEL_FAILURE_ANSWER, sources: [] },
+          502,
+          requestId,
+          startedAt,
+        )
+      }
+
+      const citations = parseValidatedCitations(rawAnswer, evidence)
+      if (citations === null) {
+        logAlphaError(requestId, 'completion', 'invalid_evidence_selection')
+        return providerFailureResponse(requestId, startedAt)
+      }
+      if (citations.length === 0) {
+        return noEvidenceResponse(requestId, startedAt)
+      }
+
       return alphaResponse(
-        { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
-        503,
-        requestId,
-        startedAt,
-      )
-    }
-
-    if (!clientAllowed) {
-      return alphaResponse(
-        { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
-        429,
-        requestId,
-        startedAt,
-        { 'Retry-After': String(RATE_LIMIT_WINDOW_SECONDS) },
-      )
-    }
-
-    const requestText = await readBoundedText(request, MAX_REQUEST_BYTES)
-    if (requestText === null) {
-      return alphaResponse(
-        { ok: false, answer: REQUEST_TOO_LARGE_ANSWER, sources: [] },
-        413,
-        requestId,
-        startedAt,
-      )
-    }
-
-    let parsedPayload: unknown
-    try {
-      parsedPayload = JSON.parse(requestText)
-    } catch {
-      return alphaResponse(
-        { ok: false, answer: INVALID_REQUEST_ANSWER, sources: [] },
-        400,
-        requestId,
-        startedAt,
-      )
-    }
-
-    const payloadResult = normalizePayload(parsedPayload)
-    if (!payloadResult.ok) {
-      return alphaResponse(
-        { ok: false, answer: payloadResult.answer, sources: [] },
-        400,
-        requestId,
-        startedAt,
-      )
-    }
-
-    let globalAllowed = false
-    let shouldCleanupRateLimits = false
-    try {
-      const globalLimit = await consumeRateLimit(
-        env.CMS_DATABASE,
-        'alpha-global',
-        GLOBAL_RATE_LIMIT,
-      )
-      globalAllowed = globalLimit.allowed
-      shouldCleanupRateLimits = globalLimit.count === 1
-    } catch (error) {
-      logAlphaError(
-        requestId,
-        'rate_limit',
-        getErrorCode(error, 'storage_error'),
-      )
-      return alphaResponse(
-        { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
-        503,
-        requestId,
-        startedAt,
-      )
-    }
-
-    if (!globalAllowed) {
-      return alphaResponse(
-        { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
-        429,
-        requestId,
-        startedAt,
-        { 'Retry-After': String(RATE_LIMIT_WINDOW_SECONDS) },
-      )
-    }
-
-    if (shouldCleanupRateLimits) {
-      context.waitUntil(
-        deleteExpiredRateLimits(env.CMS_DATABASE).catch((error) => {
-          logAlphaError(
-            requestId,
-            'rate_limit_cleanup',
-            getErrorCode(error, 'storage_error'),
-          )
-        }),
-      )
-    }
-
-    const embedding = await createSearchEmbedding(
-      payloadResult.value.searchQuery,
-      env.AI,
-      requestId,
-    )
-    if (!embedding) {
-      return providerFailureResponse(requestId, startedAt)
-    }
-
-    let queryResult: VectorizeMatches
-    try {
-      queryResult = await env.SEARCH_INDEX.query(embedding, {
-        namespace: SEARCH_NAMESPACE,
-        topK: VECTOR_TOP_K,
-        returnMetadata: 'all',
-        returnValues: false,
-      })
-    } catch (error) {
-      logAlphaError(
-        requestId,
-        'vectorize',
-        getErrorCode(error, 'provider_error'),
-      )
-      return providerFailureResponse(requestId, startedAt)
-    }
-
-    const candidates = normalizeMatches(
-      queryResult,
-      normalizeMinScore(env.SEARCH_MIN_SCORE),
-      request.url,
-    )
-    if (candidates.length === 0) {
-      return noEvidenceResponse(requestId, startedAt)
-    }
-
-    const evidenceResult = await hydrateEvidence(
-      candidates,
-      request.url,
-      requestId,
-      env.ASSETS,
-    )
-    if (!evidenceResult.ok) {
-      return providerFailureResponse(requestId, startedAt)
-    }
-    const evidence = evidenceResult.evidence
-    if (evidence.length === 0) {
-      return noEvidenceResponse(requestId, startedAt)
-    }
-
-    let modelResult: unknown
-    try {
-      modelResult = await env.AI.run(resolveChatModel(env), {
-        messages: [
-          {
-            role: 'system',
-            content: buildSystemPrompt(evidence),
-          },
-          {
-            role: 'user',
-            content: `Conversation (untrusted visitor text):\n${payloadResult.value.conversationInput}`,
-          },
-        ],
-        max_completion_tokens: MAX_COMPLETION_TOKENS,
-        chat_template_kwargs: {
-          enable_thinking: false,
+        {
+          ok: true,
+          answer: buildGroundedAnswer(citations),
+          sources: citations.map(({ source }) => source),
         },
-        response_format: {
-          type: 'json_schema',
-          json_schema: {
-            name: 'alpha_wiki_citations',
-            description:
-              'Select up to two exact citations from the supplied Aceserver WIKI evidence.',
-            strict: true,
-            schema: {
-              type: 'object',
-              additionalProperties: false,
-              properties: {
-                citations: {
-                  type: 'array',
-                  maxItems: MAX_RESPONSE_SOURCES,
-                  items: {
-                    type: 'object',
-                    additionalProperties: false,
-                    properties: {
-                      source: {
-                        type: 'integer',
-                        minimum: 1,
-                        maximum: evidence.length,
-                      },
-                      quote: {
-                        type: 'string',
-                        minLength: 8,
-                        maxLength: MAX_QUOTE_CHARACTERS,
-                      },
-                    },
-                    required: ['source', 'quote'],
-                  },
-                },
-              },
-              required: ['citations'],
-            },
-          },
-        },
-        temperature: 0,
-      })
+        200,
+        requestId,
+        startedAt,
+      )
     } catch (error) {
-      logAlphaError(
-        requestId,
-        'completion',
-        getErrorCode(error, 'provider_error'),
-      )
+      logAlphaError(requestId, 'request', getErrorCode(error, 'unknown_error'))
       return alphaResponse(
-        { ok: false, answer: MODEL_FAILURE_ANSWER, sources: [] },
-        502,
+        { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+        500,
         requestId,
         startedAt,
       )
     }
-
-    if (hasModelError(modelResult)) {
-      logAlphaError(requestId, 'completion', 'provider_error')
-      return alphaResponse(
-        { ok: false, answer: MODEL_FAILURE_ANSWER, sources: [] },
-        502,
-        requestId,
-        startedAt,
-      )
-    }
-
-    const rawAnswer = extractWorkersAiText(modelResult)
-    if (!rawAnswer.trim()) {
-      logAlphaError(requestId, 'completion', 'invalid_model_response')
-      return providerFailureResponse(requestId, startedAt)
-    }
-    const citations = parseValidatedCitations(rawAnswer, evidence)
-    if (citations === null) {
-      logAlphaError(requestId, 'completion', 'invalid_evidence_selection')
-      return providerFailureResponse(requestId, startedAt)
-    }
-    if (citations.length === 0) {
-      return noEvidenceResponse(requestId, startedAt)
-    }
-
-    return alphaResponse(
-      {
-        ok: true,
-        answer: buildGroundedAnswer(citations),
-        sources: citations.map(({ source }) => source),
-      },
-      200,
-      requestId,
-      startedAt,
-    )
-  } catch (error) {
-    logAlphaError(requestId, 'request', getErrorCode(error, 'unknown_error'))
-    return alphaResponse(
-      { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
-      500,
-      requestId,
-      startedAt,
-    )
   }
-}
+
+export const onRequestPost = createAlphaChatHandler()
 
 function normalizePayload(value: unknown): PayloadValidation {
   if (!isJsonObject(value)) {
@@ -488,40 +452,27 @@ function normalizePayload(value: unknown): PayloadValidation {
 
 async function createSearchEmbedding(
   query: string,
-  ai: Ai,
+  env: AlphaChatEnv,
   requestId: string,
+  clientKey: string,
+  openAiFetch: typeof fetch,
 ): Promise<number[] | null> {
-  let result: unknown
   try {
-    result = await ai.run(EMBEDDING_MODEL, {
-      text: [query],
-      truncate_inputs: true,
+    const embeddings = await createOpenAiEmbeddings({
+      apiKey: env.OPENAI_API_KEY || '',
+      input: query,
+      model: env.OPENAI_EMBEDDING_MODEL || EMBEDDING_MODEL,
+      dimensions: Number(
+        env.OPENAI_EMBEDDING_DIMENSIONS || EMBEDDING_DIMENSIONS,
+      ),
+      user: clientKey,
+      fetchImpl: openAiFetch,
     })
+    return embeddings[0] || null
   } catch (error) {
     logAlphaError(requestId, 'embedding', getErrorCode(error, 'provider_error'))
     return null
   }
-
-  const embedding = extractEmbedding(result)
-  if (!embedding) {
-    logAlphaError(requestId, 'embedding', 'invalid_embedding')
-  }
-  return embedding
-}
-
-function extractEmbedding(result: unknown): number[] | null {
-  if (!isJsonObject(result) || !Array.isArray(result.data)) return null
-  const embedding = result.data[0]
-  if (
-    !Array.isArray(embedding) ||
-    embedding.length !== EMBEDDING_DIMENSIONS ||
-    embedding.some(
-      (entry) => typeof entry !== 'number' || !Number.isFinite(entry),
-    )
-  ) {
-    return null
-  }
-  return embedding
 }
 
 function normalizeMatches(
@@ -710,6 +661,37 @@ function buildSystemPrompt(
   ].join('\n')
 }
 
+function buildCitationSchema(maximumSource: number): Record<string, unknown> {
+  return {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      citations: {
+        type: 'array',
+        maxItems: MAX_RESPONSE_SOURCES,
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            source: {
+              type: 'integer',
+              minimum: 1,
+              maximum: maximumSource,
+            },
+            quote: {
+              type: 'string',
+              minLength: 8,
+              maxLength: MAX_QUOTE_CHARACTERS,
+            },
+          },
+          required: ['source', 'quote'],
+        },
+      },
+    },
+    required: ['citations'],
+  }
+}
+
 function parseValidatedCitations(
   rawResponse: string,
   evidence: Array<Required<EvidenceCandidate>>,
@@ -766,72 +748,6 @@ function buildGroundedAnswer(citations: ValidatedCitation[]): string {
       : '関連するWIKIの記載を見つけたよ。'
   const quotes = citations.map(({ quote }) => `- 「${quote}」`).join('\n')
   return `${introduction}\n\n${quotes}`
-}
-
-function extractWorkersAiText(result: unknown): string {
-  if (!result) return ''
-  if (typeof result === 'string') return result
-  if (!isJsonObject(result)) return ''
-  if (typeof result.response === 'string') return result.response
-  if (isJsonObject(result.response)) {
-    try {
-      return JSON.stringify(result.response)
-    } catch {
-      return ''
-    }
-  }
-  if (typeof result.output_text === 'string') return result.output_text
-  if (result.result) return extractWorkersAiText(result.result)
-
-  if (Array.isArray(result.choices)) {
-    const choiceText = result.choices
-      .map(extractChoiceText)
-      .filter(Boolean)
-      .join('\n')
-    if (choiceText) return choiceText
-  }
-  if (!Array.isArray(result.output)) return ''
-
-  return result.output
-    .flatMap((item) =>
-      isJsonObject(item) && Array.isArray(item.content) ? item.content : [],
-    )
-    .map((content) =>
-      isJsonObject(content) && typeof content.text === 'string'
-        ? content.text
-        : '',
-    )
-    .filter(Boolean)
-    .join('\n')
-}
-
-function extractChoiceText(value: unknown): string {
-  if (!isJsonObject(value)) return ''
-  if (typeof value.text === 'string') return value.text
-  if (isJsonObject(value.delta) && typeof value.delta.content === 'string') {
-    return value.delta.content
-  }
-  if (!isJsonObject(value.message)) return ''
-  if (typeof value.message.content === 'string') return value.message.content
-  if (!Array.isArray(value.message.content)) return ''
-  return value.message.content
-    .map((part) =>
-      isJsonObject(part) && typeof part.text === 'string' ? part.text : '',
-    )
-    .filter(Boolean)
-    .join('\n')
-}
-
-function hasModelError(value: unknown): boolean {
-  return isJsonObject(value) && Boolean(value.error)
-}
-
-function resolveChatModel(env: AlphaChatEnv): string {
-  return (
-    readString(env.ALPHA_CHAT_MODEL, 160) ||
-    readString(env.CLOUDFLARE_AI_MODEL, 160) ||
-    DEFAULT_CHAT_MODEL
-  )
 }
 
 function normalizeArticleUrl(
