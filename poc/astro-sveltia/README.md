@@ -156,8 +156,9 @@ GLM 5.2はWorkers Paidが必要で、利用可否はPages Previewの実呼び出
 
 API応答は`{ ok, answer, sources }`で、`sources`は
 `Array<{ title, url }>`として回答本文と分離します。出典は実際に根拠へ採用した
-同一originの`/article/` URLだけを最大2件返します。モデルには根拠番号とWiki本文の
-完全一致引用だけをJSONで選ばせ、サーバーが取得済みchunkに対して検証します。
+同一originの`/article/` URLだけを最大2件返します。モデルには
+`response_format=json_schema`で根拠番号とWiki本文の完全一致引用だけを選ばせ、
+サーバーが取得済みchunkに対して検証します。
 モデル生成文は公開せず、検証済み引用からサーバーが固定文を組み立てます。
 検証不能な選択は`502`、根拠なしは固定の「確認できない」へ戻します。
 クライアントは文字列をHTMLとして挿入せず、安全なDOM APIで本文とリンクを

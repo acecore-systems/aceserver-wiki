@@ -280,9 +280,10 @@ GLM 5.2はWorkers Paidが必要なため、planの前提をdashboardで確認し
 Preview実呼び出しを通るまで利用可能と判定しません。
 
 応答の`answer`と`sources`は分離し、`sources`には根拠へ採用した同一originの
-`/article/` URLと記事タイトルだけを最大2件入れます。モデルには根拠番号と
-Wiki本文からの完全一致引用だけをJSONで選ばせ、サーバーが取得済みchunkに対して
-番号・引用・文字数を検証します。モデル生成文は公開せず、検証済み引用から
+`/article/` URLと記事タイトルだけを最大2件入れます。モデルには
+`response_format=json_schema`で根拠番号とWiki本文からの完全一致引用だけを選ばせ、
+サーバーが取得済みchunkに対して番号・引用・文字数を検証します。モデル生成文は
+公開せず、検証済み引用から
 サーバーが固定文を組み立てます。検証できない選択は`502`、回答根拠がない選択は
 固定の「確認できない」回答へ戻します。
 `/vector-corpus.json`はPagesの`ASSETS` bindingを優先してdeployment固有assetから
