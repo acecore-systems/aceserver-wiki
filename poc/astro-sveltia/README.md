@@ -138,6 +138,42 @@ PRを作り、CIを通して`main`へ反映します。
 - 削除が必要な場合は、保守担当者がGitHub Appとは別の通常の作業branchから
   参照確認を伴うPull Requestを作成
 
+## アルファくん WIKI案内チャット
+
+全公開ページに、現在のWikiアイコンを使ったアルファくん案内チャットを表示します。
+ブラウザはsame-originの`POST /api/alpha-chat`だけを呼び出し、AI bindingや
+Cloudflareのcredentialを受け取りません。入力は500文字以下に制限し、
+`Origin`をrequest先originと照合してcross-origin requestを拒否します。
+`X-Acecore-Chat-Client`にはブラウザごとのUUIDを送ります。
+
+チャットはこのWikiの公開記事だけを情報源にします。質問をBGE-M3
+（`@cf/baai/bge-m3`）でembeddingし、`SEARCH_INDEX`から候補を検索した後、
+build済み`/vector-corpus.json`の元chunkへ照合してからGLM 5.2
+（`@cf/zai-org/glm-5.2`）へ渡します。ポータルや他サイトの固定知識から
+ルール・コマンド・参加条件を補いません。根拠を取得できない場合は
+「確認できない」と明示し、一般論から可否を推測せずWiki内の確認導線を返します。
+GLM 5.2はWorkers Paidが必要で、利用可否はPages Previewの実呼び出しで確認します。
+
+API応答は`{ ok, answer, sources }`で、`sources`は
+`Array<{ title, url }>`として回答本文と分離します。出典は実際に根拠へ採用した
+同一originの`/article/` URLだけを最大2件返します。モデルには根拠番号とWiki本文の
+完全一致引用だけをJSONで選ばせ、サーバーが取得済みchunkに対して検証します。
+モデル生成文は公開せず、検証済み引用からサーバーが固定文を組み立てます。
+検証不能な選択は`502`、根拠なしは固定の「確認できない」へ戻します。
+クライアントは文字列をHTMLとして挿入せず、安全なDOM APIで本文とリンクを
+構築します。
+
+- `ALPHA_CHAT_ENABLED`: chatのkill switch。`"true"`のときだけAI処理を行う
+- `ALPHA_CHAT_MODEL`: 回答モデル。production/previewは
+  `@cf/zai-org/glm-5.2`
+- `SEARCH_ENABLED` / `SEARCH_MIN_SCORE`: 共用するWiki検索の有効化とscore下限
+
+AI呼び出し前に`CMS_DATABASE`で60秒窓のrate limitを適用します。
+clientは5回/分、全体は60回/分で、超過時は`429`と`Retry-After`を返します。
+client keyは`CF-Connecting-IP`を優先し、利用できない場合は
+`X-Acecore-Chat-Client`のUUIDを使用します。不正・欠落したUUIDは
+`anonymous`として同じ枠を共有します。
+
 ## ローカル検証
 
 Node.js 24.18.0を使用します。
@@ -147,6 +183,7 @@ cd poc/astro-sveltia
 npm ci
 npm run cf:typegen
 npm run check
+npm run test:unit -- tests/alpha-chat.test.ts
 npm test
 npm run test:migration
 npm run test:migration:archive
@@ -210,8 +247,9 @@ slug/category mapping、Newt管理画面のモデル・view証跡は
 
 ローカルでAccess/GitHub Appを接続する場合だけ、`.dev.vars.example` を
 `.dev.vars` へコピーして実値を設定します。exampleはfail closedのため
-`CMS_PUBLICATION_MODE=disabled`です。実際の保存E2Eを意図して行う間だけ
-`direct`へ変更し、`.dev.vars` はcommitしません。
+`CMS_PUBLICATION_MODE=disabled`かつ`ALPHA_CHAT_ENABLED=false`です。実際の
+保存E2Eを意図して行う間だけ`direct`へ変更し、実AIを明示的に確認する間だけ
+chatを`true`へ変更します。`.dev.vars` はcommitしません。
 
 ## Cloudflare Pagesでの公開
 

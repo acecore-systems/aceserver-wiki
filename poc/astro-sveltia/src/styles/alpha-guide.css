@@ -1,0 +1,477 @@
+.alpha-widget {
+  position: fixed;
+  inset-inline-end: max(1.125rem, env(safe-area-inset-right));
+  inset-block-end: max(1.125rem, env(safe-area-inset-bottom));
+  z-index: 30;
+  display: grid;
+  justify-items: end;
+  color: #fff8e6;
+  font-family: var(--font-sans);
+  pointer-events: none;
+}
+
+.alpha-panel,
+.alpha-toggle {
+  pointer-events: auto;
+}
+
+.alpha-panel {
+  position: static;
+  width: min(22.5rem, calc(100vw - 2rem));
+  max-width: none;
+  max-height: min(33.75rem, calc(100vh - 7rem));
+  max-height: min(33.75rem, calc(100dvh - 7rem));
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgb(255 216 77 / 48%);
+  border-radius: 1rem;
+  color: #fff8e6;
+  background: rgb(21 19 15 / 97%);
+  box-shadow: 0 1.125rem 3.25rem rgb(0 0 0 / 34%);
+}
+
+.alpha-panel:not([open]) {
+  display: none;
+}
+
+.alpha-panel[open] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+}
+
+.alpha-panel::backdrop {
+  background: transparent;
+}
+
+.alpha-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  border-block-end: 1px solid rgb(255 216 77 / 18%);
+}
+
+.alpha-header > img,
+.alpha-message--assistant > img {
+  object-fit: contain;
+  border-radius: 0.625rem;
+  background: rgb(255 216 77 / 14%);
+}
+
+.alpha-header > img {
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0.125rem;
+}
+
+.alpha-header h2,
+.alpha-header p {
+  margin: 0;
+}
+
+.alpha-header h2 {
+  color: #fffdf2;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1.25;
+}
+
+.alpha-header p {
+  color: rgb(255 248 230 / 72%);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.alpha-icon-button,
+.alpha-prompt-row button,
+.alpha-form button,
+.alpha-toggle {
+  font: inherit;
+  cursor: pointer;
+}
+
+.alpha-icon-button {
+  display: grid;
+  width: 2.75rem;
+  min-height: 2.75rem;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgb(255 216 77 / 34%);
+  border-radius: 0.625rem;
+  color: #fff8e6;
+  background: transparent;
+}
+
+.alpha-icon-button svg,
+.alpha-form button svg {
+  display: block;
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.alpha-messages {
+  display: grid;
+  align-content: start;
+  gap: 0.625rem;
+  max-height: min(19.5rem, 44vh);
+  max-height: min(19.5rem, 44dvh);
+  min-height: 0;
+  padding: 0.75rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+}
+
+.alpha-message {
+  display: grid;
+  max-width: 100%;
+  gap: 0.5rem;
+  overflow-wrap: anywhere;
+}
+
+.alpha-message--assistant {
+  grid-template-columns: auto minmax(0, 1fr);
+  justify-self: start;
+}
+
+.alpha-message--assistant > img {
+  width: 2rem;
+  height: 2rem;
+  padding: 0.125rem;
+}
+
+.alpha-message--user {
+  justify-self: end;
+}
+
+.alpha-message__bubble {
+  min-width: 0;
+  padding: 0.6rem 0.7rem;
+  border-radius: 0.875rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.65;
+}
+
+.alpha-message--assistant .alpha-message__bubble {
+  border-start-start-radius: 0.25rem;
+  color: #fff8e6;
+  background: rgb(255 245 220 / 10%);
+}
+
+.alpha-message--user .alpha-message__bubble {
+  border-end-end-radius: 0.25rem;
+  color: #ffffff;
+  background: var(--color-brand);
+  white-space: pre-wrap;
+}
+
+.alpha-message__bubble p,
+.alpha-message__bubble ul {
+  margin: 0;
+}
+
+.alpha-message__bubble p + p,
+.alpha-message__bubble p + ul,
+.alpha-message__bubble ul + p {
+  margin-block-start: 0.55em;
+}
+
+.alpha-message__bubble ul {
+  padding-inline-start: 1.25em;
+}
+
+.alpha-message__bubble li + li {
+  margin-block-start: 0.25em;
+}
+
+.alpha-message__bubble strong {
+  color: #fffdf2;
+  font-weight: 800;
+}
+
+.alpha-message__bubble code {
+  padding: 0.05em 0.3em;
+  border-radius: 0.3rem;
+  color: #ffe789;
+  background: rgb(255 216 77 / 16%);
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+.alpha-message__sources {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.5rem;
+  margin-block-start: 0.6rem;
+  padding-block-start: 0.5rem;
+  border-block-start: 1px solid rgb(255 216 77 / 18%);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.alpha-message__sources > span {
+  color: rgb(255 248 230 / 64%);
+}
+
+.alpha-message__sources a {
+  color: #ffd84d;
+  font-weight: 800;
+  text-decoration-thickness: 0.1em;
+  text-underline-offset: 0.16em;
+}
+
+.alpha-prompt-row {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem 0;
+  overflow-x: auto;
+  border-block-start: 1px solid rgb(255 216 77 / 14%);
+  scrollbar-width: thin;
+}
+
+.alpha-prompt-row button {
+  flex: 0 0 auto;
+  min-height: 2.75rem;
+  padding-inline: 0.8rem;
+  border: 1px solid rgb(255 216 77 / 38%);
+  border-radius: 999px;
+  color: #fff8e6;
+  background: rgb(255 216 77 / 10%);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.alpha-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem 0.5rem;
+}
+
+.alpha-form textarea {
+  width: 100%;
+  min-height: 3.25rem;
+  max-height: 6.5rem;
+  resize: vertical;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgb(255 216 77 / 42%);
+  border-radius: 0.625rem;
+  color: #15130f;
+  background: rgb(255 255 255 / 97%);
+  font-size: 0.86rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.alpha-form textarea:focus {
+  border-color: #ffd84d;
+  outline: 3px solid rgb(255 216 77 / 24%);
+  outline-offset: 1px;
+}
+
+.alpha-form button {
+  display: grid;
+  width: 2.75rem;
+  min-height: 2.75rem;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0.625rem;
+  color: #ffffff;
+  background: #2f9829;
+}
+
+.alpha-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+  padding: 0 0.75rem 0.75rem;
+}
+
+.alpha-links a {
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  color: rgb(255 248 230 / 86%);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.alpha-icon-button:hover,
+.alpha-prompt-row button:hover,
+.alpha-links a:hover,
+.alpha-message__sources a:hover {
+  color: #ffd84d;
+}
+
+.alpha-icon-button:focus-visible,
+.alpha-prompt-row button:focus-visible,
+.alpha-links a:focus-visible,
+.alpha-message__sources a:focus-visible {
+  outline-color: #ffd84d;
+}
+
+.alpha-form button:hover {
+  background: #287f23;
+}
+
+.alpha-form button:focus-visible {
+  outline-color: #ffffff;
+}
+
+.alpha-prompt-row button:disabled,
+.alpha-form button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.alpha-form textarea[readonly] {
+  cursor: wait;
+  opacity: 0.82;
+}
+
+.alpha-toggle {
+  display: inline-grid;
+  width: 4.75rem;
+  min-height: 4.75rem;
+  place-items: center;
+  padding: 0.2rem;
+  border: 2px solid #1b24d8;
+  border-radius: 1.125rem;
+  color: #15130f;
+  background: #ffd84d;
+  box-shadow:
+    0 0.5rem 0 rgb(21 19 15 / 22%),
+    0 1.125rem 2.625rem rgb(0 0 0 / 26%);
+  font-size: 0.78rem;
+  font-weight: 850;
+  line-height: 1;
+  transition:
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.alpha-panel[open] + .alpha-toggle {
+  margin-block-start: 0.625rem;
+}
+
+.alpha-toggle img {
+  display: block;
+  width: 3.4rem;
+  height: 2.75rem;
+  object-fit: contain;
+  filter: drop-shadow(0 0.2rem 0 rgb(0 0 0 / 16%));
+}
+
+.alpha-toggle:hover,
+.alpha-toggle:focus-visible,
+.alpha-widget.is-open .alpha-toggle {
+  color: #15130f;
+  background: #fff06f;
+  transform: translateY(-0.125rem);
+}
+
+.alpha-toggle:active {
+  transform: translateY(0.0625rem);
+  box-shadow:
+    0 0.25rem 0 rgb(21 19 15 / 22%),
+    0 0.75rem 2rem rgb(0 0 0 / 22%);
+}
+
+.has-open-mobile-menu .alpha-widget {
+  visibility: hidden;
+}
+
+@media (max-width: 30rem) {
+  .alpha-widget {
+    inset-inline: 0.75rem;
+    inset-block-end: max(0.75rem, env(safe-area-inset-bottom));
+  }
+
+  .alpha-panel {
+    width: 100%;
+    max-height: calc(100vh - 6.25rem);
+    max-height: calc(100dvh - 6.25rem);
+  }
+
+  .alpha-messages {
+    max-height: min(18rem, 42vh);
+    max-height: min(18rem, 42dvh);
+  }
+
+  .alpha-message--assistant {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .alpha-message--assistant > img {
+    display: none;
+  }
+
+  .alpha-toggle {
+    width: 4.25rem;
+    min-height: 4.25rem;
+    border-radius: 1rem;
+  }
+
+  .alpha-toggle img {
+    width: 3rem;
+    height: 2.35rem;
+  }
+}
+
+@media (max-height: 37.5rem) {
+  .alpha-panel {
+    max-height: calc(100vh - 5.75rem);
+    max-height: calc(100dvh - 5.75rem);
+  }
+
+  .alpha-messages {
+    max-height: 30vh;
+    max-height: 30dvh;
+  }
+}
+
+@media (max-height: 30rem) {
+  .alpha-panel[open] {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .alpha-prompt-row,
+  .alpha-links {
+    display: none;
+  }
+
+  .alpha-messages {
+    max-height: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alpha-messages {
+    scroll-behavior: auto;
+  }
+
+  .alpha-toggle {
+    transition: none;
+  }
+}
+
+@media print {
+  .alpha-widget {
+    display: none !important;
+  }
+}
