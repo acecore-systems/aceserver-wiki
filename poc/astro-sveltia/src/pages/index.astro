@@ -18,6 +18,12 @@ const quickArticles = WIKI_QUICK_ARTICLE_IDS.flatMap((id) => {
   const article = articles.find((item) => item.id === id)
   return article ? [article] : []
 })
+const startArticle =
+  articles.find((article) => article.id === 'rinen') ??
+  quickArticles.at(0) ??
+  articles.toSorted(({ id: left }, { id: right }) =>
+    left < right ? -1 : left > right ? 1 : 0,
+  )[0]
 ---
 
 <WikiLayout
@@ -29,20 +35,28 @@ const quickArticles = WIKI_QUICK_ARTICLE_IDS.flatMap((id) => {
   <section class="home">
     <h1>{HEADER_TITLE}</h1>
     <p class="home__description">{ROOT_DESCRIPTION}</p>
-    <a class="home__start" href={articlePath('rinen')}>Wikiを読む</a>
+    {
+      startArticle && (
+        <a class="home__start" href={articlePath(startArticle.id)}>
+          Wikiを読む
+        </a>
+      )
+    }
 
-    <nav class="home__quick-links" aria-label="よく使う記事">
-      <h2>よく使う記事</h2>
-      <ul>
-        {
-          quickArticles.map((article) => (
-            <li>
-              <a href={articlePath(article.id)}>{article.data.title}</a>
-            </li>
-          ))
-        }
-      </ul>
-    </nav>
+    {
+      quickArticles.length > 0 && (
+        <nav class="home__quick-links" aria-label="よく使う記事">
+          <h2>よく使う記事</h2>
+          <ul>
+            {quickArticles.map((article) => (
+              <li>
+                <a href={articlePath(article.id)}>{article.data.title}</a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )
+    }
 
     {
       categories.map((category) => (
