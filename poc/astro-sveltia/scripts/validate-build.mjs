@@ -51,6 +51,7 @@ const [
   adminStyles,
   globalStyles,
   markdownStyles,
+  alphaGuideStyles,
   wikiLayout,
   mobileMenuScript,
   alphaChatScript,
@@ -59,12 +60,18 @@ const [
   readFile(new URL('admin/shell.css', dist), 'utf8'),
   readFile(new URL('src/styles/global.css', root), 'utf8'),
   readFile(new URL('src/styles/markdown.css', root), 'utf8'),
+  readFile(new URL('src/styles/alpha-guide.css', root), 'utf8'),
   readFile(new URL('src/layouts/WikiLayout.astro', root), 'utf8'),
   readFile(new URL('mobile-menu.js', dist), 'utf8'),
   readFile(new URL('alpha-chat.js', dist), 'utf8'),
 ])
 const normalizedGlobalStyles = normalizeCss(globalStyles)
 const normalizedMarkdownStyles = normalizeCss(markdownStyles)
+const normalizedAlphaGuideStyles = normalizeCss(alphaGuideStyles)
+const shortAlphaGuideStyles = cssMediaBlock(
+  alphaGuideStyles,
+  '(max-height: 30rem)',
+)
 const desktopHeaderStyles = normalizeCss(
   cssMediaBlock(globalStyles, '(min-width: 67.5rem)'),
 )
@@ -119,6 +126,19 @@ assert(
     !/\b(?:innerHTML|outerHTML|insertAdjacentHTML)\b/u.test(alphaChatScript) &&
     !/\bdocument\s*\.\s*(?:write|writeln)\s*\(/u.test(alphaChatScript),
   'Alpha chat must construct messages with safe DOM APIs instead of HTML string injection.',
+)
+assert(
+  normalizedAlphaGuideStyles.includes(
+    '.alpha-message__sources a { display: inline-flex; min-height: 2.75rem; align-items: center;',
+  ),
+  'Alpha chat source links must preserve a 44px minimum touch target.',
+)
+assert(
+  normalizeCss(shortAlphaGuideStyles).includes(
+    '.alpha-prompt-row { display: none;',
+  ) &&
+    !/\.alpha-links\s*\{[^{}]*display:\s*none/gu.test(shortAlphaGuideStyles),
+  'Short Alpha chat viewports must hide prompts while keeping primary links available.',
 )
 assert(
   normalizedMarkdownStyles.includes(

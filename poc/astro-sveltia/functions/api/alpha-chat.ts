@@ -134,8 +134,6 @@ export const onRequestPost: PagesFunction<AlphaChatEnv> = async (context) => {
     }
 
     let clientAllowed = false
-    let globalAllowed = false
-    let shouldCleanupRateLimits = false
     try {
       const clientKey = await createClientRateLimitKey(request)
       const clientLimit = await consumeRateLimit(
@@ -144,15 +142,6 @@ export const onRequestPost: PagesFunction<AlphaChatEnv> = async (context) => {
         CLIENT_RATE_LIMIT,
       )
       clientAllowed = clientLimit.allowed
-      if (clientAllowed) {
-        const globalLimit = await consumeRateLimit(
-          env.CMS_DATABASE,
-          'alpha-global',
-          GLOBAL_RATE_LIMIT,
-        )
-        globalAllowed = globalLimit.allowed
-        shouldCleanupRateLimits = globalLimit.count === 1
-      }
     } catch (error) {
       logAlphaError(
         requestId,
@@ -167,25 +156,13 @@ export const onRequestPost: PagesFunction<AlphaChatEnv> = async (context) => {
       )
     }
 
-    if (!clientAllowed || !globalAllowed) {
+    if (!clientAllowed) {
       return alphaResponse(
         { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
         429,
         requestId,
         startedAt,
         { 'Retry-After': String(RATE_LIMIT_WINDOW_SECONDS) },
-      )
-    }
-
-    if (shouldCleanupRateLimits) {
-      context.waitUntil(
-        deleteExpiredRateLimits(env.CMS_DATABASE).catch((error) => {
-          logAlphaError(
-            requestId,
-            'rate_limit_cleanup',
-            getErrorCode(error, 'storage_error'),
-          )
-        }),
       )
     }
 
@@ -218,6 +195,52 @@ export const onRequestPost: PagesFunction<AlphaChatEnv> = async (context) => {
         400,
         requestId,
         startedAt,
+      )
+    }
+
+    let globalAllowed = false
+    let shouldCleanupRateLimits = false
+    try {
+      const globalLimit = await consumeRateLimit(
+        env.CMS_DATABASE,
+        'alpha-global',
+        GLOBAL_RATE_LIMIT,
+      )
+      globalAllowed = globalLimit.allowed
+      shouldCleanupRateLimits = globalLimit.count === 1
+    } catch (error) {
+      logAlphaError(
+        requestId,
+        'rate_limit',
+        getErrorCode(error, 'storage_error'),
+      )
+      return alphaResponse(
+        { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+        503,
+        requestId,
+        startedAt,
+      )
+    }
+
+    if (!globalAllowed) {
+      return alphaResponse(
+        { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+        429,
+        requestId,
+        startedAt,
+        { 'Retry-After': String(RATE_LIMIT_WINDOW_SECONDS) },
+      )
+    }
+
+    if (shouldCleanupRateLimits) {
+      context.waitUntil(
+        deleteExpiredRateLimits(env.CMS_DATABASE).catch((error) => {
+          logAlphaError(
+            requestId,
+            'rate_limit_cleanup',
+            getErrorCode(error, 'storage_error'),
+          )
+        }),
       )
     }
 

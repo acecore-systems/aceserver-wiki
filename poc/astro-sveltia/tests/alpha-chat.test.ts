@@ -384,6 +384,48 @@ describe('Alpha-kun WIKI chat API', () => {
     expect(pulls).toBeLessThanOrEqual(14)
   })
 
+  it('does not consume the shared rate-limit capacity for malformed or invalid payloads', async () => {
+    const consumedKeys: string[] = []
+    const env = createEnv({
+      onRateLimit(key) {
+        consumedKeys.push(key)
+      },
+    })
+    const malformedJson = new Request(`${ORIGIN}/api/alpha-chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Origin: ORIGIN,
+      },
+      body: '{',
+    })
+    const declaredTooLarge = new Request(`${ORIGIN}/api/alpha-chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Length': '12001',
+        'Content-Type': 'application/json',
+        Origin: ORIGIN,
+      },
+      body: JSON.stringify({ question: '質問' }),
+    })
+
+    const responses = await Promise.all([
+      invoke(malformedJson, env),
+      invoke(chatRequest({}), env),
+      invoke(chatRequest({ question: 'あ'.repeat(501) }), env),
+      invoke(declaredTooLarge, env),
+    ])
+
+    expect(responses.map(({ status }) => status)).toEqual([400, 400, 400, 413])
+    expect(consumedKeys).toHaveLength(4)
+    expect(
+      consumedKeys.every((key) =>
+        /^alpha-client:[0-9a-f]{64}$/u.test(key),
+      ),
+    ).toBe(true)
+    expect(consumedKeys).not.toContain('alpha-global')
+  })
+
   it('uses distinct strict D1 client/global rate-limit keys', async () => {
     const consumed: Array<{ key: string; limit: number }> = []
     const allowedResponse = await invoke(
