@@ -1,0 +1,149 @@
+{
+  "skip": 0,
+  "limit": 1000,
+  "total": 9,
+  "items": [
+    {
+      "_id": "67c9569b395b530d6401f83a",
+      "_sys": {
+        "raw": {
+          "createdAt": "2025-03-06T08:02:35.498Z",
+          "updatedAt": "2025-03-06T08:02:35.498Z",
+          "firstPublishedAt": null,
+          "publishedAt": null
+        },
+        "customOrder": 9,
+        "createdAt": "2025-03-06T08:02:35.498Z",
+        "updatedAt": "2025-03-06T08:02:35.498Z"
+      },
+      "name": "ロビーサーバー",
+      "sortOrder": 23
+    },
+    {
+      "_id": "67c9514e33281c1d6502bd9e",
+      "_sys": {
+        "raw": {
+          "createdAt": "2025-03-06T07:39:58.839Z",
+          "updatedAt": "2025-03-06T07:42:40.692Z",
+          "firstPublishedAt": "2025-03-06T07:42:40.692Z",
+          "publishedAt": "2025-03-06T07:42:40.692Z"
+        },
+        "customOrder": 10,
+        "createdAt": "2025-03-06T07:39:58.839Z",
+        "updatedAt": "2025-03-06T07:42:40.692Z"
+      },
+      "name": "ディスコードについて",
+      "sortOrder": 22
+    },
+    {
+      "_id": "67c94e6c395b530d64ff9669",
+      "_sys": {
+        "raw": {
+          "createdAt": "2025-03-06T07:27:40.481Z",
+          "updatedAt": "2025-03-06T07:42:43.624Z",
+          "firstPublishedAt": "2025-03-06T07:42:43.624Z",
+          "publishedAt": "2025-03-06T07:42:43.624Z"
+        },
+        "customOrder": 9,
+        "createdAt": "2025-03-06T07:27:40.481Z",
+        "updatedAt": "2025-03-06T07:42:43.624Z"
+      },
+      "name": "その他サーバーについて",
+      "sortOrder": 21
+    },
+    {
+      "_id": "635d02e606cfd5386b3720de",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-29T10:39:34.721Z",
+          "updatedAt": "2025-03-06T07:58:47.272Z",
+          "firstPublishedAt": "2022-10-29T10:39:34.721Z",
+          "publishedAt": null
+        },
+        "customOrder": 8,
+        "createdAt": "2022-10-29T10:39:34.721Z",
+        "updatedAt": "2025-03-06T07:58:47.272Z"
+      },
+      "name": "資源サーバー",
+      "sortOrder": 26
+    },
+    {
+      "_id": "635d016906cfd5386b370c3e",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-29T10:33:13.204Z",
+          "updatedAt": "2025-03-06T07:54:22.038Z",
+          "firstPublishedAt": "2022-10-29T10:33:13.204Z",
+          "publishedAt": null
+        },
+        "customOrder": 7,
+        "createdAt": "2022-10-29T10:33:13.204Z",
+        "updatedAt": "2025-03-06T07:54:22.038Z"
+      },
+      "name": "アズカバンサーバー",
+      "sortOrder": 29
+    },
+    {
+      "_id": "635d007306cfd5386b36f752",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-29T10:29:07.085Z",
+          "updatedAt": "2026-07-18T14:58:57.312Z",
+          "firstPublishedAt": "2022-10-29T10:29:34.954Z",
+          "publishedAt": "2026-07-18T14:58:57.312Z"
+        },
+        "customOrder": 6,
+        "createdAt": "2022-10-29T10:29:07.085Z",
+        "updatedAt": "2026-07-18T14:58:57.312Z"
+      },
+      "name": "生活鯖について",
+      "sortOrder": 20
+    },
+    {
+      "_id": "635cac9d06cfd5386b36b3dc",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-29T04:31:25.870Z",
+          "updatedAt": "2022-10-29T04:33:40.644Z",
+          "firstPublishedAt": "2022-10-29T04:31:25.870Z",
+          "publishedAt": "2022-10-29T04:33:40.644Z"
+        },
+        "customOrder": 5,
+        "createdAt": "2022-10-29T04:31:25.870Z",
+        "updatedAt": "2022-10-29T04:33:40.644Z"
+      },
+      "name": "コミュニティについて",
+      "sortOrder": 40
+    },
+    {
+      "_id": "61e936ac8b1cc500187ad308",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-01-20T10:17:16.705Z",
+          "updatedAt": "2022-10-29T04:33:22.757Z",
+          "firstPublishedAt": "2022-01-20T10:17:16.705Z",
+          "publishedAt": "2022-10-29T04:33:22.757Z"
+        },
+        "createdAt": "2022-01-20T10:17:16.705Z",
+        "updatedAt": "2022-10-29T04:33:22.757Z"
+      },
+      "name": "その他",
+      "sortOrder": 50
+    },
+    {
+      "_id": "61e92e9f616290001858f8a4",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-01-20T09:42:55.742Z",
+          "updatedAt": "2023-03-12T13:16:37.919Z",
+          "firstPublishedAt": "2022-01-20T09:42:55.742Z",
+          "publishedAt": "2023-03-12T13:16:37.919Z"
+        },
+        "createdAt": "2022-01-20T09:42:55.742Z",
+        "updatedAt": "2023-03-12T13:16:37.919Z"
+      },
+      "name": "イントロダクション",
+      "sortOrder": 10
+    }
+  ]
+}

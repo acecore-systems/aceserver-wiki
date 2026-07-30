@@ -18,7 +18,7 @@ fail closedで無効です。
    許可されたMarkdownと画像だけをGitHubへ保存する。
 6. GitHub連携のCloudflare Pagesが、Git pushを契機に再ビルドする。
 
-SveltiaへGitHubアカウントやPATを渡しません。コミットとPRにはメールアドレスや
+SveltiaへGitHubアカウントやPATを渡しません。CMS commitにはメールアドレスや
 raw Discord user IDを含めず、request IDだけを残します。Discord user IDとの
 対応はD1監査だけに保存します。
 
@@ -63,7 +63,8 @@ GitHub Appは `acecore-systems/aceserver-wiki` だけへインストールし、
 repository permissionsだけを付与します。
 
 - Contents: Read and write
-- Pull requests: Read and write
+- Metadata: Read（GitHubが必須化する既定権限）
+- Pull requests: No access
 
 必要なsecretとdeployment固有値は次のとおりです。
 
@@ -75,7 +76,7 @@ repository permissionsだけを付与します。
 | `CMS_DISCORD_GUILD_ID`           | `guild`/`role`時だけ許可するguild ID  |
 | `CMS_DISCORD_AUTHORIZATION_MODE` | `account`（既定）、`guild`、`role`    |
 | `CMS_DISCORD_ALLOWED_ROLE_IDS`   | `role`時の許可role IDカンマ区切り     |
-| `CMS_PUBLICATION_MODE`           | `direct`または`review`                |
+| `CMS_PUBLICATION_MODE`           | productionでは`direct`固定            |
 | `CMS_GITHUB_APP_CLIENT_ID`       | GitHub App client ID                  |
 | `CMS_GITHUB_APP_INSTALLATION_ID` | repository installation ID            |
 | `CMS_GITHUB_APP_PRIVATE_KEY`     | GitHub AppのPKCS#1/PKCS#8 private key |
@@ -88,12 +89,11 @@ secretsへ登録します。認可・公開modeとrole IDはdeployment varsで�
 
 ## 保存モード
 
-`CMS_PUBLICATION_MODE` は次の2モードです。
+`CMS_PUBLICATION_MODE` は `direct` だけを許可します。expected HEADが一致するとき
+だけ`main`へ直接commitし、それ以外の値は503で拒否します。gatewayはPull Requestを
+作成せず、GitHub AppにもPull requests権限を付与しません。
 
-- `direct`（本番既定）: expected HEADが一致するときだけ`main`へ直接commitする。
-- `review`: 短期branchへ1 commitを作り、PRを開く。
-
-不明な値は503で拒否します。`direct`なら編集者の保存がそのままGit pushとなり、
+編集者の保存がそのままGit pushとなり、
 Pagesの再ビルド後に公開されます。D1によるrate limit、BAN、永続監査、
 idempotency、応答消失時の再照合を行い、安全に完了を確定できない保存は
 成功レスポンスを返しません。
@@ -101,11 +101,6 @@ idempotency、応答消失時の再照合を行い、安全に完了を確定で
 direct publishの対象はgateway allowlist内のWiki Markdownと画像だけです。
 source code、Astro schema、CMS設定、Pages Functions、workflowは作業branchから
 PRを作り、CIを通して`main`へ反映します。
-
-stock Sveltiaはgateway独自のPR URLや未マージ状態を表示しません。そのため
-`review` は管理者向けの補助モードであり、一般編集者向けの既定にはしません。
-保存後の再読込では未マージ内容がmainから再取得され、同じ内容のPRを重ねて
-作成できるため、公開利用にはidempotencyと未処理PR上限が別途必要です。
 
 ## gatewayの境界
 
@@ -123,13 +118,17 @@ stock Sveltiaはgateway独自のPR URLや未マージ状態を表示しません
 - 画像を8 MiB以下のJPEG/PNG/WebPに限定し、拡張子、magic bytes、
   4096 px以下の辺、16 MP以下の画素数を照合
 - APNG、animated WebP、GIF、AVIF、SVGを拒否
+- Markdown 1ファイルを448 KiB以下に限定し、保存時のgatewayと
+  build時のloaderで同じ上限を適用
 - 1回の保存を40変更・追加10 MiB以下に限定
 - readを1 user 120回/10分、全体60回/10秒かつ240回/10分にD1で制限
 - 10分あたり1 user 12 mutation/16 MiB、全体60 mutation/64 MiBをD1で制限
 - CMS全体を1000 files、Markdown 64 MiB、画像512 MiB、
   合計512 MiB以下に限定
 - path traversal、nested content/media path、管理対象外ファイルを拒否
-- PR作成に失敗したreview branchを削除
+- 参照切れを防ぐためCMSからのMarkdown・画像削除を拒否
+- 削除が必要な場合は、保守担当者がGitHub Appとは別の通常の作業branchから
+  参照確認を伴うPull Requestを作成
 
 ## ローカル検証
 
@@ -142,10 +141,14 @@ npm run cf:typegen
 npm run check
 npm test
 npm run test:migration
+npm run test:migration:archive
 npm run build
-npm run test:migration:current
 npx wrangler pages functions build
 ```
+
+`npm run test:migration:acceptance`と、build後の
+`npm run test:migration:legacy-acceptance`は移行受入れ時だけ実行します。旧Newtの
+対象記事・画像を現在のWikiと突合するため、CMSの通常保存gateには含めません。
 
 旧Nuxt/Newtの公開payloadは、退役前に復元可能なJSONとしてrepositoryへ保全
 しました。rootと各記事の公開payload原文を含むため、旧Pages停止後もpayload
@@ -169,15 +172,33 @@ npm入口は取得元の退役に合わせて削除していますが、取得�
 
 `test:migration`は、保全済みrollback payloadの本文byte数・SHA-256を
 rollback再現用manifestと照合します。現在の記事inventoryには依存しないため、
-CMSで記事を追加・編集・削除しても原本証跡の継続CIを妨げません。初回production
+CMSで記事を追加・編集しても原本証跡の継続CIを妨げません。記事・画像の削除は
+CMSから行わず、保守担当者が通常の作業branchから参照確認を伴うPull Requestを
+作成します。初回production
 manifestとの全件突合結果は`MIGRATION-PARITY-2026-07-28.md`へ記録します。
 
-`test:migration:current`は完全移行監査用です。`npm run build`の後に実行し、
+`test:migration:legacy-acceptance`は旧公開15件の受入れ監査用です。
+`npm run build`の後に実行し、
 保存snapshotとrepository内画像だけによるoffline再生成が現在の15 Markdownへ
 一致すること、11画像・redirect・修復済みMarkdownと描画HTML・参加導線を確認
 します。通常のCMS保存ゲートには使用せず、将来の記事更新を旧Nuxtの内容へ固定
 しません。`npm run build`は現在のMarkdown inventory、schema、SEO、検索、sitemap
 などを動的に検証します。
+
+2026-07-29にはNewtモデルAPIから記事32件、カテゴリ9件、リンク3件の全件原本を
+追加保存しました。従来の公開15 MarkdownはSHA-256一致を維持し、未公開17件だけを
+`draft: true`として決定的に変換しています。下書き本文にあった画像8参照は
+manifestへ保存し、7固有画像すべてを公開path外のmigration archiveへ保存し、
+うち1件は既存公開assetとの完全一致もhash固定しました。本文へは公開前の
+個別確認まで画像を追加しません。Newtメディアライブラリ全72ファイルも一括ZIPで
+取得し、ローカルZIPと展開済み72ファイルを検証しました。ZIPと各ファイルの
+SHA-256はrepositoryへ保存し、private GitHub Releaseへの遠隔保管はユーザー確認後に
+行います。
+公開15件は退役前snapshotとの本文・meta・category履歴照合も固定し、全32件の
+ID/slug/本文hash衝突0と表示タイトル重複2群を監査しています。詳細、明示
+slug/category mapping、Newt管理画面のモデル・view証跡は
+[`NEWT-FULL-MIGRATION-2026-07-29.md`](./NEWT-FULL-MIGRATION-2026-07-29.md)
+を参照してください。
 
 ローカルでAccess/GitHub Appを接続する場合だけ、`.dev.vars.example` を
 `.dev.vars` へコピーして実値を設定します。exampleはfail closedのため
@@ -213,12 +234,17 @@ branch previewは`CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretを
 - AdSenseは未審査UGCへ配信しないため全公開ページで無効化済み
 - D1監査、rate limit、BAN、idempotency、rollback workflowを実装済み
 - Discord OAuth→OIDC broker、Cloudflare Access、GitHub App、Pages productionを
-  接続し、Markdown下書きの保存・公開除外・削除を本番E2E確認済み
+  接続し、Markdown下書きの保存・公開除外を本番E2E確認済み
 - 2026-07-27に`asv-wiki.acecore.net`を`aceserver-wiki-astro`へ切替済み
 - 2026-07-28の完全移行監査で15記事・11画像・URL・検索・SEOの移行を確認済み
-- 同日に旧系削除が承認され、rootの旧Nuxt/Newt build経路を撤去中
-- 旧Newt tokenと旧Pages project `aceserver-wiki`はcleanup PR merge後の
-  production再確認が終わるまで変更せず、最後に失効・削除する
+- 同日に旧系削除が承認され、PR #37でrootの旧Nuxt/Newt build経路を削除済み
+- merge後のproduction再確認を通し、旧Newt token、旧Wiki用deploy hook、
+  旧Pages project `aceserver-wiki`を退役済み
+- Newt全32記事のAPI原本を保存し、未公開17件を`draft: true` Markdownへ移行済み
+- 下書き画像8参照・7固有原本は自己完結archiveへ保存し、既存asset一致1件も記録済み
+- Newtメディアライブラリ全72ファイルはローカルZIPと展開済みフォルダを検証し、
+  ZIPと各ファイルのhashをrepositoryへ記録済み。private GitHub Releaseへの
+  遠隔保管とNewt削除はユーザー確認待ち
 
 deployment ID、commit SHA、監査結果、復旧点は
 [`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)に記録しています。

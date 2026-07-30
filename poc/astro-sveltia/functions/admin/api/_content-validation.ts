@@ -10,8 +10,11 @@ import {
   mdxModulePattern,
   wikiImagePathPattern,
 } from '../../../src/lib/markdown-policy.ts'
+import {
+  MAX_CMS_MARKDOWN_BYTES,
+  MAX_CMS_MARKDOWN_KIB,
+} from '../../../src/lib/cms-limits.ts'
 
-const MAX_MARKDOWN_BYTES = 512 * 1024
 const MAX_MEDIA_BYTES = 8 * 1024 * 1024
 const MAX_IMAGE_DIMENSION = 4096
 const MAX_IMAGE_PIXELS = 16 * 1024 * 1024
@@ -63,10 +66,10 @@ export function validateCmsAddition(
   const byteSize = getBase64ByteSize(contents)
 
   if (isCmsMarkdownPath(path)) {
-    if (byteSize === 0 || byteSize > MAX_MARKDOWN_BYTES) {
+    if (byteSize === 0 || byteSize > MAX_CMS_MARKDOWN_BYTES) {
       return {
         ok: false,
-        message: 'Markdownは1 byte以上512 KiB以下にしてください。',
+        message: `Markdownは1 byte以上${MAX_CMS_MARKDOWN_KIB} KiB以下にしてください。`,
       }
     }
 

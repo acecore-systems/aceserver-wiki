@@ -3,6 +3,10 @@ import { createRequire } from 'node:module'
 import { relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Loader } from 'astro/loaders'
+import {
+  MAX_CMS_MARKDOWN_BYTES,
+  MAX_CMS_MARKDOWN_KIB,
+} from '../lib/cms-limits'
 import { assertMarkdownSource } from '../lib/markdown-policy'
 
 const require = createRequire(import.meta.url)
@@ -13,7 +17,6 @@ const contentDirectoryPath = fileURLToPath(contentDirectoryUrl)
 const markdownFilePattern = /^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*\.md$/u
 const frontmatterPattern = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)([\s\S]*)$/u
 const yamlReferencePattern = /(?:^|\s)[&*][A-Za-z0-9_-]+|^\s*<<\s*:/mu
-const maxMarkdownBytes = 512 * 1024
 const maxSlugLength = 100
 
 interface ParsedMarkdown {
@@ -21,13 +24,22 @@ interface ParsedMarkdown {
   body: string
 }
 
+export const assertWikiMarkdownByteSize = (
+  byteSize: number,
+  fileName: string,
+): void => {
+  if (byteSize > MAX_CMS_MARKDOWN_BYTES) {
+    throw new Error(
+      `Markdown file exceeds ${MAX_CMS_MARKDOWN_KIB} KiB: ${fileName}`,
+    )
+  }
+}
+
 const parseMarkdownFile = (
   source: string,
   fileName: string,
 ): ParsedMarkdown => {
-  if (Buffer.byteLength(source, 'utf8') > maxMarkdownBytes) {
-    throw new Error(`Markdown file exceeds 512 KiB: ${fileName}`)
-  }
+  assertWikiMarkdownByteSize(Buffer.byteLength(source, 'utf8'), fileName)
 
   const match = frontmatterPattern.exec(source)
 
@@ -90,9 +102,7 @@ export const wikiMarkdownLoader = (): Loader => ({
       ).replaceAll('\\', '/')
       const bytes = await readFile(fileUrl)
 
-      if (bytes.byteLength > maxMarkdownBytes) {
-        throw new Error(`Markdown file exceeds 512 KiB: ${fileName}`)
-      }
+      assertWikiMarkdownByteSize(bytes.byteLength, fileName)
 
       const source = new TextDecoder('utf-8', { fatal: true }).decode(bytes)
 

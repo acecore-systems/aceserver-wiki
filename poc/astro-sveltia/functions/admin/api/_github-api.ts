@@ -111,7 +111,6 @@ export async function getGitHubToken(env: CmsRuntimeEnv) {
         repositories: [CMS_REPOSITORY.name],
         permissions: {
           contents: 'write',
-          pull_requests: 'write',
         },
       }),
     },
@@ -122,7 +121,8 @@ export async function getGitHubToken(env: CmsRuntimeEnv) {
     !response.ok ||
     !isRecord(data) ||
     typeof data.token !== 'string' ||
-    typeof data.expires_at !== 'string'
+    typeof data.expires_at !== 'string' ||
+    !hasContentsOnlyWritePermission(data.permissions)
   ) {
     const message =
       isRecord(data) && typeof data.message === 'string'
@@ -144,6 +144,14 @@ export async function getGitHubToken(env: CmsRuntimeEnv) {
   })
 
   return data.token
+}
+
+function hasContentsOnlyWritePermission(value: unknown) {
+  if (!isRecord(value) || value.contents !== 'write') return false
+
+  return Object.entries(value).every(
+    ([name, level]) => name === 'contents' || level !== 'write',
+  )
 }
 
 export type CmsGitTreeItem = {

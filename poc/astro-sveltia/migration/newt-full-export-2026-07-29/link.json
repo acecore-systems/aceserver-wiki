@@ -1,0 +1,53 @@
+{
+  "skip": 0,
+  "limit": 1000,
+  "total": 3,
+  "items": [
+    {
+      "_id": "641696afb836a015edcad52a",
+      "_sys": {
+        "raw": {
+          "createdAt": "2023-03-19T04:59:27.353Z",
+          "updatedAt": "2025-03-11T17:49:01.867Z",
+          "firstPublishedAt": "2023-03-19T04:59:27.353Z",
+          "publishedAt": "2025-03-11T17:49:01.867Z"
+        },
+        "customOrder": 5,
+        "createdAt": "2023-03-19T04:59:27.353Z",
+        "updatedAt": "2025-03-11T17:49:01.867Z"
+      },
+      "text": "ワールドマップ",
+      "href": "https://asv.acecore.net/world-map/"
+    },
+    {
+      "_id": "6347cd906892c6a352914f05",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-13T08:34:24.880Z",
+          "updatedAt": "2026-03-12T17:33:41.662Z",
+          "firstPublishedAt": "2022-10-13T08:34:24.880Z",
+          "publishedAt": "2026-03-12T17:33:41.662Z"
+        },
+        "createdAt": "2022-10-13T08:34:24.880Z",
+        "updatedAt": "2026-03-12T17:33:41.662Z"
+      },
+      "text": "Acecore",
+      "href": "https://acecore.net"
+    },
+    {
+      "_id": "6347cd5f6892c6a352914185",
+      "_sys": {
+        "raw": {
+          "createdAt": "2022-10-13T08:33:35.486Z",
+          "updatedAt": "2025-03-11T17:54:48.946Z",
+          "firstPublishedAt": "2022-10-13T08:33:35.486Z",
+          "publishedAt": "2025-03-11T17:54:48.946Z"
+        },
+        "createdAt": "2022-10-13T08:33:35.486Z",
+        "updatedAt": "2025-03-11T17:54:48.946Z"
+      },
+      "text": "エースサーバーポータル",
+      "href": "https://asv.acecore.net"
+    }
+  ]
+}

@@ -10,7 +10,7 @@
 公開payloadを再取得し、15記事すべてで本文byte数とSHA-256が初回production
 manifestに一致することを確認しました。初回production manifestは不変コピーとして
 分離し、rollback deployment固有のpayload hashは別manifestとsnapshotへ保存して
-います。旧Pages/Newtを将来停止した後も原文と両時点の証跡を検証できます。
+います。旧Pages projectと旧Newt接続の退役後も原文と両時点の証跡を検証できます。
 
 監査で見つかったMarkdown変換上の表示崩れ、失われていたトップ導線、旧原文から
 引き継いだ無効URLも本対応で修復しました。
@@ -179,16 +179,16 @@ semantic tableとして比較し、次の10表すべてで一致しました。
 
 2026-07-28、本監査の結果を確認した利用者から旧系削除の明示承認を受けました。
 これは当初2026-08-03 20:55 JSTまでとしていたrollback保持を置き換えます。
-退役は本番15記事、検索、SEO、旧URL、Access、CMS、D1、GitHub push deploymentを
-各段階で再確認し、次の順序で実施します。
+全段階を次の順序で完了しました。
 
-1. rootの旧Nuxt build経路とrepository内Newt接続設定を削除するcleanup PRを作成し、
-   reviewを完了する。この時点ではNewt tokenと旧Pages projectを保持する。
-2. cleanup PRをmergeする。
-3. merge後のGitHub接続Astro production deployment、custom domain、15記事、
-   `/admin/`のAccessとCMS読込・保存を再確認する。
-4. 再確認完了後にNewt tokenを失効する。
-5. 記録済みrollback deploymentを持つ旧Pages projectを最後に削除する。
+1. cleanup PR #37でrootの旧Nuxt build経路とrepository内Newt接続設定を削除し、
+   review後に`b87fdee2419cbf3a8c09638222303b8bbf63091a`としてmergeした。
+2. GitHub接続Astro production deployment
+   `1e84347e-9c27-46a9-9e7c-94fdcd9c50f4`、custom domain、15記事、検索、
+   旧URL、`/admin/`のAccessとCMS読込、D1 `unknown=0`を再確認した。
+3. 旧Newt CDN tokenと旧Wiki用Cloudflare Pages deploy hookを失効した。
+4. 記録済みrollback deploymentを含む旧Pages project `aceserver-wiki`を削除した。
 
 初回production manifest、rollback再現用manifest、原文snapshot、CUTOVER/D1監査記録
-はcleanup後もrepositoryへ保持します。
+はcleanup後もrepositoryへ保持します。外部退役の詳細と削除後の復旧境界は
+[`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)へ記録しています。

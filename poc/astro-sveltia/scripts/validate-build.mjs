@@ -22,10 +22,21 @@ const expectedHeaderLinks = [
   'https://asv.acecore.net',
 ]
 const articles = await readPublishedArticles()
-const [adminInit, adminStyles] = await Promise.all([
+const [adminInit, adminStyles, globalStyles] = await Promise.all([
   readFile(new URL('admin/init.js', dist), 'utf8'),
   readFile(new URL('admin/shell.css', dist), 'utf8'),
+  readFile(new URL('src/styles/global.css', root), 'utf8'),
 ])
+const normalizedGlobalStyles = normalizeCss(globalStyles)
+const tabletHeaderStyles = normalizeCss(
+  cssMediaBlock(globalStyles, '(min-width: 600px)'),
+)
+const desktopHeaderStyles = normalizeCss(
+  cssMediaBlock(globalStyles, '(min-width: 896px)'),
+)
+const compactDesktopHeaderStyles = normalizeCss(
+  cssMediaBlock(globalStyles, '(min-width: 896px) and (max-width: 960px)'),
+)
 
 assert(
   cmsConfig.output?.omit_empty_optional_fields === true,
@@ -40,6 +51,40 @@ assert(
 assert(
   adminStyles.includes('.cms-publish-notice'),
   'CMS publication guidance must be styled.',
+)
+assert(
+  normalizedGlobalStyles.includes(
+    '.site-search button { height: 32px; flex: 0 0 auto; padding: 4px 9px; white-space: nowrap; }',
+  ),
+  'The desktop search button must remain readable without wrapping.',
+)
+assert(
+  tabletHeaderStyles.includes(
+    '.site-links { display: flex; margin-left: auto; }',
+  ) &&
+    tabletHeaderStyles.includes(
+      '.site-links a:not(.edit-link) { display: none; }',
+    ) &&
+    tabletHeaderStyles.includes('.mobile-menu { margin-left: 8px; }') &&
+    !tabletHeaderStyles.includes('.site-search { display: flex; }') &&
+    !tabletHeaderStyles.includes('.mobile-menu { display: none; }'),
+  'The 600-895px header must keep the edit CTA visible without the crowded desktop navigation.',
+)
+assert(
+  desktopHeaderStyles.includes('.site-links { margin-left: 3rem; }') &&
+    desktopHeaderStyles.includes(
+      '.site-links a:not(.edit-link) { display: inline; }',
+    ) &&
+    desktopHeaderStyles.includes('.site-search { display: flex; }') &&
+    desktopHeaderStyles.includes('.mobile-menu { display: none; }'),
+  'The complete desktop header must start at 896px.',
+)
+assert(
+  compactDesktopHeaderStyles.includes(
+    '.site-links a { padding-right: 7px; padding-left: 7px; }',
+  ) &&
+    compactDesktopHeaderStyles.includes('.site-search input { width: 11rem; }'),
+  'Compact desktop header rules must cover 896-960px.',
 )
 
 const rootDocument = await readHtml('index.html')
@@ -63,6 +108,17 @@ assert(
 assert(
   expectedHeaderLinks.every((href) => hasAnchorHref(rootDocument, href)),
   'A configured header link is missing from the root.',
+)
+const editLinks = findElements(rootDocument, 'a').filter(
+  (node) =>
+    getAttribute(node, 'href') === '/admin/' &&
+    getAttribute(node, 'class').split(/\s+/u).includes('edit-link') &&
+    getAttribute(node, 'aria-label') === 'Wikiを編集' &&
+    elementText(node) === '編集',
+)
+assert(
+  editLinks.length === 2,
+  'Desktop and mobile edit links must use the clear Wiki edit CTA.',
 )
 assert(
   hasAnchorWithText(rootDocument, '/article/rinen/', 'Wikiを読む'),
@@ -180,6 +236,99 @@ assert(
   'Search index contains image or link markup.',
 )
 
+const vectorCorpus = JSON.parse(
+  await readFile(new URL('vector-corpus.json', dist), 'utf8'),
+)
+const vectorChunks = vectorCorpus.chunks
+const articleByUrl = new Map(
+  articles.map((article) => [articlePath(article.slug), article]),
+)
+assert(vectorCorpus.schemaVersion === 1, 'Vector corpus schema must be v1.')
+assert(
+  vectorCorpus.embedding?.model === '@cf/baai/bge-m3' &&
+    vectorCorpus.embedding?.dimensions === 1024 &&
+    vectorCorpus.embedding?.metric === 'cosine',
+  'Vector corpus embedding contract differs from BGE-M3 1024/cosine.',
+)
+assert(
+  vectorCorpus.chunking?.targetCharacters === 850 &&
+    vectorCorpus.chunking?.maximumCharacters === 1200 &&
+    vectorCorpus.chunking?.overlapCharacters === 120,
+  'Vector corpus chunking contract differs.',
+)
+assert(
+  vectorCorpus.sourceCount === articles.length,
+  'Vector corpus source count differs from the current published Markdown inventory.',
+)
+assert(
+  Array.isArray(vectorChunks) &&
+    vectorCorpus.vectorCount === vectorChunks.length &&
+    vectorChunks.length >= articles.length &&
+    vectorChunks.length <= 500,
+  'Vector corpus vector count is invalid.',
+)
+assert(
+  vectorCorpus.localeCounts?.ja === vectorChunks.length,
+  'Vector corpus Japanese locale count is invalid.',
+)
+assert(
+  /^[0-9a-f]{20}$/u.test(vectorCorpus.version),
+  'Vector corpus version is invalid.',
+)
+assert(
+  new Set(vectorChunks.map(({ id }) => id)).size === vectorChunks.length &&
+    vectorChunks.every(({ id }) => /^v1-[0-9a-f]{48}$/u.test(id)),
+  'Vector corpus IDs must be unique v1 SHA-256 digests.',
+)
+assertDeepEqual(
+  [...new Set(vectorChunks.map(({ metadata }) => metadata.url))].toSorted(),
+  articles.map(({ slug }) => articlePath(slug)).toSorted(),
+  'Vector corpus URLs differ from the current published Markdown inventory.',
+)
+assert(
+  vectorChunks.every(({ metadata, namespace, text }) => {
+    const article = articleByUrl.get(metadata.url)
+
+    return (
+      article &&
+      namespace === 'ja' &&
+      metadata.locale === 'ja' &&
+      metadata.title === article.data.title &&
+      metadata.category === article.data.category &&
+      typeof metadata.section === 'string' &&
+      metadata.section.length > 0 &&
+      typeof metadata.excerpt === 'string' &&
+      metadata.excerpt.length <= 220 &&
+      typeof text === 'string' &&
+      text.length > 0 &&
+      text.length <= 1200 &&
+      !text.includes('/uploads/wiki/') &&
+      !text.includes('検索対象にしない画像説明') &&
+      !/\]\(https?:\/\//u.test(text)
+    )
+  }),
+  'Vector corpus contains invalid content or metadata.',
+)
+
+const buildMarker = JSON.parse(
+  await readFile(
+    new URL('.well-known/aceserver-wiki-build.json', dist),
+    'utf8',
+  ),
+)
+assert(
+  buildMarker.commit ===
+    (process.env.CF_PAGES_COMMIT_SHA ??
+      process.env.GITHUB_SHA ??
+      process.env.COMMIT_SHA ??
+      'local'),
+  'Deployment marker commit differs from the current build.',
+)
+assert(
+  buildMarker.searchCorpusVersion === vectorCorpus.version,
+  'Deployment marker corpus version differs from the current build.',
+)
+
 const searchScript = await readFile(new URL('search.js', dist), 'utf8')
 assert(
   searchScript.includes('queryInput && !queryInput.value'),
@@ -214,7 +363,7 @@ assert(
 )
 
 console.log(
-  `Validated ${articles.length} current published articles, canonicals, search index, sitemap, robots, SEO, OG, disabled AdSense on UGC surfaces, and CSP-compatible search script.`,
+  `Validated ${articles.length} current published articles, canonicals, keyword/vector search corpora, sitemap, robots, SEO, OG, disabled AdSense on UGC surfaces, and CSP-compatible search script.`,
 )
 
 async function readHtml(path) {
@@ -347,6 +496,32 @@ function assertDeepEqual(actual, expected, message) {
     JSON.stringify(actual) === JSON.stringify(expected),
     `${message}\nExpected: ${JSON.stringify(expected)}\nReceived: ${JSON.stringify(actual)}`,
   )
+}
+
+function cssMediaBlock(source, query) {
+  const marker = `@media ${query}`
+  const markerIndex = source.indexOf(marker)
+  assert(markerIndex >= 0, `CSS media query is missing: ${query}`)
+
+  const openingBraceIndex = source.indexOf('{', markerIndex + marker.length)
+  assert(openingBraceIndex >= 0, `CSS media query is invalid: ${query}`)
+
+  let depth = 0
+  for (let index = openingBraceIndex; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1
+    if (source[index] !== '}') continue
+
+    depth -= 1
+    if (depth === 0) {
+      return source.slice(openingBraceIndex + 1, index)
+    }
+  }
+
+  throw new Error(`CSS media query is not closed: ${query}`)
+}
+
+function normalizeCss(source) {
+  return source.replace(/\s+/gu, ' ').trim()
 }
 
 function assert(condition, message = 'Build validation failed.') {

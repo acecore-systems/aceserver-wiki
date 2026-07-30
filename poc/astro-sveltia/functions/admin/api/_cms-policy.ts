@@ -8,14 +8,13 @@ export const CMS_CONTENT_PREFIX = 'poc/astro-sveltia/src/content/wiki/' as const
 export const CMS_MEDIA_PREFIX =
   'poc/astro-sveltia/public/uploads/wiki/' as const
 
-export type CmsRuntimeEnv = Omit<
+export type CmsRuntimeEnv = Pick<
   Env,
-  | 'SKIP_DEPENDENCY_INSTALL'
-  | 'CMS_DATABASE'
-  | 'CMS_DISCORD_ALLOWED_ROLE_IDS'
-  | 'CMS_DISCORD_AUTHORIZATION_MODE'
-  | 'CMS_DISCORD_GUILD_ID'
-  | 'CMS_PUBLICATION_MODE'
+  | 'CMS_REPOSITORY_OWNER'
+  | 'CMS_REPOSITORY_NAME'
+  | 'CMS_REPOSITORY_BRANCH'
+  | 'CMS_CONTENT_ROOT'
+  | 'CMS_MEDIA_ROOT'
 > & {
   CMS_ACCESS_AUD?: string
   CMS_ACCESS_HOSTNAMES?: string
@@ -85,6 +84,11 @@ export function isAllowedCmsWritePath(path: string) {
   if (!path.startsWith(CMS_MEDIA_PREFIX)) return false
 
   return MEDIA_EXTENSIONS.has(getExtension(path)) && isSafeMediaFileName(path)
+}
+
+export function isAllowedCmsDeletePath(path: string) {
+  void path
+  return false
 }
 
 export function isAllowedCmsDirectoryPath(path: string) {

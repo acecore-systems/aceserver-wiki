@@ -4,6 +4,15 @@
   "pages_build_output_dir": "./dist",
   "compatibility_date": "2026-07-26",
   "compatibility_flags": ["nodejs_compat"],
+  "ai": {
+    "binding": "AI",
+  },
+  "vectorize": [
+    {
+      "binding": "SEARCH_INDEX",
+      "index_name": "aceserver-wiki-search-production",
+    },
+  ],
   "d1_databases": [
     {
       "binding": "CMS_DATABASE",
@@ -23,9 +32,20 @@
     "CMS_DISCORD_AUTHORIZATION_MODE": "account",
     "CMS_DISCORD_GUILD_ID": "",
     "CMS_DISCORD_ALLOWED_ROLE_IDS": "",
+    "SEARCH_ENABLED": "true",
+    "SEARCH_MIN_SCORE": "0.40",
   },
   "env": {
     "preview": {
+      "ai": {
+        "binding": "AI",
+      },
+      "vectorize": [
+        {
+          "binding": "SEARCH_INDEX",
+          "index_name": "aceserver-wiki-search-preview",
+        },
+      ],
       "d1_databases": [
         {
           "binding": "CMS_DATABASE",
@@ -45,6 +65,8 @@
         "CMS_DISCORD_AUTHORIZATION_MODE": "account",
         "CMS_DISCORD_GUILD_ID": "",
         "CMS_DISCORD_ALLOWED_ROLE_IDS": "",
+        "SEARCH_ENABLED": "true",
+        "SEARCH_MIN_SCORE": "0.40",
       },
     },
   },

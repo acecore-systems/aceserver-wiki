@@ -102,7 +102,7 @@ top-level `sub`をDiscord IDとして使用しません。
 Wiki専用Appを`aceserver-wiki`だけへinstallし、権限を次に限定します。
 
 - Contents: Read and write
-- Pull requests: Read and write
+- Pull requests: No access
 - Metadata: Read（GitHubが必須化する既定権限）
 
 Webhook、GitHub OAuth callback、他repositoryへのinstallは不要です。
@@ -127,6 +127,9 @@ previewはpreview専用D1だけをbindingし、publication modeを`disabled`に�
 PagesのWrangler設定は`secrets.required`をサポートしないため、上表のsecretは
 Pages dashboardまたはAPIからproduction環境だけへ登録します。初回公開時と
 secret更新後は、productionのsecret名一覧とpreviewにsecretがないことを確認します。
+publication modeを`disabled`にするだけでは、preview branch内の任意コードによる
+secret読取を防げません。`CMS_GITHUB_APP_PRIVATE_KEY`がPreview environmentに
+存在しないことをCloudflare APIまたはdashboardで必ず別途確認します。
 
 ## CSPとFunctions経路
 
@@ -142,6 +145,78 @@ asset側のETagを除去します。CSS、画像、JSON等の静的assetはこ�
 誰でも直接編集できる全公開ページを未審査UGCとして扱い、審査済み判定、
 通報窓口、監視・対応時間の運用が整うまでAdSenseを読み込みません。
 
+## Vectorize検索
+
+通常の`/search-index.json`による文字列検索を常に残し、その結果を先に表示します。
+Vectorizeは同じ検索画面へ意味の近い記事を補う用途に限定し、Workers AI、
+Vectorize、D1のいずれかが失敗・timeout・rate limitになった場合は、文字列検索
+だけで応答します。
+
+- embedding model: `@cf/baai/bge-m3`
+- index: 1024 dimensions / cosine
+- preview index: `aceserver-wiki-search-preview`
+- production index: `aceserver-wiki-search-production`
+- namespace: `ja`
+- corpus: 公開対象Markdown 15記事からbuild時に生成する
+  `dist/vector-corpus.json`
+- API: same-originの`POST /api/search`
+- minimum score: `0.40`（2026-07-28の25質問評価に基づく）
+- rate limit: `CMS_DATABASE`の`semantic_search_rate_limits`を使用し、
+  client 20回/分、全体300回/分
+- kill switch: `SEARCH_ENABLED`
+
+corpusのchunk IDは本文・記事URL・見出しから決定的に生成します。同期scriptは
+現行indexとの差分だけをupsertし、削除はupsert後に行います。管理外ID、index名の
+allowlist外、1024/cosine以外、20%を超える削除を既定で拒否します。
+
+### 初回導入
+
+repository rootのNode.js 24.18.0を使用し、次の順序で進めます。
+
+```bash
+cd poc/astro-sveltia
+npm ci
+npm run build
+npm run search:sync:dry-run
+
+npx wrangler vectorize create aceserver-wiki-search-preview \
+  --dimensions 1024 --metric cosine \
+  --description "Ace Server Wiki preview semantic search (BGE-M3)"
+npx wrangler vectorize create aceserver-wiki-search-production \
+  --dimensions 1024 --metric cosine \
+  --description "Ace Server Wiki production semantic search (BGE-M3)"
+
+npx wrangler d1 migrations apply CMS_DATABASE --env preview --remote
+npx wrangler d1 migrations apply CMS_DATABASE --remote
+npx wrangler d1 migrations list CMS_DATABASE --env preview --remote
+npx wrangler d1 migrations list CMS_DATABASE --remote
+```
+
+GitHub Environmentsを次の2つに分け、どちらもdeployment branchを`main`だけに
+制限します。
+
+| Environment                         | Secret                                        |
+| ----------------------------------- | --------------------------------------------- |
+| `cloudflare-wiki-search-preview`    | `CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN`    |
+| `cloudflare-wiki-search-production` | `CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN` |
+
+tokenは環境ごとに分離し、対象accountのWorkers AI ReadとVectorize Writeに
+必要な最小権限だけを付与します。workflowは任意PRのcodeへsecretを渡さず、
+protected `main`の同期scriptだけを実行します。
+
+1. `Sync Wiki Vectorize index`を`preview`指定で手動実行する。
+2. Preview deploymentの`/api/search`が200を返し、BGE-M3の日本語評価queryで
+   関連記事を返すことを確認する。
+3. PRをmergeし、GitHub repository連携によるPages production deploymentと
+   `/.well-known/aceserver-wiki-build.json`のcommit/corpus version一致を確認する。
+4. Production同期workflowが成功してから、別PRでproductionの
+   `SEARCH_ENABLED`を`true`へ変更する。
+5. custom domainで文字列検索、意味検索、API障害時fallbackを再確認する。
+
+`SEARCH_ENABLED=false`の間も文字列検索は動作します。緊急停止はこの値を
+`false`へ戻してGitHubへpushし、Pagesの`github:push` deploymentを通します。
+Direct Uploadや手動uploadを復旧経路にしません。
+
 ## 保存と監査
 
 1回の保存は同じidempotency keyを持つ一時branchへcommitした後、非forceの
@@ -152,11 +227,16 @@ D1監査を成功へ確定できない場合、gatewayは成功レスポンス�
 このdirect publishはCMS管理対象のMarkdownと画像だけに限定します。source code、
 Astro schema、CMS設定、Pages Functions、workflowは作業branchのPRとCIで
 `main`へ反映します。
+参照中の記事・画像を誤って消さないよう、CMSからの削除は拒否します。削除が
+必要な場合は、保守担当者がGitHub Appとは別の通常の作業branchから参照確認を
+含むPull Requestを作成します。
 
 - readは1 Discord userあたり10分間に120回、全体で10秒間に60回かつ
   10分間に240回
 - mutationは1 Discord userあたり10分間に12回、全体で60回
 - mutationの追加量は1 Discord userあたり10分間に16 MiB、全体で64 MiB
+- Markdown 1ファイルは448 KiB以下。保存時のgatewayとbuild時のloaderで
+  同じ上限を適用
 - 1回の保存は40変更・追加10 MiB以下
 - CMS全体は1000 files、Markdown 64 MiB、画像512 MiB、
   Markdownと画像の合計512 MiB以下
@@ -248,15 +328,18 @@ deployment成功まで確認します。
 - read、追加量、CMS全体容量の各上限を429または413でfail closedに拒否する
 - rollback workflowで対象commitだけを戻せる
 
-### custom domain rollback
+### 旧Pages退役後の復旧境界
 
-この手順は旧Pages projectの退役前だけ使用できます。
-切替前に、旧Pages project `aceserver-wiki`のactive deployment ID、commit SHA、
-custom domain状態と確認時刻を運用記録へ残します。重大な障害が起きた場合は、
-`asv-wiki.acecore.net`を新projectから外して旧projectへ戻し、custom domainが
-activeになってからトップ、代表記事、旧URL redirectを再確認します。
+2026-07-28の完全移行監査と明示承認後、repositoryの旧build経路、Newt tokenと
+旧Wiki用deploy hook、旧Pages project `aceserver-wiki`を退役しました。
+旧projectと記録済みrollback deploymentは削除済みのため、旧Nuxtへcustom domainを
+戻す手順は使用できません。
 
-切替後は旧Pages projectとNewt設定を当初のrollback window中だけ保持しました。
-2026-07-28の完全移行監査と明示承認後、repositoryの旧build経路、Newt token、
-旧projectの順で退役します。実施状態と削除後の復旧境界は
-[`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)へ記録します。
+記事の誤更新はCMS rollback workflowで対象commitだけを戻し、`main`へのGitHub push
+から`aceserver-wiki-astro`を再deployします。Pages project自体の再作成が必要な
+場合もDirect Uploadは使用せず、このrepositoryをGitHub連携し、production成功後に
+`asv-wiki.acecore.net`を再接続します。
+
+退役の実施状態、保持した証跡、復旧境界は
+[`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)と
+[Issue #35](https://github.com/acecore-systems/aceserver-wiki/issues/35)へ記録します。

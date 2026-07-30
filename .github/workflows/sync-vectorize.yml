@@ -1,0 +1,231 @@
+name: Sync Wiki Vectorize index
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 同期先のVectorize index
+        required: true
+        type: choice
+        default: preview
+        options:
+          - preview
+          - production
+
+permissions:
+  contents: read
+
+jobs:
+  sync-preview:
+    name: Sync preview index from protected main
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      inputs.target == 'preview'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: cloudflare-wiki-search-preview
+    concurrency:
+      group: vectorize-wiki-search-preview
+      cancel-in-progress: false
+
+    steps:
+      - name: Check out protected main tooling
+        uses: actions/checkout@v7
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+          path: tooling
+          persist-credentials: false
+
+      - name: Resolve main site commit
+        id: site
+        shell: bash
+        run: |
+          set -euo pipefail
+          site_commit="$(git -C tooling rev-parse HEAD)"
+
+          if [[ ! "$site_commit" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::main commit is not a full Git SHA."
+            exit 1
+          fi
+
+          echo "commit=$site_commit" >> "$GITHUB_OUTPUT"
+
+      - name: Check out main site source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.site.outputs.commit }}
+          path: site
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: tooling/.node-version
+          cache: npm
+          cache-dependency-path: site/poc/astro-sveltia/package-lock.json
+
+      - name: Install site dependencies
+        working-directory: site/poc/astro-sveltia
+        run: npm ci
+
+      - name: Build protected main corpus
+        working-directory: site/poc/astro-sveltia
+        env:
+          COMMIT_SHA: ${{ steps.site.outputs.commit }}
+        run: npm run build
+
+      - name: Sync preview Vectorize index
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: db9b62f409f463da7acbcc374b8385d0
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN }}
+          VECTORIZE_INDEX_NAME: aceserver-wiki-search-preview
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo "::error::CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN is not configured."
+            exit 1
+          fi
+
+          node tooling/poc/astro-sveltia/scripts/sync-vectorize.mjs \
+            --corpus site/poc/astro-sveltia/dist/vector-corpus.json
+
+  sync-production:
+    name: Reconcile production index with the public Wiki
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (
+        github.event_name == 'push' ||
+        github.event_name == 'schedule' ||
+        (
+          github.event_name == 'workflow_dispatch' &&
+          inputs.target == 'production'
+        )
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: cloudflare-wiki-search-production
+    concurrency:
+      group: vectorize-wiki-search-production
+      cancel-in-progress: false
+
+    steps:
+      - name: Check out protected main tooling
+        uses: actions/checkout@v7
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+          path: tooling
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: tooling/.node-version
+          cache: npm
+          cache-dependency-path: tooling/poc/astro-sveltia/package-lock.json
+
+      - name: Wait for the pushed commit to be public
+        if: github.event_name == 'push'
+        env:
+          EXPECTED_COMMIT: ${{ github.sha }}
+        run: >-
+          node tooling/poc/astro-sveltia/scripts/wait-for-deployment.mjs
+          https://asv-wiki.acecore.net/.well-known/aceserver-wiki-build.json
+          "$EXPECTED_COMMIT"
+
+      - name: Resolve deployed site commit
+        id: site
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PUSH_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          protected_main_commit="$(git -C tooling rev-parse HEAD)"
+
+          if [[ ! "$protected_main_commit" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::protected main commit is not a full Git SHA."
+            exit 1
+          fi
+
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            site_commit="$PUSH_COMMIT"
+          else
+            site_commit="$(
+              node tooling/poc/astro-sveltia/scripts/wait-for-deployment.mjs \
+                https://asv-wiki.acecore.net/.well-known/aceserver-wiki-build.json \
+                --print-current
+            )"
+          fi
+          site_commit="${site_commit,,}"
+
+          if [[ ! "$site_commit" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Published build marker does not contain a full Git SHA."
+            exit 1
+          fi
+
+          if ! git -C tooling cat-file -e "${site_commit}^{commit}"; then
+            echo "::error::Published commit does not exist in this repository."
+            exit 1
+          fi
+
+          if ! git -C tooling merge-base --is-ancestor \
+            "$site_commit" "$protected_main_commit"; then
+            echo "::error::Published commit is not an ancestor of protected main."
+            exit 1
+          fi
+
+          echo "commit=$site_commit" >> "$GITHUB_OUTPUT"
+
+      - name: Check out deployed site source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ steps.site.outputs.commit }}
+          path: site
+          persist-credentials: false
+
+      - name: Install deployed site dependencies
+        working-directory: site/poc/astro-sveltia
+        run: npm ci
+
+      - name: Build deployed site corpus
+        working-directory: site/poc/astro-sveltia
+        env:
+          COMMIT_SHA: ${{ steps.site.outputs.commit }}
+        run: npm run build
+
+      - name: Confirm the built commit is still public
+        env:
+          BUILT_COMMIT: ${{ steps.site.outputs.commit }}
+        run: >-
+          node tooling/poc/astro-sveltia/scripts/wait-for-deployment.mjs
+          https://asv-wiki.acecore.net/.well-known/aceserver-wiki-build.json
+          --assert-current
+          "$BUILT_COMMIT"
+          site/poc/astro-sveltia/dist/vector-corpus.json
+
+      - name: Sync production Vectorize index
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: db9b62f409f463da7acbcc374b8385d0
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN }}
+          VECTORIZE_INDEX_NAME: aceserver-wiki-search-production
+        run: |
+          set -euo pipefail
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+            echo "::error::CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN is not configured."
+            exit 1
+          fi
+
+          node tooling/poc/astro-sveltia/scripts/sync-vectorize.mjs \
+            --corpus site/poc/astro-sveltia/dist/vector-corpus.json

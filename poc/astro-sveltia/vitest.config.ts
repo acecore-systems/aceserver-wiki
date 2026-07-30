@@ -21,6 +21,7 @@ Object.assign(process.env, testSecrets)
 export default defineConfig({
   plugins: [
     cloudflareTest({
+      remoteBindings: false,
       wrangler: {
         configPath: './wrangler.jsonc',
       },
