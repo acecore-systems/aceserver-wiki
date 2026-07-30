@@ -90,7 +90,7 @@ export async function getAccessIdentity(
     const rawDiscordRoleIds = custom?.discord_roles
     const rawDiscordRoleCount = Array.isArray(rawDiscordRoleIds)
       ? rawDiscordRoleIds.length
-      : authorizationMode === 'account'
+      : authorizationMode !== 'role'
         ? 0
         : null
     const discordRoleIds = Array.isArray(rawDiscordRoleIds)
@@ -100,7 +100,7 @@ export async function getAccessIdentity(
             ? [role.trim()]
             : []
         })
-      : authorizationMode === 'account'
+      : authorizationMode !== 'role'
         ? []
         : null
 

@@ -86,16 +86,67 @@ gatewayは次をすべて検証します。
 カンマ区切りで設定します。初回切替時は
 `aceserver-wiki-astro.pages.dev,asv-wiki.acecore.net`です。
 
-`account`モードではAccess JWTの`custom.discord_id`だけをDiscord snowflake
-として検証します。Discordの通常OAuth2はOIDC ID token/JWKSを提供しないため
-直接接続せず、Wiki専用OIDC brokerを使用します。
+本番は`guild`モードです。Access JWTの`custom.discord_id`をDiscord user
+snowflake、`custom.discord_guild_id`をguild snowflakeとして検証し、後者が
+エースサーバー公式Discordの`737538781024092170`と完全一致する場合だけ
+編集を許可します。guildモードではrole claimを要求しません。
+Discordの通常OAuth2はOIDC ID token/JWKSを提供しないため直接接続せず、
+Wiki専用OIDC brokerを使用します。
 
-Access側はscopeを`openid email profile`、email claimを`email`、OIDC Claimsを
-`discord_id`、PKCEを有効にします。`profile`は現行Cloudflare AccessのGeneric
-OIDCが要求する互換scopeであり、brokerは名前・username・avatarなどのprofile
-claimを保存・発行しません。Provider Testと実ログインで
-`custom.discord_id`がDiscord snowflakeになることを確認します。Access JWT自身の
-top-level `sub`をDiscord IDとして使用しません。
+brokerはDiscordへ`identify email guilds.members.read`を要求し、対象guildの
+Current User Guild Member endpointが200、かつMembership Screeningが完了して
+いる場合だけ`discord_guild_id`を発行します。Discord access tokenは成功・拒否の
+どちらでも即時revokeします。
+
+Access側はscopeを`openid email profile`、email claimを`email`、
+OIDC Claimsを`discord_id,discord_guild_id`、PKCEを有効にします。
+`profile`は現行Cloudflare AccessのGeneric OIDCが要求する
+互換scopeであり、brokerは名前・username・avatarなどのprofile claimを
+保存・発行しません。Provider Testと実ログインで
+`custom.discord_id`がDiscord user snowflake、
+`custom.discord_guild_id`が`737538781024092170`になることを確認します。
+Access JWT自身のtop-level `sub`をDiscord IDとして使用しません。
+
+membershipはOIDC brokerが新しいDiscordログインを処理する時点で確認します。
+発行済みのCloudflare Access sessionは、設定された期限または明示的な失効まで
+有効です。Discordから除外しただけでは既存sessionは即時失効しません。
+
+認可切替後はapplicationの`Revoke existing tokens`だけでなく、Zero Trustの
+team-domain sessionを失効するか、既存編集者全員のuser sessionを列挙して
+失効し、全編集者に再ログインさせます。退会やkickを即時反映する手順は
+「対象Discord IDを`cms_bans`へ登録
+（gatewayで即時403）→ Zero Trust > Team & Resources > Usersのlast-seen
+identityで`oidc_fields.discord_id`を照合して対象userをRevoke → Discordから
+削除」です。userを特定できない場合はCMS applicationの全tokenをRevokeします。
+再参加を確認するまでBANを解除しません。
+
+### guild認可への切替順序
+
+旧brokerまたは旧Access IdPのままPagesを`guild`モードへ切り替えると、
+`discord_guild_id`がないため全編集者を403で拒否します。brokerとAccess IdPを
+先に更新してProvider Testを通した後は、旧`account` gatewayでapplication tokenが
+再発行される短い窓を残さないため、Pagesの`guild`反映を確認してから既存sessionを
+直ちに失効します。旧claimのsessionは新gatewayでfail closedになります。
+
+1. PRのbroker test、Astro test/build、Wrangler dry-runをgreenにする。
+2. OIDC D1へ`0002_verified_discord_guild.sql`を適用し、pendingを0にする。
+3. reviewed commitからbrokerをdeployし、guild非参加者とMembership Screening
+   未完了者が`access_denied`、参加完了者が認証成功になることを確認する。
+4. Access IdPのOIDC Claimsを`discord_id,discord_guild_id`の2つにし、
+   Provider Testで両方のsnowflakeとguild IDを確認する。
+5. PRをmergeし、GitHub push由来のPages production deploymentで`guild`モードを
+   反映する。
+6. 反映直後に旧認可で発行済みのapplication tokenを失効する。加えて
+   team-domain sessionを失効するか、既存編集者全員のuser sessionを列挙して
+   失効し、全編集者を新しいDiscordログインへ進ませる。
+7. 失効の反映を確認してから、guild参加者の保存・D1 audit・GitHub commit・
+   Pages再build、非参加者と
+   Membership Screening未完了者の拒否、Access JWTの
+   `custom.discord_id`と`custom.discord_guild_id`を本番E2Eで確認する。
+
+切戻しで`account`モードへ戻すと認可を広げるため使用しません。障害時は
+`CMS_PUBLICATION_MODE=disabled`で保存をfail closedに停止し、brokerまたは
+Access設定を修復します。
 
 ## GitHub App
 
@@ -121,7 +172,8 @@ productionで必要な設定は次のとおりです。
 | `CMS_GITHUB_APP_INSTALLATION_ID` | repository installation ID    |
 | `CMS_GITHUB_APP_PRIVATE_KEY`     | encrypted secret              |
 | `CMS_PUBLICATION_MODE`           | `direct`                      |
-| `CMS_DISCORD_AUTHORIZATION_MODE` | `account`                     |
+| `CMS_DISCORD_AUTHORIZATION_MODE` | `guild`                       |
+| `CMS_DISCORD_GUILD_ID`           | `737538781024092170`          |
 
 previewはpreview専用D1だけをbindingし、publication modeを`disabled`にします。
 PagesのWrangler設定は`secrets.required`をサポートしないため、上表のsecretは
@@ -321,7 +373,9 @@ deployment成功まで確認します。
 - 全公開ページがAdSense loaderを持たず、記事の外部リンクが`ugc nofollow`
 - 公開面はレスポンスごとに異なるnonceのstrict CSP、admin面は専用CSPが有効
 - `/admin/*`はDiscord Access loginなしでは到達できない
-- Discord login後にMarkdownと画像を保存できる
+- guild参加・Membership Screening完了済みのDiscord userだけがログインし、
+  Markdownと画像を保存できる
+- guild非参加者、Membership Screening未完了者、別guild claimを拒否する
 - 保存でGitHub commit、D1 succeeded audit、GitHub push deploymentが作られる
 - 同一requestの再送で重複commitされない
 - BAN userを403、13回目のuser mutationと全体61回目のmutationを429で拒否する

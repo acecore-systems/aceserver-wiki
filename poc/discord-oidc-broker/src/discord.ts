@@ -5,6 +5,8 @@ const DISCORD_AUTHORIZE_URL = 'https://discord.com/oauth2/authorize'
 const DISCORD_TOKEN_URL = 'https://discord.com/api/oauth2/token'
 const DISCORD_REVOKE_URL = 'https://discord.com/api/oauth2/token/revoke'
 const DISCORD_USER_URL = 'https://discord.com/api/v10/users/@me'
+const DISCORD_SNOWFLAKE_PATTERN = /^\d{17,20}$/u
+const DISCORD_OAUTH_SCOPES = ['identify', 'email', 'guilds.members.read']
 const USER_AGENT = 'aceserver-wiki-discord-oidc-broker/1.0'
 
 type DiscordToken = {
@@ -12,9 +14,13 @@ type DiscordToken = {
   metadataValid: boolean
 }
 
-export type DiscordIdentity = {
+type DiscordAccountIdentity = {
   email: string
   id: string
+}
+
+export type DiscordIdentity = DiscordAccountIdentity & {
+  guildId: string
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -69,7 +75,7 @@ export function createDiscordAuthorizationUrl(
   target.searchParams.set('response_type', 'code')
   target.searchParams.set('client_id', config.discordClientId)
   target.searchParams.set('redirect_uri', config.discordRedirectUri)
-  target.searchParams.set('scope', 'identify email')
+  target.searchParams.set('scope', DISCORD_OAUTH_SCOPES.join(' '))
   target.searchParams.set('state', state)
   if (forceConsent) {
     target.searchParams.set('prompt', 'consent')
@@ -145,14 +151,13 @@ async function exchangeDiscordCode(
       Number.isInteger(payload.expires_in) &&
       payload.expires_in >= 1 &&
       payload.expires_in <= 604_800 &&
-      scopes.has('identify') &&
-      scopes.has('email'),
+      DISCORD_OAUTH_SCOPES.every((scope) => scopes.has(scope)),
   }
 }
 
 async function fetchDiscordIdentity(
   accessToken: string,
-): Promise<DiscordIdentity> {
+): Promise<DiscordAccountIdentity> {
   return withDiscordFailure('discord_identity_invalid', async () => {
     const response = await fetch(DISCORD_USER_URL, {
       headers: {
@@ -169,7 +174,7 @@ async function fetchDiscordIdentity(
       !response.ok ||
       !isRecord(payload) ||
       typeof payload.id !== 'string' ||
-      !/^\d{17,20}$/u.test(payload.id) ||
+      !DISCORD_SNOWFLAKE_PATTERN.test(payload.id) ||
       typeof payload.email !== 'string' ||
       payload.email.length > 254 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(payload.email) ||
@@ -183,6 +188,76 @@ async function fetchDiscordIdentity(
       id: payload.id,
     }
   })
+}
+
+async function requireDiscordGuildMembership(
+  config: BrokerConfig,
+  accessToken: string,
+  expectedUserId: string,
+): Promise<void> {
+  const url = `https://discord.com/api/v10/users/@me/guilds/${config.discordGuildId}/member`
+  let response: Response
+  try {
+    response = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        'User-Agent': USER_AGENT,
+      },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(8000),
+    })
+  } catch {
+    throw new Error('discord_guild_membership_invalid')
+  }
+
+  if (response.status !== 200) {
+    try {
+      await response.body?.cancel()
+    } catch {
+      // Preserve the fixed membership classification if body disposal fails.
+    }
+    throw new Error(
+      response.status === 404
+        ? 'discord_guild_membership_required'
+        : 'discord_guild_membership_invalid',
+    )
+  }
+
+  let payload: unknown
+  try {
+    payload = await readProviderJson(response)
+  } catch {
+    throw new Error('discord_guild_membership_invalid')
+  }
+
+  if (
+    isRecord(payload) &&
+    payload.pending !== undefined &&
+    typeof payload.pending !== 'boolean'
+  ) {
+    throw new Error('discord_guild_membership_invalid')
+  }
+
+  if (isRecord(payload) && payload.pending === true) {
+    throw new Error('discord_guild_membership_required')
+  }
+
+  const user = isRecord(payload) && isRecord(payload.user) ? payload.user : null
+  if (
+    !isRecord(payload) ||
+    !Array.isArray(payload.roles) ||
+    payload.roles.length > 256 ||
+    payload.roles.some(
+      (roleId) =>
+        typeof roleId !== 'string' ||
+        !DISCORD_SNOWFLAKE_PATTERN.test(roleId),
+    ) ||
+    (payload.user !== undefined &&
+      (!user || user.id !== expectedUserId))
+  ) {
+    throw new Error('discord_guild_membership_invalid')
+  }
 }
 
 async function revokeDiscordToken(
@@ -224,7 +299,13 @@ export async function resolveDiscordIdentity(
     if (!token.metadataValid) {
       throw new Error('discord_token_metadata_invalid')
     }
-    identity = await fetchDiscordIdentity(token.accessToken)
+    const account = await fetchDiscordIdentity(token.accessToken)
+    await requireDiscordGuildMembership(
+      config,
+      token.accessToken,
+      account.id,
+    )
+    identity = { ...account, guildId: config.discordGuildId }
   } catch (error) {
     identityError = error
   }

@@ -15,13 +15,19 @@ redirect URI の完全一致で固定します。
 - 2 種類の state と短命認可 code は D1 に保存し、条件付き `DELETE ...
 RETURNING` で一度だけ消費します。Discord state と broker code はハッシュ
   だけを保存します。期限切れ行は 5 分ごとの Cron で物理削除します。
-- Discord には `identify email` だけを要求し、`/users/@me` の verified email
-  と snowflake ID だけを採用します。
+- Discord には `identify email guilds.members.read` だけを要求します。
+  `/users/@me` の verified emailとsnowflake IDに加え、
+  `/users/@me/guilds/737538781024092170/member` でエースサーバー公式Discordへの
+  所属をログインのたびに確認します。Membership Screeningが`pending`の間は
+  許可しません。
 - Discord access token は本人情報取得後に即時 revoke します。revoke 失敗時も
   ID token を発行しません。
-- ID token の `sub` と `discord_id` は Discord snowflake です。Cloudflare
-  Access では custom claim `discord_id` を登録し、Wiki gateway は Access JWT
-  の `custom.discord_id` を正規の編集者 ID として使います。
+- ID token の `sub` と `discord_id` はDiscord user snowflake、
+  `discord_guild_id`は所属確認済みguild snowflakeです。Cloudflare Accessでは
+  custom claims `discord_id`と`discord_guild_id`を登録し、Wiki gatewayは
+  Access JWTの2 claimを正規の編集者属性として使います。所属確認は新しい
+  Discordログイン時に行い、発行済みのAccess sessionは設定された期限または
+  明示的な失効まで有効です。
 - `/authorize`、`/callback`、`/token` は D1 ベースの IP rate limit を
   fail-closed で適用します。bucketはAccess client secretを鍵にした
   HMAC-SHA-256で、raw IPやsaltなしhashを保存しません。
@@ -76,6 +82,8 @@ npx wrangler d1 migrations apply aceserver-wiki-oidc --remote
 - `OIDC_SIGNING_PREVIOUS_PUBLIC_JWKS_JSON`: rotation 中だけ残す旧公開 JWK
   の JSON 配列。通常は `[]`
 - `DISCORD_CLIENT_ID`: Discord application ID
+- `DISCORD_GUILD_ID`: 編集を許可するDiscord guild ID。
+  本番は`737538781024092170`に固定
 
 Discord Developer Portal の OAuth2 redirect には
 `<OIDC_ISSUER>/callback` だけを登録します。Access callback を Discord 側へ
@@ -129,16 +137,17 @@ key と一致しなければ、Worker は自己検証に失敗して token を�
 - PKCE: enabled
 - Scopes: `openid`, `email`, `profile`
   - 現行 Cloudflare Access の Generic OIDC が `profile` まで要求するため互換
-    目的で受理します。Discord へ要求する scope は従来どおり
-    `identify email` のままで、名前・username・avatar などの profile claim は
-    保存・発行しません。
+    目的で受理します。Discordへ要求するscopeは
+    `identify email guilds.members.read`で、名前・username・avatarなどの
+    profile claimは保存・発行しません。
 - Email claim: `email`
-- OIDC Claims: `discord_id`
+- OIDC Claims: `discord_id`, `discord_guild_id`
 
-Identity provider の Test で `oidc_fields.discord_id` を確認します。Wiki
+Identity providerのTestで`oidc_fields.discord_id`と
+`oidc_fields.discord_guild_id=737538781024092170`を確認します。Wiki
 admin application の policy は `Include > Login Methods > この broker` とし、
-メール domain や個別アドレスでは絞りません。これで Discord 認証だけを必須に
-しつつ、verified email の値に関係なく編集参加を許可できます。
+メールdomainや個別アドレスでは絞りません。所属確認はbrokerとWiki gatewayの
+両方でfail closedに適用します。
 
 ### 5. route
 
@@ -149,10 +158,14 @@ custom domain または route が必須です。`workers_dev` は無効なので
 
 1. discovery の `issuer` と各 endpoint が実 URL と完全一致する。
 2. JWKS に `d`, `p`, `q`, `dp`, `dq`, `qi` がない。
-3. Access IdP Test が成功し `oidc_fields.discord_id` が snowflake になる。
-4. `/admin/` ログイン後の Access JWT に `custom.discord_id` がある。
-5. 同じ broker code の再交換と、誤った PKCE verifier が拒否される。
-6. broker hostname が Wiki Access application に含まれていない。
+3. Access IdP Testが成功し、`oidc_fields.discord_id`と
+   `oidc_fields.discord_guild_id`が期待するsnowflakeになる。
+4. `/admin/`ログイン後のAccess JWTに`custom.discord_id`と
+   `custom.discord_guild_id=737538781024092170`がある。
+5. guild参加者はログインでき、非参加者とMembership Screening未完了者は
+   `access_denied`になる。
+6. 同じbroker codeの再交換と、誤ったPKCE verifierが拒否される。
+7. broker hostnameがWiki Access applicationに含まれていない。
 
 ## ローカル検証
 

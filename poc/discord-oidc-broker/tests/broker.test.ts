@@ -1,7 +1,7 @@
 import { applyD1Migrations, env, SELF } from 'cloudflare:test'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { pkceChallenge } from '../src/crypto.ts'
+import { pkceChallenge, sha256Hex } from '../src/crypto.ts'
 import { cleanupExpiredState, enforceRateLimit } from '../src/store.ts'
 
 const ISSUER = 'https://oidc.example.test'
@@ -10,6 +10,7 @@ const ACCESS_CALLBACK =
 const ACCESS_CLIENT_ID = 'cloudflare-access-test-client'
 const ACCESS_CLIENT_SECRET = 'test-cloudflare-access-secret'
 const DISCORD_ID = '987654321098765432'
+const DISCORD_GUILD_ID = '123456789012345679'
 const VERIFIER = 'v'.repeat(64)
 
 beforeEach(async () => {
@@ -61,7 +62,11 @@ async function beginAuthorization(
 
 function installDiscordFetchMock(options?: {
   emailVerified?: boolean
-  failureAt?: 'identity' | 'revoke' | 'token'
+  failureAt?: 'identity' | 'membership' | 'revoke' | 'token'
+  membershipRoles?: string[]
+  membershipStatus?: number
+  membershipUserId?: string
+  pendingMembership?: unknown
   revokeStatus?: number
   tokenStatus?: number
   tokenScope?: string
@@ -86,7 +91,8 @@ function installDiscordFetchMock(options?: {
       return Response.json({
         access_token: 'discord-access-token-for-tests',
         expires_in: 3600,
-        scope: options?.tokenScope ?? 'identify email',
+        scope:
+          options?.tokenScope ?? 'identify email guilds.members.read',
         token_type: 'Bearer',
       })
     }
@@ -101,6 +107,27 @@ function installDiscordFetchMock(options?: {
         id: DISCORD_ID,
         username: 'editor',
         verified: options?.emailVerified ?? true,
+      })
+    }
+    if (
+      url ===
+      `https://discord.com/api/v10/users/@me/guilds/${DISCORD_GUILD_ID}/member`
+    ) {
+      if (options?.failureAt === 'membership') {
+        throw new Error('sensitive-provider-failure')
+      }
+      if (options?.membershipStatus !== undefined) {
+        return Response.json(
+          { message: 'sensitive-provider-response' },
+          { status: options.membershipStatus },
+        )
+      }
+      return Response.json({
+        pending: options?.pendingMembership ?? false,
+        roles: options?.membershipRoles ?? ['111111111111111111'],
+        user: {
+          id: options?.membershipUserId ?? DISCORD_ID,
+        },
       })
     }
     if (url === 'https://discord.com/api/oauth2/token/revoke') {
@@ -228,6 +255,7 @@ describe('OIDC metadata', () => {
         'client_secret_post',
       ],
     })
+    expect(body.claims_supported).toContain('discord_guild_id')
     expect(body).not.toHaveProperty('userinfo_endpoint')
     expect(response.headers.get('Access-Control-Allow-Origin')).toBeNull()
   })
@@ -249,6 +277,60 @@ describe('OIDC metadata', () => {
   })
 })
 
+describe('D1 migrations', () => {
+  it('preserves an existing code as unverified when adding the guild column', async () => {
+    const [initialMigration, guildMigration] = env.TEST_D1_MIGRATIONS
+
+    if (!initialMigration || !guildMigration) {
+      throw new Error('expected both OIDC migrations')
+    }
+    expect(initialMigration.name).toBe('0001_oidc_state.sql')
+    expect(guildMigration.name).toBe(
+      '0002_verified_discord_guild.sql',
+    )
+
+    await applyD1Migrations(env.OIDC_MIGRATION_TEST_DB, [
+      initialMigration,
+    ])
+    await env.OIDC_MIGRATION_TEST_DB.prepare(
+      `INSERT INTO oidc_authorization_codes
+         (code_hash, access_redirect_uri, nonce, scope, pkce_challenge,
+          discord_id, email, authenticated_at, created_at, expires_at)
+       VALUES (?1, ?2, NULL, 'openid email', ?3, ?4, ?5, ?6, ?6, ?7)`,
+    )
+      .bind(
+        'a'.repeat(64),
+        ACCESS_CALLBACK,
+        'b'.repeat(43),
+        DISCORD_ID,
+        'legacy@example.test',
+        1_800_000_000,
+        1_800_000_060,
+      )
+      .run()
+
+    await applyD1Migrations(env.OIDC_MIGRATION_TEST_DB, [
+      guildMigration,
+    ])
+
+    const row = await env.OIDC_MIGRATION_TEST_DB.prepare(
+      `SELECT discord_id, discord_guild_id
+       FROM oidc_authorization_codes
+       WHERE code_hash = ?1`,
+    )
+      .bind('a'.repeat(64))
+      .first<{
+        discord_guild_id: string | null
+        discord_id: string
+      }>()
+
+    expect(row).toEqual({
+      discord_guild_id: null,
+      discord_id: DISCORD_ID,
+    })
+  })
+})
+
 describe('authorization endpoint', () => {
   it('accepts GET and separates the upstream Discord state', async () => {
     const { discordState, response } = await beginAuthorization()
@@ -259,7 +341,9 @@ describe('authorization endpoint', () => {
       'https://discord.com/oauth2/authorize',
     )
     expect(location.searchParams.get('redirect_uri')).toBe(`${ISSUER}/callback`)
-    expect(location.searchParams.get('scope')).toBe('identify email')
+    expect(location.searchParams.get('scope')).toBe(
+      'identify email guilds.members.read',
+    )
     expect(discordState).toMatch(/^[A-Za-z0-9_-]{43}$/u)
     expect(discordState).not.toBe('access-state-12345678901234567890')
   })
@@ -289,7 +373,9 @@ describe('authorization endpoint', () => {
     expect(location.origin + location.pathname).toBe(
       'https://discord.com/oauth2/authorize',
     )
-    expect(location.searchParams.get('scope')).toBe('identify email')
+    expect(location.searchParams.get('scope')).toBe(
+      'identify email guilds.members.read',
+    )
   })
 
   it('rejects unknown scopes and requests missing email', async () => {
@@ -368,7 +454,7 @@ describe('Discord callback and token endpoint', () => {
     )
 
     expect(response.status).toBe(303)
-    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(fetchMock).toHaveBeenCalledTimes(4)
     const calls = fetchMock.mock.calls as unknown as Array<
       [RequestInfo | URL, RequestInit | undefined]
     >
@@ -390,6 +476,7 @@ describe('Discord callback and token endpoint', () => {
     expect(response.status).toBe(200)
     expect(claims).toMatchObject({
       aud: ACCESS_CLIENT_ID,
+      discord_guild_id: DISCORD_GUILD_ID,
       discord_id: DISCORD_ID,
       email: 'editor@example.test',
       email_verified: true,
@@ -438,6 +525,34 @@ describe('Discord callback and token endpoint', () => {
       SELF.fetch(tokenRequest(code)),
     ])
     expect(responses.map(({ status }) => status).sort()).toEqual([200, 400])
+  })
+
+  it('rejects a legacy broker code without verified guild membership', async () => {
+    const code = 'legacy-code-without-verified-guild-0001'
+    const now = Math.floor(Date.now() / 1000)
+    await env.OIDC_STATE_DB.prepare(
+      `INSERT INTO oidc_authorization_codes
+         (code_hash, access_redirect_uri, nonce, scope, pkce_challenge,
+          discord_id, email, authenticated_at, created_at, expires_at)
+       VALUES (?1, ?2, NULL, 'openid email', ?3, ?4, ?5, ?6, ?6, ?7)`,
+    )
+      .bind(
+        await sha256Hex(code),
+        ACCESS_CALLBACK,
+        await pkceChallenge(VERIFIER),
+        DISCORD_ID,
+        'legacy@example.test',
+        now,
+        now + 60,
+      )
+      .run()
+
+    const response = await SELF.fetch(tokenRequest(code))
+
+    expect(response.status).toBe(400)
+    await expect(response.json()).resolves.toMatchObject({
+      error: 'invalid_grant',
+    })
   })
 
   it('does not consume a code when the PKCE verifier is wrong', async () => {
@@ -602,6 +717,141 @@ describe('Discord callback and token endpoint', () => {
     )
   })
 
+  it('denies a Discord account that is not in the configured guild', async () => {
+    const errorLog = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+    const { discordState } = await beginAuthorization()
+    const fetchMock = installDiscordFetchMock({ membershipStatus: 404 })
+    const response = await SELF.fetch(
+      `${ISSUER}/callback?code=discord-code&state=${discordState}`,
+      { redirect: 'manual' },
+    )
+    const location = new URL(response.headers.get('Location') ?? '')
+
+    expect(location.searchParams.get('error')).toBe('access_denied')
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes('/oauth2/token/revoke'),
+      ),
+    ).toBe(true)
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({
+        error: 'discord_guild_membership_required',
+        event: 'oidc_callback_failed',
+      }),
+    )
+  })
+
+  it.each([201, 302, 401, 403, 429, 503])(
+    'fails closed on Discord membership HTTP %s and revokes the token',
+    async (membershipStatus) => {
+      const errorLog = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined)
+      const { discordState } = await beginAuthorization()
+      const fetchMock = installDiscordFetchMock({ membershipStatus })
+      const response = await SELF.fetch(
+        `${ISSUER}/callback?code=discord-code&state=${discordState}`,
+        { redirect: 'manual' },
+      )
+      const location = new URL(response.headers.get('Location') ?? '')
+
+      expect(location.searchParams.get('error')).toBe('server_error')
+      expect(
+        fetchMock.mock.calls.some(([input]) =>
+          String(input).includes('/oauth2/token/revoke'),
+        ),
+      ).toBe(true)
+      expect(errorLog).toHaveBeenCalledWith(
+        JSON.stringify({
+          error: 'discord_guild_membership_invalid',
+          event: 'oidc_callback_failed',
+        }),
+      )
+    },
+  )
+
+  it('fails closed on malformed Discord guild membership data', async () => {
+    const errorLog = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+    const { discordState } = await beginAuthorization()
+    const fetchMock = installDiscordFetchMock({
+      membershipUserId: '111111111111111111',
+    })
+    const response = await SELF.fetch(
+      `${ISSUER}/callback?code=discord-code&state=${discordState}`,
+      { redirect: 'manual' },
+    )
+    const location = new URL(response.headers.get('Location') ?? '')
+
+    expect(location.searchParams.get('error')).toBe('server_error')
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes('/oauth2/token/revoke'),
+      ),
+    ).toBe(true)
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({
+        error: 'discord_guild_membership_invalid',
+        event: 'oidc_callback_failed',
+      }),
+    )
+  })
+
+  it('denies a member who has not completed membership screening', async () => {
+    const errorLog = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+    const { discordState } = await beginAuthorization()
+    const fetchMock = installDiscordFetchMock({ pendingMembership: true })
+    const response = await SELF.fetch(
+      `${ISSUER}/callback?code=discord-code&state=${discordState}`,
+      { redirect: 'manual' },
+    )
+    const location = new URL(response.headers.get('Location') ?? '')
+
+    expect(location.searchParams.get('error')).toBe('access_denied')
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes('/oauth2/token/revoke'),
+      ),
+    ).toBe(true)
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({
+        error: 'discord_guild_membership_required',
+        event: 'oidc_callback_failed',
+      }),
+    )
+  })
+
+  it('fails closed when Discord returns a non-boolean pending value', async () => {
+    const errorLog = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+    const { discordState } = await beginAuthorization()
+    const fetchMock = installDiscordFetchMock({ pendingMembership: 'false' })
+    const response = await SELF.fetch(
+      `${ISSUER}/callback?code=discord-code&state=${discordState}`,
+      { redirect: 'manual' },
+    )
+    const location = new URL(response.headers.get('Location') ?? '')
+
+    expect(location.searchParams.get('error')).toBe('server_error')
+    expect(
+      fetchMock.mock.calls.some(([input]) =>
+        String(input).includes('/oauth2/token/revoke'),
+      ),
+    ).toBe(true)
+    expect(errorLog).toHaveBeenCalledWith(
+      JSON.stringify({
+        error: 'discord_guild_membership_invalid',
+        event: 'oidc_callback_failed',
+      }),
+    )
+  })
+
   it('revokes an issued Discord token when token metadata is invalid', async () => {
     const errorLog = vi
       .spyOn(console, 'error')
@@ -651,6 +901,7 @@ describe('Discord callback and token endpoint', () => {
   it.each([
     ['token', 'discord_token_request_failed'],
     ['identity', 'discord_identity_invalid'],
+    ['membership', 'discord_guild_membership_invalid'],
     ['revoke', 'discord_token_revocation_failed'],
   ] as const)(
     'normalizes a %s provider failure before logging it',
