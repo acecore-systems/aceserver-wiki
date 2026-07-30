@@ -129,9 +129,9 @@ assert(
 )
 assert(
   normalizedAlphaGuideStyles.includes(
-    '.alpha-message__sources a { display: inline-flex; min-height: 2.75rem; align-items: center;',
+    '.alpha-message__sources a { display: inline-flex; min-width: 2.75rem; min-height: 2.75rem; align-items: center; justify-content: center;',
   ),
-  'Alpha chat source links must preserve a 44px minimum touch target.',
+  'Alpha chat source links must preserve a 44px square minimum touch target.',
 )
 assert(
   normalizeCss(shortAlphaGuideStyles).includes(

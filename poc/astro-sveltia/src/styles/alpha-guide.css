@@ -224,8 +224,10 @@
 
 .alpha-message__sources a {
   display: inline-flex;
+  min-width: 2.75rem;
   min-height: 2.75rem;
   align-items: center;
+  justify-content: center;
   color: #ffd84d;
   font-weight: 800;
   text-decoration-thickness: 0.1em;
