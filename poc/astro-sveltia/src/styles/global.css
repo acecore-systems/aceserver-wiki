@@ -188,6 +188,31 @@ a:hover {
   color: var(--color-text);
 }
 
+.site-links .edit-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--color-link);
+  border-radius: 4px;
+  background: var(--color-link);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.5;
+  transition:
+    border-color 0.2s,
+    background-color 0.2s;
+}
+
+.site-links .edit-link:hover {
+  border-color: #0059b8;
+  background: #0059b8;
+  color: #fff;
+}
+
+.edit-link:focus-visible {
+  outline-color: var(--color-text);
+}
+
 .site-search {
   display: none;
   align-items: center;
@@ -223,7 +248,9 @@ a:hover {
 
 .site-search button {
   height: 32px;
+  flex: 0 0 auto;
   padding: 4px 9px;
+  white-space: nowrap;
 }
 
 .site-search button:hover,
@@ -337,6 +364,28 @@ a:hover {
 
 .mobile-menu__primary {
   margin: 20px 0 !important;
+}
+
+.mobile-menu__edit {
+  margin: 12px 24px 0 !important;
+}
+
+.mobile-menu__panel .edit-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border: 1px solid var(--color-link);
+  border-radius: 4px;
+  background: var(--color-link);
+  color: #fff;
+  font-weight: 700;
+}
+
+.mobile-menu__panel .edit-link:hover {
+  border-color: #0059b8;
+  background: #0059b8;
+  color: #fff;
 }
 
 .mobile-menu__search {
@@ -757,17 +806,21 @@ a:hover {
     padding: 9px 60px;
   }
 
-  .site-links,
-  .site-search {
+  .site-links {
     display: flex;
+    margin-left: auto;
+  }
+
+  .site-links a:not(.edit-link) {
+    display: none;
+  }
+
+  .mobile-menu {
+    margin-left: 8px;
   }
 
   .side-navigation {
     display: block;
-  }
-
-  .mobile-menu {
-    display: none;
   }
 
   .home,
@@ -778,7 +831,25 @@ a:hover {
   }
 }
 
-@media (min-width: 600px) and (max-width: 960px) {
+@media (min-width: 896px) {
+  .site-links {
+    margin-left: 3rem;
+  }
+
+  .site-links a:not(.edit-link) {
+    display: inline;
+  }
+
+  .site-search {
+    display: flex;
+  }
+
+  .mobile-menu {
+    display: none;
+  }
+}
+
+@media (min-width: 896px) and (max-width: 960px) {
   .site-links a {
     padding-right: 7px;
     padding-left: 7px;

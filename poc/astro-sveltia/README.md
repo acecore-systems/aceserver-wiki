@@ -118,6 +118,8 @@ PRを作り、CIを通して`main`へ反映します。
 - 画像を8 MiB以下のJPEG/PNG/WebPに限定し、拡張子、magic bytes、
   4096 px以下の辺、16 MP以下の画素数を照合
 - APNG、animated WebP、GIF、AVIF、SVGを拒否
+- Markdown 1ファイルを448 KiB以下に限定し、保存時のgatewayと
+  build時のloaderで同じ上限を適用
 - 1回の保存を40変更・追加10 MiB以下に限定
 - readを1 user 120回/10分、全体60回/10秒かつ240回/10分にD1で制限
 - 10分あたり1 user 12 mutation/16 MiB、全体60 mutation/64 MiBをD1で制限

@@ -235,6 +235,8 @@ Astro schema、CMS設定、Pages Functions、workflowは作業branchのPRとCI�
   10分間に240回
 - mutationは1 Discord userあたり10分間に12回、全体で60回
 - mutationの追加量は1 Discord userあたり10分間に16 MiB、全体で64 MiB
+- Markdown 1ファイルは448 KiB以下。保存時のgatewayとbuild時のloaderで
+  同じ上限を適用
 - 1回の保存は40変更・追加10 MiB以下
 - CMS全体は1000 files、Markdown 64 MiB、画像512 MiB、
   Markdownと画像の合計512 MiB以下
