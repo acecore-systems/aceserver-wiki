@@ -80,6 +80,7 @@ body,
 }
 
 .cms-status__retry {
+  display: inline-block;
   margin-top: 1.5rem;
   border: 1px solid #26374e;
   border-radius: 0.5rem;
@@ -88,6 +89,7 @@ body,
   color: #ffffff;
   font: inherit;
   font-weight: 700;
+  text-decoration: none;
   cursor: pointer;
 }
 

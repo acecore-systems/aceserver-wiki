@@ -36,6 +36,8 @@ const PKCE_VERIFIER = /^[A-Za-z0-9._~-]{43,128}$/u
 const CALLBACK_FAILURE_CODES = new Set([
   'authorization_code_write_failed',
   'body_too_large',
+  'discord_guild_membership_invalid',
+  'discord_guild_membership_required',
   'discord_identity_invalid',
   'discord_token_http_3xx',
   'discord_token_http_400',
@@ -408,20 +410,22 @@ async function handleCallback(
 
   try {
     const identity = await resolveDiscordIdentity(config, callback.code ?? '')
+    const membershipVerifiedAt = unixTime()
     const brokerCode = randomToken()
     await createAuthorizationCode(
       env,
       brokerCode,
       {
         access_redirect_uri: authorization.access_redirect_uri,
-        authenticated_at: now,
+        authenticated_at: membershipVerifiedAt,
+        discord_guild_id: identity.guildId,
         discord_id: identity.id,
         email: identity.email,
         nonce: authorization.nonce,
         pkce_challenge: authorization.pkce_challenge,
         scope: authorization.scope,
       },
-      now,
+      membershipVerifiedAt,
     )
 
     const target = new URL(authorization.access_redirect_uri)
@@ -433,7 +437,10 @@ async function handleCallback(
     return redirectOAuthError(
       authorization.access_redirect_uri,
       authorization.access_state,
-      'server_error',
+      error instanceof Error &&
+        error.message === 'discord_guild_membership_required'
+        ? 'access_denied'
+        : 'server_error',
     )
   }
 }
@@ -667,12 +674,24 @@ async function handleToken(
       'token_authorization_grant_invalid',
     )
   }
+  if (authorization.discord_guild_id !== config.discordGuildId) {
+    return rejectTokenRequest(
+      400,
+      'invalid_grant',
+      'authorization grant is invalid',
+      'token_discord_guild_invalid',
+    )
+  }
 
   const expiresIn = 5 * 60
   const claims: Record<string, string | number | boolean> = {
     aud: config.accessClientId,
     auth_time: authorization.authenticated_at,
+    discord_guild_id: authorization.discord_guild_id,
     discord_id: authorization.discord_id,
+    discord_membership_verified_at: String(
+      authorization.authenticated_at,
+    ),
     email: authorization.email,
     email_verified: true,
     exp: now + expiresIn,
@@ -708,7 +727,9 @@ function discovery(config: BrokerConfig): Response {
       claims_supported: [
         'aud',
         'auth_time',
+        'discord_guild_id',
         'discord_id',
+        'discord_membership_verified_at',
         'email',
         'email_verified',
         'exp',

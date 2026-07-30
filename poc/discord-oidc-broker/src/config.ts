@@ -6,6 +6,7 @@ export type BrokerConfig = {
   accessRedirectUris: ReadonlySet<string>
   discordClientId: string
   discordClientSecret: string
+  discordGuildId: string
   discordRedirectUri: string
   issuer: string
   signingPrivateKeyPem: string
@@ -118,7 +119,8 @@ export function readConfig(env: Env): BrokerConfig {
 
   if (
     !/^[A-Za-z0-9._~-]{8,256}$/u.test(env.OIDC_ACCESS_CLIENT_ID) ||
-    !/^\d{17,20}$/u.test(env.DISCORD_CLIENT_ID)
+    !/^\d{17,20}$/u.test(env.DISCORD_CLIENT_ID) ||
+    !/^\d{17,20}$/u.test(env.DISCORD_GUILD_ID)
   ) {
     throw new Error('invalid_client_configuration')
   }
@@ -135,6 +137,7 @@ export function readConfig(env: Env): BrokerConfig {
       env.DISCORD_CLIENT_SECRET,
       'discord_client_secret',
     ),
+    discordGuildId: env.DISCORD_GUILD_ID,
     discordRedirectUri: `${issuer}/callback`,
     issuer,
     signingPrivateKeyPem: requireBoundedSecret(

@@ -25,30 +25,40 @@ raw Discord user IDを含めず、request IDだけを残します。Discord user
 ## 認証と認可
 
 Cloudflare Accessのメール許可ルールは広く設定できますが、gatewayはメールを
-認可に使いません。本番既定の`account`モードは、Access JWTの
-`custom.discord_id`をDiscord snowflakeとして検証し、
-メール検証済みの全Discordアカウントをドメイン制限なしで編集可能にします。
+認可に使いません。本番は`guild`モードで、Access JWTの
+`custom.discord_id`をDiscord user snowflake、
+`custom.discord_guild_id`を所属確認済みguild snowflakeとして検証します。
+エースサーバー公式Discord（`737538781024092170`）への参加手続きが完了した
+メンバーだけを編集可能にします。
 
 guildまたはroleで制限する場合は、OIDC brokerがDiscord membershipを確認し、
 次のcustom claimsをAccess JWTへ渡す必要があります。
 
 - `custom.discord_id`
 - `custom.discord_guild_id`
-- `custom.discord_roles`（role IDの配列）
+- `custom.discord_membership_verified_at`
+- `custom.discord_roles`（`role`モードだけで必要なrole IDの配列）
 
 Discordの通常OAuth2はOIDC ID tokenとJWKSを提供しないため、Cloudflare Accessの
-Generic OIDCへ直接接続しません。専用brokerがDiscordの`identify email` scopeで
-本人情報を取得し、OIDC ID tokenへ`discord_id`を発行します。Access側はscopeを
-`openid email profile`、OIDC Claimsを`discord_id`、email claimを`email`として
-設定し、Access JWTの`custom.discord_id`へ渡します。`profile`はCloudflare
+Generic OIDCへ直接接続しません。専用brokerがDiscordの
+`identify email guilds.members.read` scopeで本人情報と対象guildへの所属を
+確認し、OIDC ID tokenへ`discord_id`、`discord_guild_id`、
+`discord_membership_verified_at`を発行します。Access側は
+scopeを`openid email profile`、OIDC Claimsを
+`discord_id,discord_guild_id,discord_membership_verified_at`、email claimを
+`email`として設定し、Access JWTの`custom`へ渡します。`profile`はCloudflare
 Access互換目的で受理しますが、brokerは名前・username・avatarなどのprofile
 claimを保存・発行しません。claimsが欠落・不正の場合、gatewayはfail closedで
 拒否します。Access JWT自身のtop-level `sub`はCloudflare側のsubjectなので、
 Discord IDとして使用しません。
 
-`CMS_DISCORD_AUTHORIZATION_MODE=guild` では、brokerがguild membershipを
-確認したうえで発行した `discord_guild_id` が一致すれば、そのguildの全員を
-編集可能にします。`role` では `discord_roles` と
+`CMS_DISCORD_AUTHORIZATION_MODE=guild`では、brokerがguild membershipと
+Membership Screening完了を確認したうえで発行した`discord_guild_id`が一致すれば、
+そのguildのメンバーを編集可能にします。guildモードではrole claimを要求しません。
+`discord_membership_verified_at`は確認直後のUnix秒を文字列で保持します。
+gatewayは欠落、不正、61秒以上未来、確認から1200秒超のclaimをfail closedで
+拒否し、期限切れ時はAccess logoutから再ログインする導線を表示します。
+`role`では`discord_roles`と
 `CMS_DISCORD_ALLOWED_ROLE_IDS` の交差を必須にできます。Discord APIのmember
 rolesには暗黙の `@everyone` が含まれないため、`@everyone` role IDを
 role配列へ入れる前提にはしません。
@@ -73,8 +83,8 @@ repository permissionsだけを付与します。
 | `CMS_ACCESS_AUD`                 | Access application audience tag       |
 | `CMS_ACCESS_TEAM_DOMAIN`         | `https://<team>.cloudflareaccess.com` |
 | `CMS_ACCESS_HOSTNAMES`           | 管理画面hostのカンマ区切りallowlist   |
-| `CMS_DISCORD_GUILD_ID`           | `guild`/`role`時だけ許可するguild ID  |
-| `CMS_DISCORD_AUTHORIZATION_MODE` | `account`（既定）、`guild`、`role`    |
+| `CMS_DISCORD_GUILD_ID`           | 許可guild `737538781024092170`        |
+| `CMS_DISCORD_AUTHORIZATION_MODE` | 本番は`guild`、他に`account`/`role`   |
 | `CMS_DISCORD_ALLOWED_ROLE_IDS`   | `role`時の許可role IDカンマ区切り     |
 | `CMS_PUBLICATION_MODE`           | productionでは`direct`固定            |
 | `CMS_GITHUB_APP_CLIENT_ID`       | GitHub App client ID                  |

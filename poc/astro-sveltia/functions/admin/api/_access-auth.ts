@@ -9,9 +9,17 @@ export type AccessIdentity =
       discordRoleIds: string[]
       subject: string
     }
-  | { ok: false; status: number; message: string }
+  | {
+      ok: false
+      status: number
+      message: string
+      reauthenticate?: true
+    }
 
 const DISCORD_SNOWFLAKE_PATTERN = /^\d{17,20}$/u
+const DISCORD_MEMBERSHIP_TIMESTAMP_PATTERN = /^\d{10}$/u
+const DISCORD_MEMBERSHIP_MAX_AGE_SECONDS = 20 * 60
+const DISCORD_MEMBERSHIP_FUTURE_TOLERANCE_SECONDS = 60
 
 // This cache contains only public JWKS resolvers. It never stores request
 // identities, JWTs, roles, or any other request-specific state.
@@ -87,10 +95,21 @@ export async function getAccessIdentity(
       custom && typeof custom.discord_guild_id === 'string'
         ? custom.discord_guild_id.trim()
         : ''
+    const discordMembershipVerifiedAtValue =
+      custom && typeof custom.discord_membership_verified_at === 'string'
+        ? custom.discord_membership_verified_at.trim()
+        : ''
+    const discordMembershipVerifiedAt =
+      DISCORD_MEMBERSHIP_TIMESTAMP_PATTERN.test(
+        discordMembershipVerifiedAtValue,
+      )
+        ? Number(discordMembershipVerifiedAtValue)
+        : Number.NaN
+    const now = Math.floor(Date.now() / 1000)
     const rawDiscordRoleIds = custom?.discord_roles
     const rawDiscordRoleCount = Array.isArray(rawDiscordRoleIds)
       ? rawDiscordRoleIds.length
-      : authorizationMode === 'account'
+      : authorizationMode !== 'role'
         ? 0
         : null
     const discordRoleIds = Array.isArray(rawDiscordRoleIds)
@@ -100,7 +119,7 @@ export async function getAccessIdentity(
             ? [role.trim()]
             : []
         })
-      : authorizationMode === 'account'
+      : authorizationMode !== 'role'
         ? []
         : null
 
@@ -110,12 +129,30 @@ export async function getAccessIdentity(
       !DISCORD_SNOWFLAKE_PATTERN.test(discordId) ||
       !discordRoleIds ||
       discordRoleIds.length !== rawDiscordRoleCount ||
-      (authorizationMode !== 'account' && discordGuildId !== allowedGuildId)
+      (authorizationMode !== 'account' &&
+        (discordGuildId !== allowedGuildId ||
+          !Number.isSafeInteger(discordMembershipVerifiedAt) ||
+          discordMembershipVerifiedAt >
+            now + DISCORD_MEMBERSHIP_FUTURE_TOLERANCE_SECONDS))
     ) {
       return {
         ok: false,
         status: 403,
         message: 'Cloudflare Access JWTのDiscord属性を確認できません。',
+      }
+    }
+
+    if (
+      authorizationMode !== 'account' &&
+      now - discordMembershipVerifiedAt >
+        DISCORD_MEMBERSHIP_MAX_AGE_SECONDS
+    ) {
+      return {
+        ok: false,
+        status: 401,
+        message:
+          'Discordサーバーへの所属確認期限が切れました。再ログインしてください。',
+        reauthenticate: true,
       }
     }
 

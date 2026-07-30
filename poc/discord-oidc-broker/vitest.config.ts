@@ -13,6 +13,7 @@ const publicJwk = publicKey.export({ format: 'jwk' })
 const testBindings = {
   DISCORD_CLIENT_ID: '123456789012345678',
   DISCORD_CLIENT_SECRET: 'test-discord-client-secret',
+  DISCORD_GUILD_ID: '123456789012345679',
   OIDC_ACCESS_CLIENT_ID: 'cloudflare-access-test-client',
   OIDC_ACCESS_CLIENT_SECRET: 'test-cloudflare-access-secret',
   OIDC_ACCESS_REDIRECT_URIS:
@@ -41,6 +42,9 @@ export default defineConfig({
         bindings: {
           ...testBindings,
           TEST_D1_MIGRATIONS: await readD1Migrations('./migrations'),
+        },
+        d1Databases: {
+          OIDC_MIGRATION_TEST_DB: 'oidc-migration-test',
         },
       },
     }),

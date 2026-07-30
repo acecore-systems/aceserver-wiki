@@ -31,7 +31,13 @@ export const onRequest: PagesFunction<CmsRuntimeEnv> = async ({
   const auth = await getAccessIdentity(request, env)
 
   if (!auth.ok) {
-    return json({ message: auth.message }, auth.status)
+    return json(
+      {
+        message: auth.message,
+        reauthenticate: auth.reauthenticate === true,
+      },
+      auth.status,
+    )
   }
 
   if (!hasExpectedCmsRepositoryConfig(env)) {

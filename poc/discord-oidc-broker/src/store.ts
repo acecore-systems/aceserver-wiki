@@ -13,11 +13,19 @@ export type AuthorizationRequest = {
 export type AuthorizationCode = {
   access_redirect_uri: string
   authenticated_at: number
+  discord_guild_id: string | null
   discord_id: string
   email: string
   nonce: string | null
   pkce_challenge: string
   scope: string
+}
+
+type VerifiedAuthorizationCode = Omit<
+  AuthorizationCode,
+  'discord_guild_id'
+> & {
+  discord_guild_id: string
 }
 
 export async function cleanupExpiredState(
@@ -120,15 +128,16 @@ export async function consumeAuthorizationRequest(
 export async function createAuthorizationCode(
   env: Env,
   code: string,
-  value: AuthorizationCode,
+  value: VerifiedAuthorizationCode,
   now: number,
 ): Promise<void> {
   try {
     const result = await env.OIDC_STATE_DB.prepare(
       `INSERT INTO oidc_authorization_codes
          (code_hash, access_redirect_uri, nonce, scope, pkce_challenge,
-          discord_id, email, authenticated_at, created_at, expires_at)
-       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`,
+          discord_id, discord_guild_id, email, authenticated_at, created_at,
+          expires_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)`,
     )
       .bind(
         await sha256Hex(code),
@@ -137,6 +146,7 @@ export async function createAuthorizationCode(
         value.scope,
         value.pkce_challenge,
         value.discord_id,
+        value.discord_guild_id,
         value.email,
         value.authenticated_at,
         now,
@@ -166,7 +176,7 @@ export async function consumeAuthorizationCode(
        AND pkce_challenge = ?3
        AND expires_at >= ?4
      RETURNING access_redirect_uri, nonce, scope, pkce_challenge,
-       discord_id, email, authenticated_at`,
+       discord_id, discord_guild_id, email, authenticated_at`,
   )
     .bind(await sha256Hex(code), redirectUri, challenge, now)
     .first<AuthorizationCode>()
