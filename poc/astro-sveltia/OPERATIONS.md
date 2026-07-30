@@ -122,9 +122,11 @@ identityで`oidc_fields.discord_id`を照合して対象userをRevoke → Discor
 
 ### guild認可への切替順序
 
-Pagesを先に`guild`モードへ切り替えると、旧brokerと旧Access IdPには
-`discord_guild_id`がないため全編集者を403で拒否します。fail openには
-なりませんが、不要な停止を避けるため次の順序を固定します。
+旧brokerまたは旧Access IdPのままPagesを`guild`モードへ切り替えると、
+`discord_guild_id`がないため全編集者を403で拒否します。brokerとAccess IdPを
+先に更新してProvider Testを通した後は、旧`account` gatewayでapplication tokenが
+再発行される短い窓を残さないため、Pagesの`guild`反映を確認してから既存sessionを
+直ちに失効します。旧claimのsessionは新gatewayでfail closedになります。
 
 1. PRのbroker test、Astro test/build、Wrangler dry-runをgreenにする。
 2. OIDC D1へ`0002_verified_discord_guild.sql`を適用し、pendingを0にする。
@@ -132,12 +134,13 @@ Pagesを先に`guild`モードへ切り替えると、旧brokerと旧Access IdP�
    未完了者が`access_denied`、参加完了者が認証成功になることを確認する。
 4. Access IdPのOIDC Claimsを`discord_id,discord_guild_id`の2つにし、
    Provider Testで両方のsnowflakeとguild IDを確認する。
-5. 旧認可で発行済みのapplication tokenに加え、team-domain sessionを失効するか、
-   既存編集者全員のuser sessionを列挙して失効し、全編集者を新しいDiscord
-   ログインへ進ませる。
-6. PRをmergeし、GitHub push由来のPages production deploymentで`guild`モードを
+5. PRをmergeし、GitHub push由来のPages production deploymentで`guild`モードを
    反映する。
-7. guild参加者の保存・D1 audit・GitHub commit・Pages再build、非参加者と
+6. 反映直後に旧認可で発行済みのapplication tokenを失効する。加えて
+   team-domain sessionを失効するか、既存編集者全員のuser sessionを列挙して
+   失効し、全編集者を新しいDiscordログインへ進ませる。
+7. 失効の反映を確認してから、guild参加者の保存・D1 audit・GitHub commit・
+   Pages再build、非参加者と
    Membership Screening未完了者の拒否、Access JWTの
    `custom.discord_id`と`custom.discord_guild_id`を本番E2Eで確認する。
 
