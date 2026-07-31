@@ -19,8 +19,8 @@ const isHome = Astro.url.pathname === '/'
 <header class="site-header">
   <div class="site-header__inner">
     <a class="site-title" href="/" aria-label={`${HEADER_TITLE} トップ`}>
-      <span class="site-title__icon" aria-hidden="true">
-        <img src={WIKI_ICON_PATH} alt="" width="24" height="24" />
+      <span class="site-title__icon">
+        <img src={WIKI_ICON_PATH} alt={HEADER_TITLE} width="24" height="24" />
       </span>
       <span class="site-title__text">{HEADER_TITLE}</span>
     </a>
