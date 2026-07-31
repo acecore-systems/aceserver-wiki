@@ -135,7 +135,7 @@ test('Vitest never opens remote AI or Vectorize binding sessions', async () => {
   assert.doesNotMatch(config, /remoteBindings:\s*true/u)
 })
 
-test('Production search stays disabled until the OpenAI index rollout completes', async () => {
+test('Production search is enabled after the OpenAI index rollout completes', async () => {
   const config = await readFile(wranglerConfigUrl, 'utf8')
   const previewOffset = config.indexOf('"env"')
 
@@ -144,7 +144,7 @@ test('Production search stays disabled until the OpenAI index rollout completes'
   const productionConfig = config.slice(0, previewOffset)
   const previewConfig = config.slice(previewOffset)
 
-  assert.match(productionConfig, /"SEARCH_ENABLED": "false"/u)
-  assert.doesNotMatch(productionConfig, /"SEARCH_ENABLED": "true"/u)
+  assert.match(productionConfig, /"SEARCH_ENABLED": "true"/u)
+  assert.doesNotMatch(productionConfig, /"SEARCH_ENABLED": "false"/u)
   assert.match(previewConfig, /"SEARCH_ENABLED": "true"/u)
 })
