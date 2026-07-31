@@ -174,6 +174,11 @@ Responses APIの`text.format` JSON Schema（strict）で根拠番号とWiki本�
   `text-embedding-3-large` / `1536`
 - `SEARCH_ENABLED` / `SEARCH_MIN_SCORE`: 共用するWiki検索の有効化とscore下限
 
+通常のPages Previewは`SEARCH_INDEX`をbindingせず、`SEARCH_ENABLED=false`と
+`ALPHA_CHAT_ENABLED=false`で文字列検索だけを検証します。Vectorizeは
+Production indexだけを使用し、全件同期と収束確認を終えたProductionでは
+`SEARCH_ENABLED=true`と`ALPHA_CHAT_ENABLED=true`を維持します。
+
 AI呼び出し前に`CMS_DATABASE`で60秒窓のrate limitを適用します。
 clientは5回/分、全体は60回/分で、超過時は`429`と`Retry-After`を返します。
 client keyは`CF-Connecting-IP`を優先し、利用できない場合は
@@ -276,8 +281,8 @@ Git Provider、source repository、GitHub push deployment、preview domainを
 production成功とは扱いません。`asv-wiki.acecore.net` は、
 `aceserver-wiki-astro.pages.dev`上でDiscordログイン・保存・再ビルド・rollback
 までE2E確認した後にだけ接続します。
-branch previewは`CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretを
-登録しません。
+branch previewは`CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretと
+Vectorize bindingを登録しません。
 
 ## 移行状態
 

@@ -50,7 +50,10 @@ const UNAVAILABLE_ANSWER =
 const MODEL_FAILURE_ANSWER =
   'いまはアルファくんの応答につながらなかったよ。少し時間をおいて試してね。'
 
-type AlphaChatEnv = Env & {
+type AlphaChatEnv = Omit<
+  Env,
+  'ALPHA_CHAT_ENABLED' | 'SEARCH_ENABLED' | 'SEARCH_INDEX'
+> & {
   ALPHA_CHAT_ENABLED?: string
   ASSETS?: Fetcher
   OPENAI_API_KEY?: string
@@ -58,6 +61,8 @@ type AlphaChatEnv = Env & {
   OPENAI_EMBEDDING_MODEL?: string
   OPENAI_REASONING_EFFORT?: string
   OPENAI_RESPONSE_MODEL?: string
+  SEARCH_ENABLED?: string
+  SEARCH_INDEX?: Vectorize
 }
 
 type ChatMessage = {

@@ -206,13 +206,12 @@ Vectorize、D1のいずれかが失敗・timeout・rate limitになった場合�
 
 - embedding model: OpenAI `text-embedding-3-large`
 - index: 1536 dimensions / cosine
-- preview index: `aceserver-wiki-search-openai-1536-preview`
 - production index: `aceserver-wiki-search-openai-1536-production`
 - namespace: `ja`
 - corpus: 公開対象Markdown 15記事からbuild時に生成する
   `dist/vector-corpus.json`
 - API: same-originの`POST /api/search`
-- minimum score: `0.40`（新embeddingでPreview評価し、production切替前に再調整する）
+- minimum score: `0.40`
 - rate limit: `CMS_DATABASE`の`semantic_search_rate_limits`を使用し、
   client 20回/分、全体300回/分
 - kill switch: `SEARCH_ENABLED`
@@ -221,8 +220,11 @@ corpusのchunk IDは本文・記事URL・見出しから決定的に生成しま
 現行indexとの差分だけをupsertし、削除はupsert後に行います。管理外ID、index名の
 allowlist外、1536/cosine以外、20%を超える削除を既定で拒否します。
 Vectorizeのdimensionsは作成後に変更できないため、旧1024次元indexは再利用しません。
-新しい1536次元indexを作成・同期・Preview検証してからbindingを切り替え、旧indexは
-productionの実API確認とrollback期間が終わるまで残します。
+1536次元Production indexはGitHub Actions run `30599607992`で
+`current=26`、`expected=26`、`upsert=0`、`delete=0`の収束を確認済みです。
+Productionは`SEARCH_ENABLED=true`と`ALPHA_CHAT_ENABLED=true`を維持します。
+Pages PreviewはVectorize bindingを持たず、両flagを`false`に固定します。
+旧indexはproductionの実API確認とrollback期間が終わるまで残します。
 
 ### 初回導入
 
@@ -234,9 +236,6 @@ npm ci
 npm run build
 npm run search:sync:dry-run
 
-npx wrangler vectorize create aceserver-wiki-search-openai-1536-preview \
-  --dimensions 1536 --metric cosine \
-  --description "Ace Server Wiki preview semantic search (OpenAI text-embedding-3-large, 1536 dimensions)"
 npx wrangler vectorize create aceserver-wiki-search-openai-1536-production \
   --dimensions 1536 --metric cosine \
   --description "Ace Server Wiki production semantic search (OpenAI text-embedding-3-large, 1536 dimensions)"
@@ -247,32 +246,33 @@ npx wrangler d1 migrations list CMS_DATABASE --env preview --remote
 npx wrangler d1 migrations list CMS_DATABASE --remote
 ```
 
-GitHub Environmentsを次の2つに分け、どちらもdeployment branchを`main`だけに
-制限します。
+Production同期workflowは次のGitHub Environmentだけを参照し、deployment
+branchを`main`だけに制限します。
 
 | Environment                         | Secrets                                                         |
 | ----------------------------------- | --------------------------------------------------------------- |
-| `cloudflare-wiki-search-preview`    | `CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN`, `OPENAI_API_KEY`    |
 | `cloudflare-wiki-search-production` | `CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN`, `OPENAI_API_KEY` |
 
-Cloudflare tokenは環境ごとに分離し、対象accountのVectorize Writeに必要な
-最小権限だけを付与します。OpenAI keyはこの用途専用projectへ限定し、project側の
+Cloudflare tokenは対象accountのVectorize Writeに必要な最小権限だけを付与します。
+OpenAI keyはこの用途専用projectへ限定し、project側の
 rate limitと予算上限を設定します。workflowは任意PRのcodeへsecretを渡さず、
 protected `main`の同期scriptだけを実行します。
-このGitHub Actions secretとは別に、PagesのPreview/production両環境へ
-runtime secret `OPENAI_API_KEY`を設定します。値を`wrangler.jsonc`、`.dev.vars.example`、
-workflow logへ書きません。
+既存のPreview用Environment、token、index、Pages secretはこの変更では削除しませんが、
+workflow、binding、移行gateからは参照しません。ProductionのPages runtime secret
+`OPENAI_API_KEY`の値は`wrangler.jsonc`、`.dev.vars.example`、workflow logへ書きません。
 
-1. `Sync Wiki Vectorize index`を`preview`指定で手動実行する。
-2. Preview deploymentの`/api/search`が200を返し、日本語評価queryで
-   関連記事を返すことを確認する。
-3. PRをmergeし、GitHub repository連携によるPages production deploymentと
+1. Productionの`SEARCH_ENABLED=true`と`ALPHA_CHAT_ENABLED=true`、
+   Previewの両flagが`false`でVectorize bindingがないことを確認する。
+2. PRをmergeし、GitHub repository連携によるPages production deploymentと
    `/.well-known/aceserver-wiki-build.json`のcommit/corpus version一致を確認する。
-4. Production同期workflowが成功してから、別PRでproductionの
-   `SEARCH_ENABLED`を`true`へ変更する。
-5. custom domainで文字列検索、意味検索、API障害時fallbackを再確認する。
+3. Production同期workflowを実行し、全件収束後に再実行してno-opを確認する。
+   workflowはlive同期時だけ
+   `--confirm-production aceserver-wiki-search-openai-1536-production`を渡し、
+   `--allow-large-delete`は渡さない。
+4. custom domainで文字列検索、意味検索、API障害時fallbackを再確認する。
 
-`SEARCH_ENABLED=false`の間も文字列検索は動作します。緊急停止はこの値を
+Previewは有効化PR後も`SEARCH_ENABLED=false`と`ALPHA_CHAT_ENABLED=false`のままです。
+`SEARCH_ENABLED=false`の間も文字列検索は動作します。緊急停止はProductionの値を
 `false`へ戻してGitHubへpushし、Pagesの`github:push` deploymentを通します。
 Direct Uploadや手動uploadを復旧経路にしません。
 
@@ -311,11 +311,11 @@ D1障害時はAIを呼ばず`503`でfail closedにします。
 GitHubへpushし、GitHub連携Pages deploymentから反映します。Direct Uploadや
 dashboardだけの恒久的な上書きを正本にしません。
 
-### Preview実AIゲート
+### Preview非VectorizeゲートとProduction実AIゲート
 
 unit testやWrangler bundle成功だけではOpenAI APIとVectorizeの実接続を証明
-できません。productionへ反映する前に、review対象commitから作られたPages
-Previewで次を確認します。
+できません。一方、通常のPages PreviewへProduction相当の書込み可能bindingは
+渡しません。次の順序で確認します。
 
 1. Node.js 24.18.0で次のローカルgateを通す。
 
@@ -330,39 +330,41 @@ Previewで次を確認します。
    npx wrangler pages functions build
    ```
 
-2. Previewのbindingが
-   `aceserver-wiki-search-openai-1536-preview`の`SEARCH_INDEX`と
-   preview専用`CMS_DATABASE`であり、Workers AI bindingがないことを確認する。
-   secretは`OPENAI_API_KEY`、varsは
-   `ALPHA_CHAT_ENABLED=true`、
+2. Previewに`SEARCH_INDEX`がなく、preview専用`CMS_DATABASE`だけがbinding
+   されていることを確認する。varsは
+   `SEARCH_ENABLED=false`、`ALPHA_CHAT_ENABLED=false`、
    `OPENAI_RESPONSE_MODEL=gpt-5.6-luna`、
    `OPENAI_REASONING_EFFORT=medium`、
    `OPENAI_EMBEDDING_MODEL=text-embedding-3-large`、
    `OPENAI_EMBEDDING_DIMENSIONS=1536`、
    `CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretは置かない。
-3. Previewへ同期済みcorpus versionと
-   `/.well-known/aceserver-wiki-build.json`のcommit・corpus versionが
-   review対象と一致することを確認する。
-4. UUIDをclient headerへ付け、根拠が存在する質問を実送信する。
+3. Previewの`/.well-known/aceserver-wiki-build.json`のcommit・corpus versionが
+   review対象と一致し、`/search-index.json`の文字列検索が動作することを確認する。
+   `/api/search`と`/api/alpha-chat`は`503`でfail closedすることを確認する。
+4. Production indexの同期を2回通し、2回目がno-opであることを確認する。
+   現行の収束証跡はGitHub Actions run `30599607992`で、
+   `current=26`、`expected=26`、`upsert=0`、`delete=0`。
+   Productionの`SEARCH_ENABLED`と`ALPHA_CHAT_ENABLED`は`true`を維持する。
+5. UUIDをclient headerへ付け、Productionへ根拠が存在する質問を実送信する。
 
    ```bash
-   curl -sS -X POST "https://<PREVIEW_HOST>/api/alpha-chat" \
+   curl -sS -X POST "https://asv-wiki.acecore.net/api/alpha-chat" \
      -H "Content-Type: application/json" \
-     -H "Origin: https://<PREVIEW_HOST>" \
+     -H "Origin: https://asv-wiki.acecore.net" \
      -H "X-Acecore-Chat-Client: 11111111-1111-4111-8111-111111111111" \
      --data '{"question":"サバイバルサーバーで使えるコマンドを教えて"}'
    ```
 
-5. `200`、`ok: true`、空でない`answer`、1件以上のstructured `sources`を確認し、
+6. `200`、`ok: true`、空でない`answer`、1件以上のstructured `sources`を確認し、
    各URLが実在する同一originの`/article/`で、回答内容がその記事の記載範囲内
    であることを目視する。
-6. Wikiに記載がない可否質問も送信し、根拠のない断定をせず「確認できない」と
+7. Wikiに記載がない可否質問も送信し、根拠のない断定をせず「確認できない」と
    明示することを確認する。rate-limit境界は同一固定60秒窓の通算6回目が
    `429`かつ`Retry-After: 60`になることを記録する。Pagesでは
    `CF-Connecting-IP`をclient keyへ優先するため、同じ送信元からUUIDだけを
    変えても枠は分離されない。
-7. Preview URL、deployment commit、corpus version、モデル名、質問、status、
-   出典URLをPRへ記録する。timeout時はrequest契約を再確認してから一度再試験し、
+8. Production URL、deployment commit、corpus version、モデル名、質問、status、
+   出典URLを関連PRへ記録する。timeout時はrequest契約を再確認してから一度再試験し、
    1回のtimeoutだけで実装不良または成功と判定しない。
 
 ## 保存と監査
@@ -470,7 +472,7 @@ deployment成功まで確認します。
 - 公開面はレスポンスごとに異なるnonceのstrict CSP、admin面は専用CSPが有効
 - 全公開ページにWikiアイコンのアルファくんdialogと外部`/alpha-chat.js`があり、
   keyboard操作、500文字上限、message log、CSP nonceが有効
-- Previewの実AI質問がWiki根拠とstructured sourcesを返し、根拠なし質問を
+- Production有効化後の実AI質問がWiki根拠とstructured sourcesを返し、根拠なし質問を
   「確認できない」と扱い、client 6回目/分を429で拒否する
 - `/admin/*`はDiscord Access loginなしでは到達できない
 - guild参加・Membership Screening完了済みのDiscord userだけがログインし、
