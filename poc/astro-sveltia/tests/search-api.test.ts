@@ -165,6 +165,37 @@ describe('semantic search API', () => {
     expect(malformedResponse.status).toBe(400)
   })
 
+  it('does not consume D1 rate-limit capacity for invalid payloads', async () => {
+    const consumedKeys: string[] = []
+    const invalidQueryResponse = await invoke(
+      searchRequest({ query: 'a' }),
+      createEnv({
+        onRateLimit(key) {
+          consumedKeys.push(key)
+        },
+      }),
+    )
+    const malformedResponse = await invoke(
+      new Request('https://asv-wiki.acecore.net/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Origin: 'https://asv-wiki.acecore.net',
+        },
+        body: '{',
+      }),
+      createEnv({
+        onRateLimit(key) {
+          consumedKeys.push(key)
+        },
+      }),
+    )
+
+    expect(invalidQueryResponse.status).toBe(400)
+    expect(malformedResponse.status).toBe(400)
+    expect(consumedKeys).toEqual([])
+  })
+
   it('rejects declared and streamed bodies larger than 2 KiB', async () => {
     const declaredRequest = new Request(
       'https://asv-wiki.acecore.net/api/search',
@@ -243,6 +274,40 @@ describe('semantic search API', () => {
       articleMatch({ id: 'external', url: 'https://evil.example/article/' }),
       articleMatch({ id: 'wrong-path', url: '/search/' }),
       articleMatch({ id: 'traversal', url: '/article/../admin/' }),
+      articleMatch({
+        id: 'encoded-traversal',
+        url: '/article/%252e%252e/admin/',
+      }),
+      articleMatch({ id: 'encoded-slash', url: '/article/%252fprivate/' }),
+      articleMatch({ id: 'encoded-backslash', url: '/article/%255cprivate/' }),
+      articleMatch({ id: 'encoded-control', url: '/article/%2500private/' }),
+      articleMatch({
+        id: 'normalized-percent',
+        url: '/article/%EF%BC%85%32%66private/',
+      }),
+      articleMatch({ id: 'raw-dot', url: '/article/safe/../rule/' }),
+      articleMatch({ id: 'raw-backslash', url: '/article/safe\\private/' }),
+      articleMatch({ id: 'raw-tab', url: '\t/article/rule/' }),
+      articleMatch({
+        id: 'raw-control',
+        url: '/article/' + String.fromCharCode(0) + 'private/',
+      }),
+      articleMatch({
+        id: 'encoded-slash-path',
+        url: '/article/safe%2fprivate/',
+      }),
+      articleMatch({
+        id: 'encoded-dot-path',
+        url: '/article/safe/%252e%252e/rule/',
+      }),
+      articleMatch({
+        id: 'nfkc-dot-path',
+        url: '/article/%EF%BC%8E%EF%BC%8E/rule/',
+      }),
+      articleMatch({
+        id: 'nfkc-backslash-path',
+        url: '/article/%EF%BC%BCprivate/',
+      }),
       articleMatch({ id: 'wrong-locale', locale: 'en' }),
       ...Array.from({ length: 6 }, (_, index) =>
         articleMatch({

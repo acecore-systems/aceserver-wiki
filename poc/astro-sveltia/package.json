@@ -8,8 +8,9 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "npm run build:astro && npm run build:meta && npm run test:build",
+    "build": "npm run build:astro && npm run build:pagefind && npm run build:meta && npm run test:build",
     "build:astro": "astro build",
+    "build:pagefind": "pagefind --site dist",
     "build:meta": "node scripts/write-build-meta.mjs",
     "check": "astro check",
     "migrate:newt-drafts": "node scripts/import-newt-drafts.mjs",
@@ -44,6 +45,7 @@
     "@cloudflare/vitest-pool-workers": "0.19.0",
     "@types/node": "26.1.2",
     "devalue": "5.8.2",
+    "pagefind": "^1.5.2",
     "parse5": "^8.0.1",
     "turndown": "^7.2.4",
     "typescript": "6.0.3",

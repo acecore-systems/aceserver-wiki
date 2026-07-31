@@ -9,12 +9,15 @@ const DEFAULT_MIN_SCORE = 0.4
 const MAX_REQUEST_BYTES = 2048
 const MIN_QUERY_LENGTH = 2
 const MAX_QUERY_LENGTH = 160
+const MAX_PATH_DECODE_PASSES = 4
 const QUERY_TOP_K = 15
 const RESULT_LIMIT = 5
 const RATE_LIMIT_WINDOW_SECONDS = 60
 const RATE_LIMIT_RETENTION_SECONDS = 600
 const CLIENT_RATE_LIMIT = 20
 const GLOBAL_RATE_LIMIT = 300
+const MAX_URL_LENGTH = 500
+const CANONICAL_PATH_ORIGIN = 'https://url-validation.invalid'
 const CLIENT_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
 
@@ -86,6 +89,30 @@ export const createSearchHandler =
         return errorResponse('unavailable', 503, requestId, startedAt)
       }
 
+      const requestText = await readBoundedRequestText(
+        request,
+        MAX_REQUEST_BYTES,
+      )
+      if (requestText === null) {
+        return errorResponse('request_too_large', 413, requestId, startedAt)
+      }
+
+      let parsedPayload: unknown
+      try {
+        parsedPayload = JSON.parse(requestText)
+      } catch {
+        return errorResponse('invalid_json', 400, requestId, startedAt)
+      }
+      if (!isJsonObject(parsedPayload)) {
+        return errorResponse('invalid_request', 400, requestId, startedAt)
+      }
+
+      const payload = parsedPayload as SearchPayload
+      const query = normalizeQuery(payload.query)
+      if (!query || !isJapaneseLocale(payload.locale)) {
+        return errorResponse('invalid_request', 400, requestId, startedAt)
+      }
+
       let clientAllowed = false
       let globalAllowed = false
       let clientKey = ''
@@ -130,30 +157,6 @@ export const createSearchHandler =
         )
       }
 
-      const requestText = await readBoundedRequestText(
-        request,
-        MAX_REQUEST_BYTES,
-      )
-      if (requestText === null) {
-        return errorResponse('request_too_large', 413, requestId, startedAt)
-      }
-
-      let parsedPayload: unknown
-      try {
-        parsedPayload = JSON.parse(requestText)
-      } catch {
-        return errorResponse('invalid_json', 400, requestId, startedAt)
-      }
-      if (!isJsonObject(parsedPayload)) {
-        return errorResponse('invalid_request', 400, requestId, startedAt)
-      }
-
-      const payload = parsedPayload as SearchPayload
-      const query = normalizeQuery(payload.query)
-      if (!query || !isJapaneseLocale(payload.locale)) {
-        return errorResponse('invalid_request', 400, requestId, startedAt)
-      }
-
       let embedding: number[]
       try {
         const embeddings = await createOpenAiEmbeddings({
@@ -196,7 +199,6 @@ export const createSearchHandler =
       const results = normalizeMatches(
         matches,
         normalizeMinScore(env.SEARCH_MIN_SCORE),
-        request.url,
       )
 
       return jsonResponse(
@@ -347,7 +349,6 @@ function normalizeMinScore(value: string | undefined): number {
 function normalizeMatches(
   queryResult: VectorizeMatches,
   minScore: number,
-  requestUrl: string,
 ): SearchResult[] {
   const results: SearchResult[] = []
   const seenUrls = new Set<string>()
@@ -356,7 +357,7 @@ function normalizeMatches(
     if (!Number.isFinite(match.score) || match.score < minScore) continue
 
     const id = readString(match.id, 128)
-    const metadata = normalizeMetadata(match.metadata, requestUrl)
+    const metadata = normalizeMetadata(match.metadata)
     if (!id || !metadata || seenUrls.has(metadata.url)) continue
 
     seenUrls.add(metadata.url)
@@ -375,52 +376,112 @@ function normalizeMatches(
   return results
 }
 
-function normalizeMetadata(
-  value: unknown,
-  requestUrl: string,
-): SearchMetadata | null {
+function normalizeMetadata(value: unknown): SearchMetadata | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
 
   const metadata = value as Record<string, unknown>
-  const url = readString(metadata.url, 500)
+  const pathname = getSafePublicPathname(metadata.url)
   const title = readString(metadata.title, 240)
   const section = readString(metadata.section, 240) || title
   const excerpt = readString(metadata.excerpt, 500)
   const contentType = readString(metadata.contentType, 40) || 'article'
   const locale = readString(metadata.locale, 16)
   if (
-    !url ||
+    !pathname ||
     !title ||
     locale !== SEARCH_LOCALE ||
-    !url.startsWith('/') ||
-    url.startsWith('//')
+    !pathname.startsWith('/article/')
   ) {
     return null
   }
 
-  try {
-    const requestOrigin = new URL(requestUrl).origin
-    const resolved = new URL(url, requestUrl)
-    if (
-      resolved.origin !== requestOrigin ||
-      !resolved.pathname.startsWith('/article/') ||
-      resolved.search ||
-      resolved.hash
-    ) {
+  return {
+    url: pathname,
+    title,
+    section,
+    excerpt,
+    contentType,
+    locale: SEARCH_LOCALE,
+  }
+}
+
+function getSafePublicPathname(value: unknown): string | null {
+  const rawPathname = getRawUrl(value)
+  if (
+    !rawPathname ||
+    !rawPathname.startsWith('/') ||
+    rawPathname.startsWith('//')
+  ) {
+    return null
+  }
+
+  let pathname = rawPathname
+  for (let pass = 0; pass < MAX_PATH_DECODE_PASSES; pass += 1) {
+    pathname = pathname.normalize('NFKC')
+    if (hasUnsafePathSyntax(pathname)) return null
+    if (!pathname.includes('%')) break
+    if (/%(?:2f|5c)/iu.test(pathname)) return null
+
+    try {
+      pathname = decodeURIComponent(pathname)
+    } catch {
       return null
     }
+  }
 
-    return {
-      url: resolved.pathname,
-      title,
-      section,
-      excerpt,
-      contentType,
-      locale: SEARCH_LOCALE,
-    }
+  pathname = pathname.normalize('NFKC')
+  if (hasUnsafePathSyntax(pathname) || pathname.includes('%')) return null
+
+  try {
+    const url = new URL(pathname, CANONICAL_PATH_ORIGIN)
+    return url.origin === CANONICAL_PATH_ORIGIN && !url.search && !url.hash
+      ? url.pathname
+      : null
   } catch {
     return null
   }
+}
+
+function getRawUrl(value: unknown): string | null {
+  if (
+    typeof value !== 'string' ||
+    !value ||
+    [...value].length > MAX_URL_LENGTH
+  ) {
+    return null
+  }
+
+  const rawUrl = value.normalize('NFKC')
+  if (
+    !rawUrl ||
+    [...rawUrl].length > MAX_URL_LENGTH ||
+    /[\s\u0000-\u001F\u007F]/u.test(rawUrl) ||
+    rawUrl.includes('\\') ||
+    rawUrl.includes('?') ||
+    rawUrl.includes('#') ||
+    /[<>"']/u.test(rawUrl)
+  ) {
+    return null
+  }
+
+  return rawUrl
+}
+
+function hasUnsafePathSyntax(pathname: string): boolean {
+  if (
+    !pathname.startsWith('/') ||
+    pathname.includes('//') ||
+    pathname.includes('\\') ||
+    pathname.includes('?') ||
+    pathname.includes('#') ||
+    /[\s\u0000-\u001F\u007F]/u.test(pathname) ||
+    pathname.split('/').some((segment) => segment === '.' || segment === '..')
+  ) {
+    return true
+  }
+
+  const firstSegment = pathname.split('/')[1]?.toLowerCase()
+  return firstSegment === 'admin' || firstSegment === 'api'
 }
 
 function getErrorCode(error: unknown, fallback: string): string {

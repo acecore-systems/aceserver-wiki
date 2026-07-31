@@ -91,7 +91,8 @@ async function withSecurityHeaders(response: Response, url: URL) {
   if (isAdmin) headers.set('Cache-Control', 'no-store')
   if (
     url.pathname === '/search-index.json' ||
-    url.pathname === '/vector-corpus.json'
+    url.pathname === '/vector-corpus.json' ||
+    url.pathname.startsWith('/pagefind/')
   ) {
     headers.set('X-Robots-Tag', 'noindex')
   }
@@ -157,7 +158,7 @@ function buildPublicContentSecurityPolicy(nonce: string) {
   return [
     "default-src 'self'",
     "base-uri 'none'",
-    "connect-src 'self'",
+    "connect-src 'self' https://acecore.net",
     "font-src 'self' data:",
     "form-action 'self'",
     "frame-ancestors 'none'",

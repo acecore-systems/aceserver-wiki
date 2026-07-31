@@ -542,9 +542,52 @@ assert(
 )
 
 const searchScript = await readFile(new URL('search.js', dist), 'utf8')
+const searchContract = await readFile(
+  new URL('search-contract.js', dist),
+  'utf8',
+)
 assert(
   searchScript.includes('queryInput && !queryInput.value'),
   'Search initialization must not overwrite a query the user already typed.',
+)
+assert(
+  searchScript.includes("fetch('/api/search'") &&
+    searchScript.includes("import('/pagefind/pagefind.js')") &&
+    searchScript.indexOf('loadSemanticResults(query)') <
+      searchScript.indexOf('loadPagefindResults(query)'),
+  'Search must use local Vectorize results before Pagefind fallback.',
+)
+assert(
+  searchScript.includes('https://acecore.net/api/network-search') &&
+    searchScript.includes('/search-contract.js') &&
+    searchContract.includes('source === ownSource') &&
+    searchContract.includes('sourceLabel !== sourceConfig.label') &&
+    searchContract.includes('function isStrictRequestId(value)') &&
+    searchContract.includes(
+      "typeof value === 'string' && REQUEST_ID_PATTERN.test(value)",
+    ) &&
+    searchContract.includes(
+      'normalizeNetworkUrl(value, source, allowedOrigin)',
+    ) &&
+    searchContract.includes("const canonicalPrefix = allowedOrigin + '/'") &&
+    searchContract.includes(
+      'getSafePublicPathname(rawUrl.slice(allowedOrigin.length))',
+    ) &&
+    searchContract.includes("source === 'wiki'") &&
+    searchContract.includes("pathname.startsWith('/article/')") &&
+    searchContract.includes("source === 'portal'") &&
+    searchContract.includes("'/vector-corpus.json'") &&
+    searchContract.includes("'/404.html/'") &&
+    searchContract.includes('MAX_PATH_DECODE_PASSES') &&
+    searchContract.includes("pathname.includes('%')") &&
+    searchContract.includes("rawUrl.includes('?')") &&
+    searchContract.includes("rawUrl.includes('#')") &&
+    searchScript.includes('getSafePublicPathname(value)'),
+  'Search must keep related-site results non-blocking, self-excluding, schema-validated, and URL-safe.',
+)
+assert(
+  (await readFile(new URL('pagefind/pagefind.js', dist), 'utf8')).length > 0,
+  'Pagefind client output is missing from the build.',
 )
 
 const sitemap = await readFile(new URL('sitemap.xml', dist), 'utf8')
