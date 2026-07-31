@@ -11,7 +11,7 @@ import {
   validateDeletePlan,
 } from '../scripts/sync-vectorize.mjs'
 
-const PREVIEW_INDEX = 'aceserver-wiki-search-openai-1536-preview'
+const PRODUCTION_INDEX = 'aceserver-wiki-search-openai-1536-production'
 const embedding = Array.from({ length: 1536 }, () => 0.01)
 const temporaryRoots = []
 
@@ -49,7 +49,7 @@ test('15記事のcorpusを検証し、dry-runはcredentialを要求しない', a
   const result = await syncVectorize({
     corpusFile,
     dryRun: true,
-    indexName: PREVIEW_INDEX,
+    indexName: PRODUCTION_INDEX,
     fetchImpl() {
       throw new Error('network must not be called')
     },
@@ -61,7 +61,7 @@ test('15記事のcorpusを検証し、dry-runはcredentialを要求しない', a
   assert.equal(result.vectors, 15)
 })
 
-test('同期先indexをWiki preview/productionだけに制限する', async () => {
+test('同期先indexをWiki productionだけに制限する', async () => {
   const corpusFile = await writeCorpus(createCorpus())
 
   await assert.rejects(
@@ -73,6 +73,28 @@ test('同期先indexをWiki preview/productionだけに制限する', async () =
     }),
     /must be one of/u,
   )
+})
+
+test('live Production同期は明示confirmをnetwork前に要求する', async () => {
+  const corpusFile = await writeCorpus(createCorpus())
+  let networkCalls = 0
+
+  await assert.rejects(
+    syncVectorize({
+      accountId: 'account',
+      apiToken: 'token',
+      openAiApiKey: 'openai-key',
+      indexName: PRODUCTION_INDEX,
+      corpusFile,
+      fetchImpl() {
+        networkCalls += 1
+        throw new Error('network must not be called')
+      },
+      logger: silentLogger,
+    }),
+    /--confirm-production aceserver-wiki-search-openai-1536-production/u,
+  )
+  assert.equal(networkCalls, 0)
 })
 
 test('20%を超える削除を明示overrideなしでは拒否する', () => {
@@ -109,9 +131,9 @@ test('既存indexとの差分だけをembedding・upsert・deleteする', async 
     const url = String(input)
     calls.push({ url, method: init.method || 'GET' })
 
-    if (url.endsWith(`/vectorize/v2/indexes/${PREVIEW_INDEX}`)) {
+    if (url.endsWith(`/vectorize/v2/indexes/${PRODUCTION_INDEX}`)) {
       return cloudflareResponse({
-        name: PREVIEW_INDEX,
+        name: PRODUCTION_INDEX,
         config: { dimensions: 1536, metric: 'cosine' },
       })
     }
@@ -163,7 +185,8 @@ test('既存indexとの差分だけをembedding・upsert・deleteする', async 
     accountId: 'account',
     apiToken: 'token',
     openAiApiKey: 'openai-key',
-    indexName: PREVIEW_INDEX,
+    indexName: PRODUCTION_INDEX,
+    confirmProduction: PRODUCTION_INDEX,
     corpusFile,
     fetchImpl,
     logger: silentLogger,
@@ -185,7 +208,7 @@ test('管理外IDが現存するindexをmutation前に拒否する', async () =>
 
   const fetchImpl = async (input) => {
     const url = String(input)
-    if (url.endsWith(`/vectorize/v2/indexes/${PREVIEW_INDEX}`)) {
+    if (url.endsWith(`/vectorize/v2/indexes/${PRODUCTION_INDEX}`)) {
       return cloudflareResponse({
         config: { dimensions: 1536, metric: 'cosine' },
       })
@@ -207,7 +230,8 @@ test('管理外IDが現存するindexをmutation前に拒否する', async () =>
       accountId: 'account',
       apiToken: 'token',
       openAiApiKey: 'openai-key',
-      indexName: PREVIEW_INDEX,
+      indexName: PRODUCTION_INDEX,
+      confirmProduction: PRODUCTION_INDEX,
       corpusFile,
       fetchImpl,
       logger: silentLogger,
@@ -224,7 +248,7 @@ test('Vectorize一覧をcursorで最後まで列挙して件数を照合する',
 
   const fetchImpl = async (input) => {
     const url = String(input)
-    if (url.endsWith(`/vectorize/v2/indexes/${PREVIEW_INDEX}`)) {
+    if (url.endsWith(`/vectorize/v2/indexes/${PRODUCTION_INDEX}`)) {
       return cloudflareResponse({
         config: { dimensions: 1536, metric: 'cosine' },
       })
@@ -258,7 +282,8 @@ test('Vectorize一覧をcursorで最後まで列挙して件数を照合する',
     accountId: 'account',
     apiToken: 'token',
     openAiApiKey: 'openai-key',
-    indexName: PREVIEW_INDEX,
+    indexName: PRODUCTION_INDEX,
+    confirmProduction: PRODUCTION_INDEX,
     corpusFile,
     fetchImpl,
     logger: silentLogger,
@@ -303,7 +328,7 @@ test('Vectorize一覧の欠損や不整合をmutation前に拒否する', async 
     let mutated = false
     const fetchImpl = async (input) => {
       const url = String(input)
-      if (url.endsWith(`/vectorize/v2/indexes/${PREVIEW_INDEX}`)) {
+      if (url.endsWith(`/vectorize/v2/indexes/${PRODUCTION_INDEX}`)) {
         return cloudflareResponse({
           config: { dimensions: 1536, metric: 'cosine' },
         })
@@ -320,7 +345,8 @@ test('Vectorize一覧の欠損や不整合をmutation前に拒否する', async 
         accountId: 'account',
         apiToken: 'token',
         openAiApiKey: 'openai-key',
-        indexName: PREVIEW_INDEX,
+        indexName: PRODUCTION_INDEX,
+        confirmProduction: PRODUCTION_INDEX,
         corpusFile,
         fetchImpl,
         logger: silentLogger,

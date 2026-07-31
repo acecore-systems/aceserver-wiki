@@ -39,12 +39,6 @@
   },
   "env": {
     "preview": {
-      "vectorize": [
-        {
-          "binding": "SEARCH_INDEX",
-          "index_name": "aceserver-wiki-search-openai-1536-preview",
-        },
-      ],
       "d1_databases": [
         {
           "binding": "CMS_DATABASE",
@@ -64,9 +58,9 @@
         "CMS_DISCORD_AUTHORIZATION_MODE": "guild",
         "CMS_DISCORD_GUILD_ID": "737538781024092170",
         "CMS_DISCORD_ALLOWED_ROLE_IDS": "",
-        "SEARCH_ENABLED": "true",
+        "SEARCH_ENABLED": "false",
         "SEARCH_MIN_SCORE": "0.40",
-        "ALPHA_CHAT_ENABLED": "true",
+        "ALPHA_CHAT_ENABLED": "false",
         "OPENAI_RESPONSE_MODEL": "gpt-5.6-luna",
         "OPENAI_REASONING_EFFORT": "medium",
         "OPENAI_EMBEDDING_MODEL": "text-embedding-3-large",

@@ -26,9 +26,10 @@ const MAX_OPENAI_RESPONSE_BYTES = 4_000_000
 const MAX_CLOUDFLARE_RESPONSE_BYTES = 4_000_000
 const MANAGED_VECTOR_ID_PATTERN = /^v1-[0-9a-f]{48}$/u
 const CORPUS_VERSION_PATTERN = /^[0-9a-f]{20}$/u
+const PRODUCTION_INDEX_NAME =
+  'aceserver-wiki-search-openai-1536-production'
 const ALLOWED_INDEX_NAMES = new Set([
-  'aceserver-wiki-search-openai-1536-preview',
-  'aceserver-wiki-search-openai-1536-production',
+  PRODUCTION_INDEX_NAME,
 ])
 
 class CloudflareApiError extends Error {
@@ -52,6 +53,7 @@ export async function syncVectorize({
   apiToken = process.env.CLOUDFLARE_API_TOKEN,
   openAiApiKey = process.env.OPENAI_API_KEY,
   indexName = process.env.VECTORIZE_INDEX_NAME,
+  confirmProduction = process.env.VECTORIZE_CONFIRM_PRODUCTION,
   corpusFile = DEFAULT_CORPUS_FILE,
   dryRun = false,
   waitForMutations = true,
@@ -77,6 +79,12 @@ export async function syncVectorize({
     }
     logger.log(JSON.stringify({ event: 'vectorize_sync_dry_run', ...result }))
     return result
+  }
+
+  if (confirmProduction !== PRODUCTION_INDEX_NAME) {
+    throw new Error(
+      `Production sync requires --confirm-production ${PRODUCTION_INDEX_NAME}.`,
+    )
   }
 
   if (!accountId || !apiToken || !openAiApiKey) {
@@ -839,6 +847,7 @@ function parseArguments(argv) {
     waitForMutations: true,
     allowLargeDelete: false,
     indexName: process.env.VECTORIZE_INDEX_NAME,
+    confirmProduction: process.env.VECTORIZE_CONFIRM_PRODUCTION,
     corpusFile: DEFAULT_CORPUS_FILE,
   }
 
@@ -850,6 +859,8 @@ function parseArguments(argv) {
       options.allowLargeDelete = true
     } else if (argument === '--index') {
       options.indexName = argv[++index]
+    } else if (argument === '--confirm-production') {
+      options.confirmProduction = argv[++index]
     } else if (argument === '--corpus') {
       options.corpusFile = resolve(argv[++index])
     } else {

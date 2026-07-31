@@ -53,18 +53,16 @@ test('CMS rollback always checks out main before pushing to main', async () => {
   assert.doesNotMatch(workflow, /git push[^\n]*--force/u)
 })
 
-test('Vectorize and OpenAI secrets are used only by protected-main sync steps', async () => {
+test('Vectorize and OpenAI secrets are used only by the protected-main production sync', async () => {
   const workflow = await readFile(vectorizeWorkflowUrl, 'utf8')
   const protectedCheckout = getStepBlock(
     workflow,
     'Check out protected main tooling',
   )
-  const previewResolve = getStepBlock(workflow, 'Resolve main site commit')
   const productionResolve = getStepBlock(
     workflow,
     'Resolve deployed site commit',
   )
-  const previewSync = getStepBlock(workflow, 'Sync preview Vectorize index')
   const productionSync = getStepBlock(
     workflow,
     'Sync production Vectorize index',
@@ -73,17 +71,13 @@ test('Vectorize and OpenAI secrets are used only by protected-main sync steps', 
   assert.doesNotMatch(workflow, /pull_request(?:_target)?:/u)
   assert.match(protectedCheckout, /^ {10}ref: refs\/heads\/main$/mu)
   assert.match(protectedCheckout, /^ {10}persist-credentials: false$/mu)
-  assert.equal(workflow.match(/^ {10}ref: refs\/heads\/main$/gmu)?.length, 2)
-  assert.equal(workflow.match(/^ {10}fetch-depth: 0$/gmu)?.length, 2)
+  assert.equal(workflow.match(/^ {10}ref: refs\/heads\/main$/gmu)?.length, 1)
+  assert.equal(workflow.match(/^ {10}fetch-depth: 0$/gmu)?.length, 1)
   assert.equal(
     workflow.match(/^ {10}persist-credentials: false$/gmu)?.length,
-    4,
+    2,
   )
   assert.doesNotMatch(workflow, /persist-credentials: true/u)
-  assert.match(
-    previewResolve,
-    /site_commit="\$\(git -C tooling rev-parse HEAD\)"/u,
-  )
   assert.match(
     productionResolve,
     /protected_main_commit="\$\(git -C tooling rev-parse HEAD\)"/u,
@@ -92,31 +86,25 @@ test('Vectorize and OpenAI secrets are used only by protected-main sync steps', 
   assert.doesNotMatch(workflow, /git -C tooling fetch/u)
   assert.doesNotMatch(workflow, /refs\/remotes\/origin\/main/u)
   assert.match(
-    previewSync,
-    /secrets\.CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN/u,
-  )
-  assert.match(
     productionSync,
     /secrets\.CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN/u,
   )
-  assert.equal(
-    workflow.match(/CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN/gmu)?.length,
-    2,
-  )
+  assert.doesNotMatch(workflow, /CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN/u)
   assert.equal(
     workflow.match(/CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN/gmu)?.length,
     2,
   )
-  assert.equal(workflow.match(/secrets\.OPENAI_API_KEY/gmu)?.length, 2)
-  assert.equal(workflow.match(/OPENAI_API_KEY/gmu)?.length, 8)
-  assert.match(
-    previewSync,
-    /VECTORIZE_INDEX_NAME: aceserver-wiki-search-openai-1536-preview/u,
-  )
+  assert.equal(workflow.match(/secrets\.OPENAI_API_KEY/gmu)?.length, 1)
+  assert.doesNotMatch(workflow, /aceserver-wiki-search-openai-1536-preview/u)
   assert.match(
     productionSync,
     /VECTORIZE_INDEX_NAME: aceserver-wiki-search-openai-1536-production/u,
   )
+  assert.match(
+    productionSync,
+    /--confirm-production aceserver-wiki-search-openai-1536-production/u,
+  )
+  assert.doesNotMatch(workflow, /--allow-large-delete/u)
   assert.match(
     workflow,
     /https:\/\/asv-wiki\.acecore\.net\/\.well-known\/aceserver-wiki-build\.json/u,
@@ -135,16 +123,16 @@ test('Vitest never opens remote AI or Vectorize binding sessions', async () => {
   assert.doesNotMatch(config, /remoteBindings:\s*true/u)
 })
 
-test('Production search is enabled after the OpenAI index rollout completes', async () => {
+test('Preview has no Vectorize binding while converged production search remains enabled', async () => {
   const config = await readFile(wranglerConfigUrl, 'utf8')
-  const previewOffset = config.indexOf('"env"')
 
-  assert.notEqual(previewOffset, -1)
-
-  const productionConfig = config.slice(0, previewOffset)
-  const previewConfig = config.slice(previewOffset)
-
-  assert.match(productionConfig, /"SEARCH_ENABLED": "true"/u)
-  assert.doesNotMatch(productionConfig, /"SEARCH_ENABLED": "false"/u)
-  assert.match(previewConfig, /"SEARCH_ENABLED": "true"/u)
+  assert.match(
+    config,
+    /"index_name": "aceserver-wiki-search-openai-1536-production"/u,
+  )
+  assert.doesNotMatch(config, /aceserver-wiki-search-openai-1536-preview/u)
+  assert.equal(config.match(/"SEARCH_ENABLED": "false"/gu)?.length, 1)
+  assert.equal(config.match(/"SEARCH_ENABLED": "true"/gu)?.length, 1)
+  assert.equal(config.match(/"ALPHA_CHAT_ENABLED": "false"/gu)?.length, 1)
+  assert.equal(config.match(/"ALPHA_CHAT_ENABLED": "true"/gu)?.length, 1)
 })
