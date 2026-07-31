@@ -203,6 +203,7 @@ assert(
     'エースサーバー公式Wiki｜ルール・参加方法・コマンド案内',
   'Root title differs from the curated production title.',
 )
+assertImagesHaveAlt(rootDocument, 'Root')
 assert(metaContent(rootDocument, 'name', 'description') === rootDescription)
 assert(metaContent(rootDocument, 'name', 'robots') === 'index, follow')
 assert(
@@ -309,6 +310,7 @@ for (const surface of [
 }
 
 const searchDocument = await readHtml('search/index.html')
+assertImagesHaveAlt(searchDocument, 'Search')
 assert(
   elementText(findElement(searchDocument, 'title')) ===
     'サイト内検索 | エースサーバー公式Wiki',
@@ -339,6 +341,7 @@ assert(
 )
 
 const notFoundDocument = await readHtml('404.html')
+assertImagesHaveAlt(notFoundDocument, '404')
 assert(metaContent(notFoundDocument, 'name', 'robots') === 'noindex, nofollow')
 assertAlphaGuideContract(notFoundDocument, '404')
 assertTrustedScriptNonce(notFoundDocument, '/mobile-menu.js')
@@ -351,6 +354,7 @@ assert(
 
 for (const article of articles) {
   const document = await readHtml(`article/${article.slug}/index.html`)
+  assertImagesHaveAlt(document, `Article: ${article.slug}`)
   const seoTitle = article.data.seoTitle ?? article.data.title
   const expectedOgImage = article.data.ogImage
     ? new URL(article.data.ogImage, 'https://asv-wiki.acecore.net').toString()
@@ -654,6 +658,15 @@ function assertTrustedScriptNonce(document, source) {
   assert(
     getAttribute(script, 'nonce') === cspNoncePlaceholder,
     `Trusted script is missing its CSP nonce placeholder: ${source}`,
+  )
+}
+
+function assertImagesHaveAlt(document, label) {
+  assert(
+    findElements(document, 'img').every(
+      (image) => getAttribute(image, 'alt').trim().length > 0,
+    ),
+    `${label} rendered images must have a non-empty alt attribute.`,
   )
 }
 
