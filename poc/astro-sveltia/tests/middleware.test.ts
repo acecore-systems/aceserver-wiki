@@ -64,6 +64,20 @@ describe('Pages middleware', () => {
     expect(response.headers.get('X-Robots-Tag')).toBe('noindex')
   })
 
+  it('keeps the Pagefind index out of search-engine results', async () => {
+    const response = await onRequest({
+      request: new Request(
+        'https://asv-wiki.acecore.net/pagefind/index/abcd.pf_index',
+      ),
+      next: async () =>
+        new Response('index', {
+          headers: { 'Content-Type': 'application/octet-stream' },
+        }),
+    } as Parameters<typeof onRequest>[0])
+
+    expect(response.headers.get('X-Robots-Tag')).toBe('noindex')
+  })
+
   it('keeps the Vectorize corpus out of search-engine results', async () => {
     const response = await onRequest({
       request: new Request('https://asv-wiki.acecore.net/vector-corpus.json'),

@@ -604,6 +604,39 @@ a:hover {
   color: var(--color-muted);
 }
 
+.search-page__privacy,
+.search-page__authority {
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+
+.search-page__privacy {
+  margin-block: 0.85rem 0;
+}
+
+.search-page__authority {
+  margin-block: 0.65rem 0 0;
+}
+
+.search-page__results {
+  margin-block-start: 2rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
+.search-page__results--network {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+}
+
+.search-page__results h2 {
+  margin: 0;
+  color: var(--color-heading);
+  font-size: 1.2rem;
+}
+
 .search-results {
   margin: 0;
   padding: 0;
@@ -634,7 +667,7 @@ a:hover {
   color: var(--color-muted);
 }
 
-.search-results__related {
+.search-results__source {
   display: inline-flex;
   align-items: center;
   margin-inline-start: 0.55rem;
