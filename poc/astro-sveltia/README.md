@@ -141,23 +141,25 @@ PRを作り、CIを通して`main`へ反映します。
 ## アルファくん WIKI案内チャット
 
 全公開ページに、現在のWikiアイコンを使ったアルファくん案内チャットを表示します。
-ブラウザはsame-originの`POST /api/alpha-chat`だけを呼び出し、AI bindingや
-Cloudflareのcredentialを受け取りません。入力は500文字以下に制限し、
+ブラウザはsame-originの`POST /api/alpha-chat`だけを呼び出し、OpenAI API keyや
+Cloudflareのcredentialを受け取りません。Pages FunctionがOpenAI APIへ直接接続し、
+Cloudflare AI GatewayやWorkers AIは経由しません。入力は500文字以下に制限し、
 `Origin`をrequest先originと照合してcross-origin requestを拒否します。
 `X-Acecore-Chat-Client`にはブラウザごとのUUIDを送ります。
 
-チャットはこのWikiの公開記事だけを情報源にします。質問をBGE-M3
-（`@cf/baai/bge-m3`）でembeddingし、`SEARCH_INDEX`から候補を検索した後、
-build済み`/vector-corpus.json`の元chunkへ照合してからGLM 5.2
-（`@cf/zai-org/glm-5.2`）へ渡します。ポータルや他サイトの固定知識から
+チャットはこのWikiの公開記事だけを情報源にします。質問をOpenAI
+`text-embedding-3-large`（1536次元）でembeddingし、`SEARCH_INDEX`から候補を
+検索した後、build済み`/vector-corpus.json`の元chunkへ照合してからOpenAI
+Responses APIの`gpt-5.6-luna`（`reasoning.effort=medium`、`store=false`）へ渡します。
+ポータルや他サイトの固定知識から
 ルール・コマンド・参加条件を補いません。根拠を取得できない場合は
 「確認できない」と明示し、一般論から可否を推測せずWiki内の確認導線を返します。
-GLM 5.2はWorkers Paidが必要で、利用可否はPages Previewの実呼び出しで確認します。
 
 API応答は`{ ok, answer, sources }`で、`sources`は
 `Array<{ title, url }>`として回答本文と分離します。出典は実際に根拠へ採用した
 同一originの`/article/` URLだけを最大2件返します。モデルには
-`response_format=json_schema`で根拠番号とWiki本文の完全一致引用だけを選ばせ、
+Responses APIの`text.format` JSON Schema（strict）で根拠番号とWiki本文の
+完全一致引用だけを選ばせ、
 サーバーが取得済みchunkに対して検証します。
 モデル生成文は公開せず、検証済み引用からサーバーが固定文を組み立てます。
 検証不能な選択は`502`、根拠なしは固定の「確認できない」へ戻します。
@@ -165,8 +167,11 @@ API応答は`{ ok, answer, sources }`で、`sources`は
 構築します。
 
 - `ALPHA_CHAT_ENABLED`: chatのkill switch。`"true"`のときだけAI処理を行う
-- `ALPHA_CHAT_MODEL`: 回答モデル。production/previewは
-  `@cf/zai-org/glm-5.2`
+- `OPENAI_API_KEY`: Pages secret。リポジトリや`wrangler.jsonc`へ保存しない
+- `OPENAI_RESPONSE_MODEL`: `gpt-5.6-luna`
+- `OPENAI_REASONING_EFFORT`: `medium`
+- `OPENAI_EMBEDDING_MODEL` / `OPENAI_EMBEDDING_DIMENSIONS`:
+  `text-embedding-3-large` / `1536`
 - `SEARCH_ENABLED` / `SEARCH_MIN_SCORE`: 共用するWiki検索の有効化とscore下限
 
 AI呼び出し前に`CMS_DATABASE`で60秒窓のrate limitを適用します。

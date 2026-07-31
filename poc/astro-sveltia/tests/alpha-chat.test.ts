@@ -10,12 +10,12 @@ import {
   vi,
 } from 'vitest'
 
-import { onRequestPost } from '../functions/api/alpha-chat.ts'
+import { createAlphaChatHandler } from '../functions/api/alpha-chat.ts'
 
 const ORIGIN = 'https://asv-wiki.acecore.net'
-const EMBEDDING_MODEL = '@cf/baai/bge-m3'
-const CHAT_MODEL = '@cf/zai-org/glm-5.2'
-const QUERY_VECTOR = Array.from({ length: 1024 }, () => 0.01)
+const EMBEDDING_MODEL = 'text-embedding-3-large'
+const CHAT_MODEL = 'gpt-5.6-luna'
+const QUERY_VECTOR = Array.from({ length: 1536 }, () => 0.01)
 
 afterEach(() => {
   vi.useRealTimers()
@@ -24,7 +24,7 @@ afterEach(() => {
 })
 
 describe('Alpha-kun WIKI chat API', () => {
-  it('grounds GLM-5.2 with hydrated same-origin WIKI evidence and returns structured sources', async () => {
+  it('grounds GPT-5.6 Luna with hydrated same-origin WIKI evidence and returns structured sources', async () => {
     const aiCalls: Array<{ input: unknown; model: string }> = []
     let queryOptions: VectorizeQueryOptions | undefined
     const matches = [
@@ -168,17 +168,23 @@ describe('Alpha-kun WIKI chat API', () => {
     expect(aiCalls[0]).toEqual({
       model: EMBEDDING_MODEL,
       input: {
-        text: ['参加方法を教えて\n参加 方法を教えて'],
-        truncate_inputs: true,
+        model: EMBEDDING_MODEL,
+        input: '参加方法を教えて\n参加 方法を教えて',
+        dimensions: 1536,
+        encoding_format: 'float',
+        user: expect.stringMatching(/^[0-9a-f]{64}$/u),
       },
     })
     expect(aiCalls[1]?.model).toBe(CHAT_MODEL)
     expect(aiCalls[1]?.input).toMatchObject({
-      max_completion_tokens: 512,
-      chat_template_kwargs: { enable_thinking: false },
-      response_format: {
-        type: 'json_schema',
-        json_schema: {
+      model: CHAT_MODEL,
+      reasoning: { effort: 'medium' },
+      max_output_tokens: 512,
+      store: false,
+      safety_identifier: expect.stringMatching(/^[0-9a-f]{64}$/u),
+      text: {
+        format: {
+          type: 'json_schema',
           name: 'alpha_wiki_citations',
           strict: true,
           schema: {
@@ -211,7 +217,6 @@ describe('Alpha-kun WIKI chat API', () => {
           },
         },
       },
-      temperature: 0,
     })
     const systemPrompt = readSystemPrompt(aiCalls[1]?.input)
     expect(systemPrompt).toContain(
@@ -303,11 +308,11 @@ describe('Alpha-kun WIKI chat API', () => {
     expect(onAiRun).not.toHaveBeenCalled()
   })
 
-  it('fails closed unless both switches and all three Cloudflare bindings exist', async () => {
+  it('fails closed unless both switches, the OpenAI key, and storage bindings exist', async () => {
     const configurations = [
       createEnv({ alphaEnabled: false }),
       createEnv({ searchEnabled: false }),
-      createEnv({ includeAi: false }),
+      createEnv({ includeApiKey: false }),
       createEnv({ includeIndex: false }),
       createEnv({ includeDatabase: false }),
     ]
@@ -419,9 +424,7 @@ describe('Alpha-kun WIKI chat API', () => {
     expect(responses.map(({ status }) => status)).toEqual([400, 400, 400, 413])
     expect(consumedKeys).toHaveLength(4)
     expect(
-      consumedKeys.every((key) =>
-        /^alpha-client:[0-9a-f]{64}$/u.test(key),
-      ),
+      consumedKeys.every((key) => /^alpha-client:[0-9a-f]{64}$/u.test(key)),
     ).toBe(true)
     expect(consumedKeys).not.toContain('alpha-global')
   })
@@ -538,7 +541,7 @@ describe('Alpha-kun WIKI chat API', () => {
       },
     ],
   ])(
-    'accepts the Workers AI %s response shape',
+    'rejects the legacy Workers AI %s response shape',
     async (_shape, modelResponse) => {
       installCorpusFetch(wikiCorpus([corpusChunk()]))
       const response = await invoke(
@@ -549,13 +552,62 @@ describe('Alpha-kun WIKI chat API', () => {
         }),
       )
 
-      expect(response.status).toBe(200)
+      expect(response.status).toBe(502)
       expect(await readBody(response)).toMatchObject({
-        ok: true,
-        sources: [{ title: '案内記事', url: '/article/guide/' }],
+        ok: false,
+        sources: [],
       })
     },
   )
+
+  it.each([
+    [
+      'refusal',
+      {
+        status: 'completed',
+        error: null,
+        output: [
+          {
+            type: 'message',
+            content: [{ type: 'refusal', refusal: 'cannot answer' }],
+          },
+        ],
+      },
+    ],
+    [
+      'incomplete response',
+      {
+        status: 'incomplete',
+        error: null,
+        output: [
+          {
+            type: 'message',
+            content: [
+              {
+                type: 'output_text',
+                text: JSON.stringify({ citations: [] }),
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  ])('fails closed on an OpenAI %s', async (_shape, modelResponse) => {
+    installCorpusFetch(wikiCorpus([corpusChunk()]))
+    const response = await invoke(
+      chatRequest({ question: '参加方法を教えて' }),
+      createEnv({
+        matches: [articleMatch()],
+        modelResponse,
+      }),
+    )
+
+    expect(response.status).toBe(502)
+    expect(await readBody(response)).toMatchObject({
+      ok: false,
+      sources: [],
+    })
+  })
 
   it('preserves angle brackets when validating an exact model citation', async () => {
     installCorpusFetch(
@@ -569,16 +621,12 @@ describe('Alpha-kun WIKI chat API', () => {
       chatRequest({ question: '座標の形式を教えて' }),
       createEnv({
         matches: [articleMatch()],
-        modelResponse: {
-          response: {
-            citations: [
-              {
-                quote: '座標は <ページ番号> の形式で案内します。',
-                source: 1,
-              },
-            ],
+        modelResponse: citationModelResponse([
+          {
+            quote: '座標は <ページ番号> の形式で案内します。',
+            source: 1,
           },
-        },
+        ]),
       }),
     )
 
@@ -646,7 +694,7 @@ describe('Alpha-kun WIKI chat API', () => {
       schemaVersion: 1,
       embedding: {
         model: '@cf/wrong-model',
-        dimensions: 1024,
+        dimensions: 1536,
         metric: 'cosine',
       },
       chunks: [],
@@ -784,22 +832,22 @@ describe('Alpha-kun WIKI chat API', () => {
     expect(networkFetch).not.toHaveBeenCalled()
   })
 
-  it('honors the chat-model override and reports completion failures as unavailable', async () => {
+  it('rejects a response-model override and reports completion failures as unavailable', async () => {
     const corpus = wikiCorpus([corpusChunk()])
     installCorpusFetch(corpus)
     const calls: string[] = []
     const overrideResponse = await invoke(
       chatRequest({ question: '案内して' }),
       createEnv({
-        chatModel: '@cf/example/custom-chat',
+        responseModel: 'gpt-5.6-terra',
         matches: [articleMatch()],
         onAiRun(model) {
           calls.push(model)
         },
       }),
     )
-    expect(overrideResponse.status).toBe(200)
-    expect(calls).toEqual([EMBEDDING_MODEL, '@cf/example/custom-chat'])
+    expect(overrideResponse.status).toBe(502)
+    expect(calls).toEqual([EMBEDDING_MODEL])
 
     installCorpusFetch(corpus)
     const completionFailure = await invoke(
@@ -990,7 +1038,7 @@ function wikiCorpus(chunks: ReturnType<typeof corpusChunk>[]) {
     schemaVersion: 1,
     embedding: {
       model: EMBEDDING_MODEL,
-      dimensions: 1024,
+      dimensions: 1536,
       metric: 'cosine',
     },
     chunks,
@@ -1011,13 +1059,12 @@ function installCorpusFetch(corpus: unknown) {
 function createEnv({
   alphaEnabled = true,
   assetFetch,
-  chatModel,
   clientRateLimitSuccess = true,
   completionError,
   embedding = QUERY_VECTOR,
   embeddingError,
   globalRateLimitSuccess = true,
-  includeAi = true,
+  includeApiKey = true,
   includeDatabase = true,
   includeIndex = true,
   matches = [],
@@ -1026,6 +1073,7 @@ function createEnv({
   onAiRun = () => undefined,
   onQuery = () => undefined,
   onRateLimit = () => undefined,
+  responseModel,
   searchEnabled = true,
   vectorError,
 }: {
@@ -1034,13 +1082,12 @@ function createEnv({
     input: RequestInfo | URL,
     init?: RequestInit,
   ) => Promise<Response>
-  chatModel?: string
   clientRateLimitSuccess?: boolean
   completionError?: Error
   embedding?: number[]
   embeddingError?: Error
   globalRateLimitSuccess?: boolean
-  includeAi?: boolean
+  includeApiKey?: boolean
   includeDatabase?: boolean
   includeIndex?: boolean
   matches?: VectorizeMatch[]
@@ -1049,25 +1096,34 @@ function createEnv({
   onAiRun?: (model: string, input: unknown) => void
   onQuery?: (values: number[], options?: VectorizeQueryOptions) => void
   onRateLimit?: (key: string, limit: number) => void
+  responseModel?: string
   searchEnabled?: boolean
   vectorError?: Error
 } = {}) {
+  const openAiFetch = vi.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input)
+      const headers = new Headers(init?.headers)
+      expect(headers.get('Authorization')).toBe('Bearer test-openai-key')
+      expect(headers.get('Content-Type')).toBe('application/json')
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>
+      onAiRun(String(body.model), body)
+
+      if (url === 'https://api.openai.com/v1/embeddings') {
+        if (embeddingError) throw embeddingError
+        return Response.json({
+          model: 'text-embedding-3-large',
+          data: [{ object: 'embedding', index: 0, embedding }],
+        })
+      }
+      expect(url).toBe('https://api.openai.com/v1/responses')
+      if (completionError) throw completionError
+      return Response.json(modelResponse)
+    },
+  )
+
   return {
-    AI: includeAi
-      ? {
-          async run(model: string, input: unknown) {
-            onAiRun(model, input)
-            if (model === EMBEDDING_MODEL) {
-              if (embeddingError) throw embeddingError
-              return { data: [embedding] }
-            }
-            if (completionError) throw completionError
-            return modelResponse
-          },
-        }
-      : undefined,
     ALPHA_CHAT_ENABLED: alphaEnabled ? 'true' : 'false',
-    ALPHA_CHAT_MODEL: chatModel,
     ASSETS: assetFetch
       ? ({
           fetch: assetFetch,
@@ -1080,6 +1136,11 @@ function createEnv({
           onRateLimit,
         })
       : undefined,
+    OPENAI_API_KEY: includeApiKey ? 'test-openai-key' : undefined,
+    OPENAI_EMBEDDING_DIMENSIONS: '1536',
+    OPENAI_EMBEDDING_MODEL: EMBEDDING_MODEL,
+    OPENAI_REASONING_EFFORT: 'medium',
+    OPENAI_RESPONSE_MODEL: responseModel || CHAT_MODEL,
     SEARCH_ENABLED: searchEnabled ? 'true' : 'false',
     SEARCH_INDEX: includeIndex
       ? {
@@ -1094,14 +1155,28 @@ function createEnv({
         }
       : undefined,
     SEARCH_MIN_SCORE: minScore,
+    __openAiFetch: openAiFetch,
   }
 }
 
 function citationModelResponse(
   citations: Array<{ quote: string; source: number }> = [],
-): { response: string } {
+): unknown {
   return {
-    response: JSON.stringify({ citations }),
+    status: 'completed',
+    error: null,
+    output: [
+      {
+        type: 'message',
+        role: 'assistant',
+        content: [
+          {
+            type: 'output_text',
+            text: JSON.stringify({ citations }),
+          },
+        ],
+      },
+    ],
   }
 }
 
@@ -1155,13 +1230,14 @@ function createRateLimitDatabase({
 }
 
 async function invoke(request: Request, env: ReturnType<typeof createEnv>) {
-  return onRequestPost({
+  const { __openAiFetch, ...bindings } = env
+  return createAlphaChatHandler(__openAiFetch)({
     request,
-    env,
+    env: bindings,
     waitUntil(promise: Promise<unknown>) {
       void promise
     },
-  } as unknown as Parameters<typeof onRequestPost>[0])
+  } as unknown as Parameters<ReturnType<typeof createAlphaChatHandler>>[0])
 }
 
 async function readBody(response: Response): Promise<{
@@ -1173,19 +1249,15 @@ async function readBody(response: Response): Promise<{
 }
 
 function readSystemPrompt(input: unknown): string {
-  if (!input || typeof input !== 'object' || !('messages' in input)) return ''
-  const messages = (input as { messages?: unknown }).messages
-  if (!Array.isArray(messages)) return ''
-  const first = messages[0]
-  if (!first || typeof first !== 'object' || !('content' in first)) return ''
-  return typeof first.content === 'string' ? first.content : ''
+  if (!input || typeof input !== 'object' || !('instructions' in input)) {
+    return ''
+  }
+  const instructions = (input as { instructions?: unknown }).instructions
+  return typeof instructions === 'string' ? instructions : ''
 }
 
 function readUserPrompt(input: unknown): string {
-  if (!input || typeof input !== 'object' || !('messages' in input)) return ''
-  const messages = (input as { messages?: unknown }).messages
-  if (!Array.isArray(messages)) return ''
-  const last = messages.at(-1)
-  if (!last || typeof last !== 'object' || !('content' in last)) return ''
-  return typeof last.content === 'string' ? last.content : ''
+  if (!input || typeof input !== 'object' || !('input' in input)) return ''
+  const userInput = (input as { input?: unknown }).input
+  return typeof userInput === 'string' ? userInput : ''
 }

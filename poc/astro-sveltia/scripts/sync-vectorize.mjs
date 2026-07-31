@@ -3,9 +3,10 @@ import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const API_BASE_URL = 'https://api.cloudflare.com/client/v4'
+const OPENAI_API_BASE_URL = 'https://api.openai.com/v1'
 const DEFAULT_CORPUS_FILE = resolve('dist/vector-corpus.json')
-const EMBEDDING_MODEL = '@cf/baai/bge-m3'
-const EMBEDDING_DIMENSIONS = 1024
+const EMBEDDING_MODEL = 'text-embedding-3-large'
+const EMBEDDING_DIMENSIONS = 1536
 const DISTANCE_METRIC = 'cosine'
 const EMBEDDING_BATCH_SIZE = 32
 const UPSERT_BATCH_SIZE = 200
@@ -21,11 +22,13 @@ const MAX_DELETE_RATIO = 0.2
 const MIN_SOURCE_COUNT = 15
 const MIN_VECTOR_COUNT = 15
 const MAX_VECTOR_COUNT = 500
+const MAX_OPENAI_RESPONSE_BYTES = 4_000_000
+const MAX_CLOUDFLARE_RESPONSE_BYTES = 4_000_000
 const MANAGED_VECTOR_ID_PATTERN = /^v1-[0-9a-f]{48}$/u
 const CORPUS_VERSION_PATTERN = /^[0-9a-f]{20}$/u
 const ALLOWED_INDEX_NAMES = new Set([
-  'aceserver-wiki-search-preview',
-  'aceserver-wiki-search-production',
+  'aceserver-wiki-search-openai-1536-preview',
+  'aceserver-wiki-search-openai-1536-production',
 ])
 
 class CloudflareApiError extends Error {
@@ -36,9 +39,18 @@ class CloudflareApiError extends Error {
   }
 }
 
+class OpenAiApiError extends Error {
+  constructor(message, status) {
+    super(message)
+    this.name = 'OpenAiApiError'
+    this.status = status
+  }
+}
+
 export async function syncVectorize({
   accountId = process.env.CLOUDFLARE_ACCOUNT_ID,
   apiToken = process.env.CLOUDFLARE_API_TOKEN,
+  openAiApiKey = process.env.OPENAI_API_KEY,
   indexName = process.env.VECTORIZE_INDEX_NAME,
   corpusFile = DEFAULT_CORPUS_FILE,
   dryRun = false,
@@ -67,9 +79,9 @@ export async function syncVectorize({
     return result
   }
 
-  if (!accountId || !apiToken) {
+  if (!accountId || !apiToken || !openAiApiKey) {
     throw new Error(
-      'CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN are required.',
+      'CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, and OPENAI_API_KEY are required.',
     )
   }
 
@@ -82,6 +94,14 @@ export async function syncVectorize({
     sleepImpl,
     randomImpl,
   })
+  const embeddingClient = {
+    apiKey: openAiApiKey,
+    fetchImpl,
+    requestTimeoutMs,
+    retryBaseDelayMs,
+    sleepImpl,
+    randomImpl,
+  }
   const index = await ensureIndex(client, indexName)
   validateIndexConfiguration(index, indexName)
 
@@ -115,7 +135,7 @@ export async function syncVectorize({
 
   const mutationIds = []
   for (const chunkBatch of batches(chunksToUpsert, EMBEDDING_BATCH_SIZE)) {
-    const embeddings = await createEmbeddings(client, chunkBatch)
+    const embeddings = await createEmbeddings(embeddingClient, chunkBatch)
     const vectors = chunkBatch.map((chunk, indexInBatch) => ({
       id: chunk.id,
       values: embeddings[indexInBatch],
@@ -223,25 +243,40 @@ export function validateCorpus(corpus) {
 }
 
 export function extractEmbeddingData(payload, expectedCount) {
-  const data = (payload?.result ?? payload)?.data
+  const data = payload?.data
   if (!Array.isArray(data) || data.length !== expectedCount) {
     throw new Error(
-      `Workers AI returned ${Array.isArray(data) ? data.length : 0} embeddings; expected ${expectedCount}.`,
+      `OpenAI returned ${Array.isArray(data) ? data.length : 0} embeddings; expected ${expectedCount}.`,
     )
   }
 
-  for (const values of data) {
+  const ordered = Array(expectedCount)
+  for (const entry of data) {
+    if (
+      !Number.isInteger(entry?.index) ||
+      entry.index < 0 ||
+      entry.index >= expectedCount ||
+      ordered[entry.index]
+    ) {
+      throw new Error('OpenAI embedding response contains an invalid index.')
+    }
+
+    const values = entry?.embedding
     if (
       !Array.isArray(values) ||
       values.length !== EMBEDDING_DIMENSIONS ||
       values.some((value) => !Number.isFinite(value))
     ) {
       throw new Error(
-        `Workers AI embedding must contain ${EMBEDDING_DIMENSIONS} finite values.`,
+        `OpenAI embedding must contain ${EMBEDDING_DIMENSIONS} finite values.`,
       )
     }
+    ordered[entry.index] = values
   }
-  return data
+  if (ordered.some((values) => !values)) {
+    throw new Error('OpenAI embedding response is missing an index.')
+  }
+  return ordered
 }
 
 export function validateDeletePlan({
@@ -387,6 +422,14 @@ function isRetryableNetworkError(error, timedOut) {
   )
 }
 
+function isRetryableOpenAiError(error, timedOut) {
+  return (
+    isRetryableNetworkError(error, timedOut) ||
+    (error instanceof OpenAiApiError &&
+      (error.status === 429 || error.status >= 500))
+  )
+}
+
 function getRetryDelay({ attempt, retryAfter, retryBaseDelayMs, randomImpl }) {
   const exponentialDelay = retryBaseDelayMs * 2 ** attempt
   const jitter = randomImpl() * retryBaseDelayMs
@@ -425,7 +468,8 @@ async function ensureIndex(client, indexName) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       name: indexName,
-      description: 'Ace Server Wiki semantic search (BGE-M3)',
+      description:
+        'Ace Server Wiki semantic search (OpenAI text-embedding-3-large, 1536 dimensions)',
       config: {
         dimensions: EMBEDDING_DIMENSIONS,
         metric: DISTANCE_METRIC,
@@ -591,15 +635,79 @@ function invalidVectorListResponse(indexName, reason) {
 }
 
 async function createEmbeddings(client, chunks) {
-  const payload = await client.request(`/ai/run/${EMBEDDING_MODEL}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      text: chunks.map(({ text }) => text),
-      truncate_inputs: true,
-    }),
-  })
-  return extractEmbeddingData(payload, chunks.length)
+  for (let attempt = 0; attempt <= MAX_REQUEST_RETRIES; attempt += 1) {
+    const controller = new AbortController()
+    const timeout = setTimeout(
+      () => controller.abort(new Error('Request timed out.')),
+      client.requestTimeoutMs,
+    )
+
+    try {
+      const response = await client.fetchImpl(
+        `${OPENAI_API_BASE_URL}/embeddings`,
+        {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${client.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: EMBEDDING_MODEL,
+            input: chunks.map(({ text }) => text),
+            dimensions: EMBEDDING_DIMENSIONS,
+            encoding_format: 'float',
+          }),
+          signal: controller.signal,
+        },
+      )
+
+      if (isRetryableStatus(response.status) && attempt < MAX_REQUEST_RETRIES) {
+        await response.body?.cancel().catch(() => {})
+        await client.sleepImpl(
+          getRetryDelay({
+            attempt,
+            retryAfter: response.headers.get('Retry-After'),
+            retryBaseDelayMs: client.retryBaseDelayMs,
+            randomImpl: client.randomImpl,
+          }),
+        )
+        continue
+      }
+
+      if (!response.ok) {
+        await response.body?.cancel().catch(() => {})
+        throw new OpenAiApiError(
+          `OpenAI API request failed with ${response.status}.`,
+          response.status,
+        )
+      }
+
+      const payload = await readOpenAiJsonResponse(response)
+      if (payload?.model !== EMBEDDING_MODEL) {
+        throw new Error(`OpenAI response model must be ${EMBEDDING_MODEL}.`)
+      }
+      return extractEmbeddingData(payload, chunks.length)
+    } catch (error) {
+      if (
+        attempt >= MAX_REQUEST_RETRIES ||
+        !isRetryableOpenAiError(error, controller.signal.aborted)
+      ) {
+        throw error
+      }
+      await client.sleepImpl(
+        getRetryDelay({
+          attempt,
+          retryBaseDelayMs: client.retryBaseDelayMs,
+          randomImpl: client.randomImpl,
+        }),
+      )
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+
+  throw new Error('OpenAI embeddings request exhausted all retries.')
 }
 
 async function upsertVectors(client, indexName, vectors) {
@@ -655,14 +763,64 @@ async function waitForMutation(client, indexName, mutationId, { sleepImpl }) {
 }
 
 async function readJsonResponse(response) {
-  const text = await response.text()
+  return readBoundedJsonResponse(
+    response,
+    MAX_CLOUDFLARE_RESPONSE_BYTES,
+    'Cloudflare API',
+  )
+}
+
+async function readOpenAiJsonResponse(response) {
+  return readBoundedJsonResponse(
+    response,
+    MAX_OPENAI_RESPONSE_BYTES,
+    'OpenAI API',
+  )
+}
+
+async function readBoundedJsonResponse(response, maxBytes, providerName) {
+  const contentLength = response.headers.get('Content-Length')
+  if (contentLength !== null) {
+    const normalizedLength = contentLength.trim()
+    const length = Number(normalizedLength)
+    if (
+      !/^\d+$/u.test(normalizedLength) ||
+      !Number.isSafeInteger(length) ||
+      length > maxBytes
+    ) {
+      await response.body?.cancel().catch(() => {})
+      throw new Error(`${providerName} returned an invalid response size.`)
+    }
+  }
+
+  const reader = response.body?.getReader()
+  if (!reader) return null
+
+  const decoder = new TextDecoder()
+  let byteLength = 0
+  let text = ''
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      byteLength += value.byteLength
+      if (byteLength > maxBytes) {
+        await reader.cancel().catch(() => {})
+        throw new Error(`${providerName} returned an invalid response size.`)
+      }
+      text += decoder.decode(value, { stream: true })
+    }
+    text += decoder.decode()
+  } finally {
+    reader.releaseLock()
+  }
   if (!text) return null
 
   try {
     return JSON.parse(text)
   } catch {
     throw new Error(
-      `Cloudflare API returned non-JSON with HTTP ${response.status}.`,
+      `${providerName} returned non-JSON with HTTP ${response.status}.`,
     )
   }
 }

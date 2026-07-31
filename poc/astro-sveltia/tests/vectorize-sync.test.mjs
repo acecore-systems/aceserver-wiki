@@ -11,8 +11,8 @@ import {
   validateDeletePlan,
 } from '../scripts/sync-vectorize.mjs'
 
-const PREVIEW_INDEX = 'aceserver-wiki-search-preview'
-const embedding = Array.from({ length: 1024 }, () => 0.01)
+const PREVIEW_INDEX = 'aceserver-wiki-search-openai-1536-preview'
+const embedding = Array.from({ length: 1536 }, () => 0.01)
 const temporaryRoots = []
 
 after(async () => {
@@ -23,13 +23,21 @@ after(async () => {
   )
 })
 
-test('BGE-M3 embeddingの件数と1024次元を検証する', () => {
-  assert.deepEqual(extractEmbeddingData({ result: { data: [embedding] } }, 1), [
-    embedding,
-  ])
+test('OpenAI embeddingのindex、件数、1536次元を検証する', () => {
+  assert.deepEqual(
+    extractEmbeddingData(
+      { data: [{ object: 'embedding', index: 0, embedding }] },
+      1,
+    ),
+    [embedding],
+  )
   assert.throws(
-    () => extractEmbeddingData({ result: { data: [[0.1]] } }, 1),
-    /1024/u,
+    () =>
+      extractEmbeddingData(
+        { data: [{ object: 'embedding', index: 0, embedding: [0.1] }] },
+        1,
+      ),
+    /1536/u,
   )
 })
 
@@ -104,7 +112,7 @@ test('既存indexとの差分だけをembedding・upsert・deleteする', async 
     if (url.endsWith(`/vectorize/v2/indexes/${PREVIEW_INDEX}`)) {
       return cloudflareResponse({
         name: PREVIEW_INDEX,
-        config: { dimensions: 1024, metric: 'cosine' },
+        config: { dimensions: 1536, metric: 'cosine' },
       })
     }
     if (url.includes('/list?')) {
@@ -115,15 +123,27 @@ test('既存indexとの差分だけをembedding・upsert・deleteする', async 
         isTruncated: false,
       })
     }
-    if (url.includes('/ai/run/@cf/baai/bge-m3')) {
-      assert.deepEqual(JSON.parse(init.body).text, [newChunk.text])
-      return cloudflareResponse({ data: [embedding] })
+    if (url === 'https://api.openai.com/v1/embeddings') {
+      assert.equal(
+        new Headers(init.headers).get('Authorization'),
+        'Bearer openai-key',
+      )
+      assert.deepEqual(JSON.parse(init.body), {
+        model: 'text-embedding-3-large',
+        input: [newChunk.text],
+        dimensions: 1536,
+        encoding_format: 'float',
+      })
+      return Response.json({
+        model: 'text-embedding-3-large',
+        data: [{ object: 'embedding', index: 0, embedding }],
+      })
     }
     if (url.endsWith('/upsert')) {
       const ndjson = await init.body.get('vectors').text()
       const vector = JSON.parse(ndjson.trim())
       assert.equal(vector.id, newChunk.id)
-      assert.equal(vector.values.length, 1024)
+      assert.equal(vector.values.length, 1536)
       return cloudflareResponse({ mutationId: 'mutation-upsert' })
     }
     if (url.endsWith('/delete_by_ids')) {
@@ -142,6 +162,7 @@ test('既存indexとの差分だけをembedding・upsert・deleteする', async 
   const result = await syncVectorize({
     accountId: 'account',
     apiToken: 'token',
+    openAiApiKey: 'openai-key',
     indexName: PREVIEW_INDEX,
     corpusFile,
     fetchImpl,
@@ -151,7 +172,11 @@ test('既存indexとの差分だけをembedding・upsert・deleteする', async 
   assert.equal(result.upserted, 1)
   assert.equal(result.deleted, 1)
   assert.equal(result.mutationId, 'mutation-delete')
-  assert.equal(calls.filter(({ url }) => url.includes('/ai/run/')).length, 1)
+  assert.equal(
+    calls.filter(({ url }) => url === 'https://api.openai.com/v1/embeddings')
+      .length,
+    1,
+  )
 })
 
 test('管理外IDが現存するindexをmutation前に拒否する', async () => {
@@ -162,7 +187,7 @@ test('管理外IDが現存するindexをmutation前に拒否する', async () =>
     const url = String(input)
     if (url.endsWith(`/vectorize/v2/indexes/${PREVIEW_INDEX}`)) {
       return cloudflareResponse({
-        config: { dimensions: 1024, metric: 'cosine' },
+        config: { dimensions: 1536, metric: 'cosine' },
       })
     }
     if (url.includes('/list?')) {
@@ -181,6 +206,7 @@ test('管理外IDが現存するindexをmutation前に拒否する', async () =>
     syncVectorize({
       accountId: 'account',
       apiToken: 'token',
+      openAiApiKey: 'openai-key',
       indexName: PREVIEW_INDEX,
       corpusFile,
       fetchImpl,
@@ -200,7 +226,7 @@ test('Vectorize一覧をcursorで最後まで列挙して件数を照合する',
     const url = String(input)
     if (url.endsWith(`/vectorize/v2/indexes/${PREVIEW_INDEX}`)) {
       return cloudflareResponse({
-        config: { dimensions: 1024, metric: 'cosine' },
+        config: { dimensions: 1536, metric: 'cosine' },
       })
     }
     if (url.includes('/list?')) {
@@ -231,6 +257,7 @@ test('Vectorize一覧をcursorで最後まで列挙して件数を照合する',
   const result = await syncVectorize({
     accountId: 'account',
     apiToken: 'token',
+    openAiApiKey: 'openai-key',
     indexName: PREVIEW_INDEX,
     corpusFile,
     fetchImpl,
@@ -278,7 +305,7 @@ test('Vectorize一覧の欠損や不整合をmutation前に拒否する', async 
       const url = String(input)
       if (url.endsWith(`/vectorize/v2/indexes/${PREVIEW_INDEX}`)) {
         return cloudflareResponse({
-          config: { dimensions: 1024, metric: 'cosine' },
+          config: { dimensions: 1536, metric: 'cosine' },
         })
       }
       if (url.includes('/list?')) {
@@ -292,6 +319,7 @@ test('Vectorize一覧の欠損や不整合をmutation前に拒否する', async 
       syncVectorize({
         accountId: 'account',
         apiToken: 'token',
+        openAiApiKey: 'openai-key',
         indexName: PREVIEW_INDEX,
         corpusFile,
         fetchImpl,
@@ -322,8 +350,8 @@ function createCorpus() {
     schemaVersion: 1,
     version: 'a'.repeat(20),
     embedding: {
-      model: '@cf/baai/bge-m3',
-      dimensions: 1024,
+      model: 'text-embedding-3-large',
+      dimensions: 1536,
       metric: 'cosine',
     },
     chunking: {

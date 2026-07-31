@@ -4,13 +4,10 @@
   "pages_build_output_dir": "./dist",
   "compatibility_date": "2026-07-26",
   "compatibility_flags": ["nodejs_compat"],
-  "ai": {
-    "binding": "AI",
-  },
   "vectorize": [
     {
       "binding": "SEARCH_INDEX",
-      "index_name": "aceserver-wiki-search-production",
+      "index_name": "aceserver-wiki-search-openai-1536-production",
     },
   ],
   "d1_databases": [
@@ -32,20 +29,20 @@
     "CMS_DISCORD_AUTHORIZATION_MODE": "guild",
     "CMS_DISCORD_GUILD_ID": "737538781024092170",
     "CMS_DISCORD_ALLOWED_ROLE_IDS": "",
-    "SEARCH_ENABLED": "true",
+    "SEARCH_ENABLED": "false",
     "SEARCH_MIN_SCORE": "0.40",
     "ALPHA_CHAT_ENABLED": "true",
-    "ALPHA_CHAT_MODEL": "@cf/zai-org/glm-5.2",
+    "OPENAI_RESPONSE_MODEL": "gpt-5.6-luna",
+    "OPENAI_REASONING_EFFORT": "medium",
+    "OPENAI_EMBEDDING_MODEL": "text-embedding-3-large",
+    "OPENAI_EMBEDDING_DIMENSIONS": "1536",
   },
   "env": {
     "preview": {
-      "ai": {
-        "binding": "AI",
-      },
       "vectorize": [
         {
           "binding": "SEARCH_INDEX",
-          "index_name": "aceserver-wiki-search-preview",
+          "index_name": "aceserver-wiki-search-openai-1536-preview",
         },
       ],
       "d1_databases": [
@@ -70,7 +67,10 @@
         "SEARCH_ENABLED": "true",
         "SEARCH_MIN_SCORE": "0.40",
         "ALPHA_CHAT_ENABLED": "true",
-        "ALPHA_CHAT_MODEL": "@cf/zai-org/glm-5.2",
+        "OPENAI_RESPONSE_MODEL": "gpt-5.6-luna",
+        "OPENAI_REASONING_EFFORT": "medium",
+        "OPENAI_EMBEDDING_MODEL": "text-embedding-3-large",
+        "OPENAI_EMBEDDING_DIMENSIONS": "1536",
       },
     },
   },

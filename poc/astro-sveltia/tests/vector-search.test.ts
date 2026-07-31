@@ -40,7 +40,7 @@ const createSource = (
 })
 
 describe('Wiki Vectorize corpus', () => {
-  it('公開Markdownから決定的なBGE-M3 corpusを作る', async () => {
+  it('公開Markdownから決定的なOpenAI embedding corpusを作る', async () => {
     const first = await buildWikiVectorCorpus([
       createSource(),
       createSource({

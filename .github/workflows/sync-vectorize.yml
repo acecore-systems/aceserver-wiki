@@ -87,11 +87,16 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: db9b62f409f463da7acbcc374b8385d0
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN }}
-          VECTORIZE_INDEX_NAME: aceserver-wiki-search-preview
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          VECTORIZE_INDEX_NAME: aceserver-wiki-search-openai-1536-preview
         run: |
           set -euo pipefail
           if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
             echo "::error::CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN is not configured."
+            exit 1
+          fi
+          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+            echo "::error::OPENAI_API_KEY is not configured."
             exit 1
           fi
 
@@ -219,11 +224,16 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: db9b62f409f463da7acbcc374b8385d0
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN }}
-          VECTORIZE_INDEX_NAME: aceserver-wiki-search-production
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          VECTORIZE_INDEX_NAME: aceserver-wiki-search-openai-1536-production
         run: |
           set -euo pipefail
           if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
             echo "::error::CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN is not configured."
+            exit 1
+          fi
+          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+            echo "::error::OPENAI_API_KEY is not configured."
             exit 1
           fi
 

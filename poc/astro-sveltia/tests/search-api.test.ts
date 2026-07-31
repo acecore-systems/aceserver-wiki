@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { onRequestPost } from '../functions/api/search.ts'
+import { createSearchHandler } from '../functions/api/search.ts'
 
-const QUERY_VECTOR = Array.from({ length: 1024 }, () => 0.01)
+const QUERY_VECTOR = Array.from({ length: 1536 }, () => 0.01)
 
 describe('semantic search API', () => {
   it('embeds same-origin Japanese searches and queries the ja namespace', async () => {
@@ -61,7 +61,7 @@ describe('semantic search API', () => {
     })
   })
 
-  it('rejects requests without a matching Origin before Workers AI runs', async () => {
+  it('rejects requests without a matching Origin before OpenAI runs', async () => {
     const onAiRun = vi.fn()
     const request = new Request('https://asv-wiki.acecore.net/api/search', {
       method: 'POST',
@@ -96,10 +96,15 @@ describe('semantic search API', () => {
       searchRequest({ query: '検索' }),
       createEnv({ includeDatabase: false }),
     )
+    const missingApiKeyResponse = await invoke(
+      searchRequest({ query: '検索' }),
+      createEnv({ includeApiKey: false }),
+    )
 
     expect(textResponse.status).toBe(415)
     expect(disabledResponse.status).toBe(503)
     expect(missingDatabaseResponse.status).toBe(503)
+    expect(missingApiKeyResponse.status).toBe(503)
   })
 
   it('normalizes queries, enforces 2-160 characters, and fixes locale to ja', async () => {
@@ -128,9 +133,12 @@ describe('semantic search API', () => {
     )
 
     expect(normalizedResponse.status).toBe(200)
-    expect(embeddedInput).toEqual({
-      text: ['ASV ルール'],
-      truncate_inputs: true,
+    expect(embeddedInput).toMatchObject({
+      model: 'text-embedding-3-large',
+      input: 'ASV ルール',
+      dimensions: 1536,
+      encoding_format: 'float',
+      user: expect.stringMatching(/^[0-9a-f]{64}$/u),
     })
     expect(shortResponse.status).toBe(400)
     expect(longResponse.status).toBe(400)
@@ -300,7 +308,7 @@ describe('semantic search API', () => {
       expect(errorSpy).toHaveBeenCalledTimes(1)
       const log = String(errorSpy.mock.calls[0]?.[0])
       expect(log).not.toContain('秘密を含む検索テキスト')
-      expect(log).toContain('invalid_embedding')
+      expect(log).toContain('OpenAIEmbeddingDimensionsError')
     } finally {
       errorSpy.mockRestore()
     }
@@ -355,6 +363,7 @@ function createEnv({
   embedding = QUERY_VECTOR,
   enabled = true,
   globalRateLimitSuccess = true,
+  includeApiKey = true,
   includeDatabase = true,
   matches = [],
   minScore = '0.50',
@@ -366,6 +375,7 @@ function createEnv({
   embedding?: number[]
   enabled?: boolean
   globalRateLimitSuccess?: boolean
+  includeApiKey?: boolean
   includeDatabase?: boolean
   matches?: VectorizeMatch[]
   minScore?: string
@@ -373,14 +383,22 @@ function createEnv({
   onQuery?: (values: number[], options?: VectorizeQueryOptions) => void
   onRateLimit?: (key: string) => void
 } = {}) {
-  return {
-    AI: {
-      async run(model: string, input: unknown) {
-        onAiRun(model, input)
-        expect(model).toBe('@cf/baai/bge-m3')
-        return { data: [embedding] }
-      },
+  const openAiFetch = vi.fn(
+    async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe('https://api.openai.com/v1/embeddings')
+      expect(new Headers(init?.headers).get('Authorization')).toBe(
+        'Bearer test-openai-key',
+      )
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>
+      onAiRun(String(body.model), body)
+      return Response.json({
+        model: 'text-embedding-3-large',
+        data: [{ object: 'embedding', index: 0, embedding }],
+      })
     },
+  )
+
+  return {
     CMS_DATABASE: includeDatabase
       ? createRateLimitDatabase({
           clientRateLimitSuccess,
@@ -388,15 +406,19 @@ function createEnv({
           onRateLimit,
         })
       : undefined,
+    OPENAI_API_KEY: includeApiKey ? 'test-openai-key' : undefined,
+    OPENAI_EMBEDDING_DIMENSIONS: '1536',
+    OPENAI_EMBEDDING_MODEL: 'text-embedding-3-large',
     SEARCH_ENABLED: enabled ? 'true' : 'false',
     SEARCH_INDEX: {
       async query(values: number[], options?: VectorizeQueryOptions) {
-        expect(values).toHaveLength(1024)
+        expect(values).toHaveLength(1536)
         onQuery(values, options)
         return { count: matches.length, matches }
       },
     },
     SEARCH_MIN_SCORE: minScore,
+    __openAiFetch: openAiFetch,
   }
 }
 
@@ -443,9 +465,10 @@ function createRateLimitDatabase({
 }
 
 async function invoke(request: Request, env: ReturnType<typeof createEnv>) {
-  return onRequestPost({
+  const { __openAiFetch, ...bindings } = env
+  return createSearchHandler(__openAiFetch)({
     request,
-    env,
+    env: bindings,
     waitUntil() {},
-  } as unknown as Parameters<typeof onRequestPost>[0])
+  } as unknown as Parameters<ReturnType<typeof createSearchHandler>>[0])
 }
