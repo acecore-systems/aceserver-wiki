@@ -150,7 +150,7 @@ Cloudflare AI GatewayやWorkers AIは経由しません。入力は500文字以�
 チャットはこのWikiの公開記事だけを情報源にします。質問をOpenAI
 `text-embedding-3-large`（1536次元）でembeddingし、`SEARCH_INDEX`から候補を
 検索した後、build済み`/vector-corpus.json`の元chunkへ照合してからOpenAI
-Responses APIの`gpt-5.6-luna`（`reasoning.effort=low`、`store=false`）へ渡します。
+Responses APIの`gpt-5.6-luna`（`reasoning.effort=medium`、`store=false`）へ渡します。
 ポータルや他サイトの固定知識から
 ルール・コマンド・参加条件を補いません。根拠を取得できない場合は
 「確認できない」と明示し、一般論から可否を推測せずWiki内の確認導線を返します。
@@ -169,7 +169,7 @@ Responses APIの`text.format` JSON Schema（strict）で根拠番号とWiki本�
 - `ALPHA_CHAT_ENABLED`: chatのkill switch。`"true"`のときだけAI処理を行う
 - `OPENAI_API_KEY`: Pages secret。リポジトリや`wrangler.jsonc`へ保存しない
 - `OPENAI_RESPONSE_MODEL`: `gpt-5.6-luna`
-- `OPENAI_REASONING_EFFORT`: `low`
+- `OPENAI_REASONING_EFFORT`: `medium`
 - `OPENAI_EMBEDDING_MODEL` / `OPENAI_EMBEDDING_DIMENSIONS`:
   `text-embedding-3-large` / `1536`
 - `SEARCH_ENABLED` / `SEARCH_MIN_SCORE`: 共用するWiki検索の有効化とscore下限

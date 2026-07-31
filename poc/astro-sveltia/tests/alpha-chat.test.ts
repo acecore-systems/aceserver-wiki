@@ -178,7 +178,7 @@ describe('Alpha-kun WIKI chat API', () => {
     expect(aiCalls[1]?.model).toBe(CHAT_MODEL)
     expect(aiCalls[1]?.input).toMatchObject({
       model: CHAT_MODEL,
-      reasoning: { effort: 'low' },
+      reasoning: { effort: 'medium' },
       max_output_tokens: 512,
       store: false,
       safety_identifier: expect.stringMatching(/^[0-9a-f]{64}$/u),
@@ -1139,7 +1139,7 @@ function createEnv({
     OPENAI_API_KEY: includeApiKey ? 'test-openai-key' : undefined,
     OPENAI_EMBEDDING_DIMENSIONS: '1536',
     OPENAI_EMBEDDING_MODEL: EMBEDDING_MODEL,
-    OPENAI_REASONING_EFFORT: 'low',
+    OPENAI_REASONING_EFFORT: 'medium',
     OPENAI_RESPONSE_MODEL: responseModel || CHAT_MODEL,
     SEARCH_ENABLED: searchEnabled ? 'true' : 'false',
     SEARCH_INDEX: includeIndex

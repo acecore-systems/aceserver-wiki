@@ -1,6 +1,6 @@
 export const OPENAI_API_BASE_URL = 'https://api.openai.com/v1'
 export const OPENAI_RESPONSE_MODEL = 'gpt-5.6-luna'
-export const OPENAI_REASONING_EFFORT = 'low'
+export const OPENAI_REASONING_EFFORT = 'medium'
 export const OPENAI_EMBEDDING_MODEL = 'text-embedding-3-large'
 export const OPENAI_EMBEDDING_DIMENSIONS = 1536
 

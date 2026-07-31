@@ -282,7 +282,7 @@ Direct Uploadや手動uploadを復旧経路にしません。
 このWikiの`SEARCH_INDEX`と`/vector-corpus.json`だけをRAGの情報源とし、
 Pages FunctionからOpenAIへ直接接続します。回答モデルはResponses APIの
 `OPENAI_RESPONSE_MODEL=gpt-5.6-luna`、
-`OPENAI_REASONING_EFFORT=low`、`store=false`です。Cloudflare AI Gatewayや
+`OPENAI_REASONING_EFFORT=medium`、`store=false`です。Cloudflare AI Gatewayや
 Workers AIは経由しません。ルール、コマンド、
 参加条件などをポータルやモデルの固定知識から補いません。取得したWiki根拠で
 確認できない質問は「確認できない」と明示し、一般論から可否を推測しません。
@@ -336,7 +336,7 @@ Previewで次を確認します。
    secretは`OPENAI_API_KEY`、varsは
    `ALPHA_CHAT_ENABLED=true`、
    `OPENAI_RESPONSE_MODEL=gpt-5.6-luna`、
-   `OPENAI_REASONING_EFFORT=low`、
+   `OPENAI_REASONING_EFFORT=medium`、
    `OPENAI_EMBEDDING_MODEL=text-embedding-3-large`、
    `OPENAI_EMBEDDING_DIMENSIONS=1536`、
    `CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretは置かない。
