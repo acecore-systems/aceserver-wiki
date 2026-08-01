@@ -33,15 +33,19 @@ const startArticle =
   categories={categories}
 >
   <section class="home">
-    <h1>{HEADER_TITLE}</h1>
-    <p class="home__description">{ROOT_DESCRIPTION}</p>
-    {
-      startArticle && (
-        <a class="home__start" href={articlePath(startArticle.id)}>
-          Wikiを読む
-        </a>
-      )
-    }
+    <section class="home__hero" aria-labelledby="home-title">
+      <div class="home__hero-content">
+        <h1 id="home-title">{HEADER_TITLE}</h1>
+        <p class="home__description">{ROOT_DESCRIPTION}</p>
+        {
+          startArticle && (
+            <a class="home__start" href={articlePath(startArticle.id)}>
+              Wikiを読む
+            </a>
+          )
+        }
+      </div>
+    </section>
 
     {
       quickArticles.length > 0 && (
@@ -58,27 +62,34 @@ const startArticle =
       )
     }
 
-    {
-      categories.map((category) => (
-        <section class="home__category">
-          <h2>{category.name}</h2>
-          {
-            category.articles.length > 0 ? (
-              <ul>
-                {category.articles.map((article) => (
-                  <li>
-                    <a href={articlePath(article.id)}>{article.data.title}</a>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p class="home__empty">
-                現在、公開中の記事はありません。
-              </p>
-            )
-          }
-        </section>
-      ))
-    }
+    <div id="wiki-directory" class="home__directory">
+      {
+        categories.map((category, index) => (
+          <section
+            class:list={[
+              'home__category',
+              `home__category--${index + 1}`,
+            ]}
+          >
+            <h2>{category.name}</h2>
+            {
+              category.articles.length > 0 ? (
+                <ul>
+                  {category.articles.map((article) => (
+                    <li>
+                      <a href={articlePath(article.id)}>{article.data.title}</a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="home__empty">
+                  現在、公開中の記事はありません。
+                </p>
+              )
+            }
+          </section>
+        ))
+      }
+    </div>
   </section>
 </WikiLayout>

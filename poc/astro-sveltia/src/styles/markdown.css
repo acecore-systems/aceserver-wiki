@@ -285,3 +285,110 @@
     color: #000;
   }
 }
+
+@media screen {
+  .article__body {
+    color: var(--color-text);
+    font-size: 1rem;
+    line-height: 1.85;
+  }
+
+  .article__body :where(h1, h2, h3, h4, h5, h6) {
+    color: var(--color-heading);
+    font-weight: 750;
+  }
+
+  .article__body :where(h1, h2) {
+    position: relative;
+    padding-inline-start: 0.8rem;
+    border-block-end: 1px solid rgb(211 168 61 / 72%);
+  }
+
+  .article__body :where(h1, h2)::before {
+    position: absolute;
+    inset-block: 0.2em 0.72rem;
+    inset-inline-start: 0;
+    width: 0.24rem;
+    background: var(--asv-green);
+    content: '';
+  }
+
+  .article__body h3 {
+    padding-inline-start: 0.7rem;
+    border-inline-start: 2px solid rgb(211 168 61 / 82%);
+  }
+
+  .article__body :where(a) {
+    color: var(--asv-blue);
+    font-weight: 650;
+  }
+
+  .article__body :where(a:hover) {
+    color: var(--color-brand-hover);
+  }
+
+  .article__body :where(strong, b) {
+    color: var(--color-heading);
+    font-weight: 750;
+  }
+
+  .article__body :where(blockquote) {
+    border-inline-start-color: var(--asv-green);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background: #f3f8f5;
+    color: var(--color-muted);
+  }
+
+  .article__body :where(:not(pre) > code) {
+    border-color: var(--color-border);
+    border-radius: 0.3rem;
+    background: #f2f5f7;
+    color: var(--color-code);
+    font-weight: 650;
+  }
+
+  .article__body pre {
+    border-color: var(--color-code-border);
+    border-radius: var(--radius);
+    background: var(--color-code-background);
+    box-shadow: none;
+  }
+
+  .article__body table {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: #ffffff;
+    box-shadow: none;
+  }
+
+  .article__body :where(th, td) {
+    border-color: var(--color-border);
+    padding: 0.75rem 0.85rem;
+  }
+
+  .article__body th {
+    border-color: #cad9d0;
+    color: var(--color-heading);
+    background: #eef5f0;
+    font-weight: 750;
+  }
+
+  .article__body tbody tr:nth-child(even) {
+    background: #fbfcfd;
+  }
+
+  .article__body :where(img, video) {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: none;
+  }
+
+  .article__body figcaption {
+    color: var(--color-muted);
+    font-weight: 500;
+  }
+
+  .article__body hr {
+    border-block-start-color: var(--color-border);
+  }
+}

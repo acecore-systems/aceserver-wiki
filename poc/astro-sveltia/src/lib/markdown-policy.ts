@@ -1,5 +1,4 @@
-import remarkParse from 'remark-parse'
-import { unified } from 'unified'
+import { fromMarkdown } from 'mdast-util-from-markdown'
 
 const rawHtmlPattern =
   /<(?:!--[\s\S]*?--|!doctype\b[^>]*|\/?[a-z][a-z0-9:-]*(?:\s[^<>]*?)?\s*\/?>)/i
@@ -45,7 +44,7 @@ type MarkdownNode = {
 }
 
 const assertLocalWikiImages = (source: string, id: string): void => {
-  const tree = unified().use(remarkParse).parse(source) as MarkdownNode
+  const tree = fromMarkdown(source) as MarkdownNode
   const imageUrls: string[] = []
   const imageReferences: string[] = []
   const definitions = new Map<string, string>()
