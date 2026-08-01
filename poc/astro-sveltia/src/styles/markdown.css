@@ -290,117 +290,105 @@
   .article__body {
     color: var(--color-text);
     font-size: 1rem;
-    line-height: 1.9;
+    line-height: 1.85;
   }
 
   .article__body :where(h1, h2, h3, h4, h5, h6) {
-    color: var(--asv-ink);
-    font-weight: 850;
+    color: var(--color-heading);
+    font-weight: 750;
   }
 
   .article__body :where(h1, h2) {
     position: relative;
-    padding-inline-start: 1rem;
-    border-block-end: 2px solid #c99b22;
+    padding-inline-start: 0.8rem;
+    border-block-end: 1px solid rgb(211 168 61 / 72%);
   }
 
   .article__body :where(h1, h2)::before {
     position: absolute;
-    inset-block: 0.15em 0.8rem;
+    inset-block: 0.2em 0.72rem;
     inset-inline-start: 0;
-    width: 0.38rem;
-    background: linear-gradient(180deg, #2f9829, #165322);
+    width: 0.24rem;
+    background: var(--asv-green);
     content: '';
   }
 
   .article__body h3 {
-    padding-inline-start: 0.8rem;
-    border-inline-start: 3px solid var(--asv-gold);
+    padding-inline-start: 0.7rem;
+    border-inline-start: 2px solid rgb(211 168 61 / 82%);
   }
 
   .article__body :where(a) {
     color: var(--asv-blue);
-    font-weight: 700;
+    font-weight: 650;
   }
 
   .article__body :where(a:hover) {
-    color: #005cc4;
+    color: var(--color-brand-hover);
   }
 
   .article__body :where(strong, b) {
-    color: var(--asv-ink);
-    font-weight: 850;
+    color: var(--color-heading);
+    font-weight: 750;
   }
 
   .article__body :where(blockquote) {
-    border-inline-start-color: var(--asv-gold);
-    border-radius: 0 0.55rem 0.55rem 0;
-    background: #fff4cf;
-    color: #5c4d39;
+    border-inline-start-color: var(--asv-green);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    background: #f3f8f5;
+    color: var(--color-muted);
   }
 
   .article__body :where(:not(pre) > code) {
-    border-color: rgb(125 102 69 / 36%);
-    border-radius: 0.35rem;
-    background: #f1ece1;
-    color: #7a243f;
-    font-weight: 700;
+    border-color: var(--color-border);
+    border-radius: 0.3rem;
+    background: #f2f5f7;
+    color: var(--color-code);
+    font-weight: 650;
   }
 
   .article__body pre {
-    border-color: rgb(255 216 77 / 40%);
-    border-radius: 0.65rem;
-    background:
-      linear-gradient(180deg, #272018, #17130f),
-      repeating-linear-gradient(
-        90deg,
-        rgb(255 255 255 / 4%) 0 1px,
-        transparent 1px 28px
-      );
-    box-shadow: 0 0.5rem 1.3rem rgb(43 33 24 / 13%);
+    border-color: var(--color-code-border);
+    border-radius: var(--radius);
+    background: var(--color-code-background);
+    box-shadow: none;
   }
 
   .article__body table {
-    border: 1px solid rgb(125 102 69 / 38%);
-    border-radius: 0.55rem;
-    background: #fffdf6;
-    box-shadow: 0 0.45rem 1.2rem rgb(43 33 24 / 7%);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: #ffffff;
+    box-shadow: none;
   }
 
   .article__body :where(th, td) {
-    border-color: rgb(125 102 69 / 28%);
-    padding: 0.8rem 0.95rem;
+    border-color: var(--color-border);
+    padding: 0.75rem 0.85rem;
   }
 
   .article__body th {
-    border-color: rgb(255 255 255 / 18%);
-    color: #fffdf5;
-    background:
-      linear-gradient(90deg, #17491f, #0d2b14),
-      repeating-linear-gradient(
-        90deg,
-        rgb(255 255 255 / 6%) 0 1px,
-        transparent 1px 28px
-      );
-    font-weight: 850;
+    border-color: #cad9d0;
+    color: var(--color-heading);
+    background: #eef5f0;
+    font-weight: 750;
   }
 
   .article__body tbody tr:nth-child(even) {
-    background: #fff9eb;
+    background: #fbfcfd;
   }
 
   .article__body :where(img, video) {
-    border: 1px solid rgb(125 102 69 / 28%);
-    border-radius: 0.65rem;
-    box-shadow: 0 0.55rem 1.6rem rgb(43 33 24 / 12%);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: none;
   }
 
   .article__body figcaption {
     color: var(--color-muted);
-    font-weight: 650;
+    font-weight: 500;
   }
 
   .article__body hr {
-    border-block-start-color: rgb(125 102 69 / 30%);
+    border-block-start-color: var(--color-border);
   }
 }

@@ -40,51 +40,24 @@ const startArticle =
         {
           startArticle && (
             <a class="home__start" href={articlePath(startArticle.id)}>
-              <svg
-                class="home__start-icon"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path d="M4.5 5.5A2.5 2.5 0 0 1 7 3h4.25A2.75 2.75 0 0 1 14 5.75V20a2.5 2.5 0 0 0-2.5-2.5H7A2.5 2.5 0 0 0 4.5 20Z" />
-                <path d="M19.5 5.5A2.5 2.5 0 0 0 17 3h-3v17a2.5 2.5 0 0 1 2.5-2.5H17a2.5 2.5 0 0 1 2.5 2.5Z" />
-              </svg>
-              <span>Wikiを読む</span>
-              <svg
-                class="home__start-arrow"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <path d="M5 12h13" />
-                <path d="m13 6 6 6-6 6" />
-              </svg>
+              Wikiを読む
             </a>
           )
         }
       </div>
-      <a
-        class="home__scroll-cue"
-        href="#wiki-directory"
-        aria-label="記事一覧へ移動"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </a>
     </section>
 
     {
       quickArticles.length > 0 && (
         <nav class="home__quick-links" aria-label="よく使う記事">
-          <div class="home__quick-links-inner">
-            <h2>よく使う記事</h2>
-            <ul>
-              {quickArticles.map((article) => (
-                <li>
-                  <a href={articlePath(article.id)}>{article.data.title}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <h2>よく使う記事</h2>
+          <ul>
+            {quickArticles.map((article) => (
+              <li>
+                <a href={articlePath(article.id)}>{article.data.title}</a>
+              </li>
+            ))}
+          </ul>
         </nav>
       )
     }
@@ -104,13 +77,7 @@ const startArticle =
                 <ul>
                   {category.articles.map((article) => (
                     <li>
-                      <a href={articlePath(article.id)}>
-                        <span>{article.data.title}</span>
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                          <path d="M5 12h13" />
-                          <path d="m13 6 6 6-6 6" />
-                        </svg>
-                      </a>
+                      <a href={articlePath(article.id)}>{article.data.title}</a>
                     </li>
                   ))}
                 </ul>
