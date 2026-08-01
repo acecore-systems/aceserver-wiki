@@ -39,6 +39,10 @@ export const WIKI_HEADER_LINKS = [
     text: 'エースサーバーポータル',
     href: 'https://asv.acecore.net',
   },
+  {
+    text: 'Aceserverグッズ',
+    href: 'https://shop.acecore.net/collections/aceserver/',
+  },
 ] as const
 
 export const ARTICLE_REDIRECTS = new Map<string, string>([

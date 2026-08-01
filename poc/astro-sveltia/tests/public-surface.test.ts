@@ -35,7 +35,7 @@ describe('migrated public site configuration', () => {
     ])
   })
 
-  it('preserves all three header links', () => {
+  it('preserves the curated header links', () => {
     expect(WIKI_HEADER_LINKS).toEqual([
       {
         text: 'ワールドマップ',
@@ -45,6 +45,10 @@ describe('migrated public site configuration', () => {
       {
         text: 'エースサーバーポータル',
         href: 'https://asv.acecore.net',
+      },
+      {
+        text: 'Aceserverグッズ',
+        href: 'https://shop.acecore.net/collections/aceserver/',
       },
     ])
   })
