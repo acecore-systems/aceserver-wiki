@@ -123,6 +123,8 @@ a:hover {
 }
 
 .wrapper {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
@@ -131,9 +133,37 @@ a:hover {
 }
 
 .main {
+  flex: 1 0 auto;
   width: min(100%, var(--layout-width));
   margin-inline: auto;
   padding: clamp(1.75rem, 5vw, 3.5rem) clamp(1rem, 4vw, 2rem) 5rem;
+}
+
+.site-footer {
+  margin-block-start: auto;
+  border-block-start: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.site-footer__inner {
+  display: flex;
+  width: min(100%, var(--layout-width));
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1.25rem;
+  margin-inline: auto;
+  padding: 1rem clamp(1rem, 4vw, 2rem);
+  color: var(--color-muted);
+  font-size: 0.82rem;
+}
+
+.site-footer__inner a {
+  color: inherit;
+  font-weight: 700;
+}
+
+.site-footer__inner a:hover {
+  color: var(--color-brand);
 }
 
 .content {

@@ -3,12 +3,16 @@ import AlphaGuide from '../components/AlphaGuide.astro'
 import Header from '../components/Header.astro'
 import Navigation from '../components/Navigation.astro'
 import {
+  ACECORE_LEGAL_NAME,
+  ACECORE_ORGANIZATION_NAME,
+  ACECORE_ORIGIN,
   ADSENSE_CLIENT,
   BING_SITE_VERIFICATION,
   SITE_NAME,
   SITE_ORIGIN,
   WIKI_ICON_PATH,
 } from '../config/wiki'
+import { serializeJsonForHtmlScript } from '../lib/safe-json'
 import type { WikiCategoryGroup } from '../lib/wiki'
 import '../styles/global.css'
 import '../styles/markdown.css'
@@ -41,6 +45,26 @@ const canonical = new URL(canonicalPath, Astro.site ?? SITE_ORIGIN).toString()
 const absoluteOgImage = ogImage
   ? new URL(ogImage, Astro.site ?? SITE_ORIGIN).toString()
   : undefined
+const siteHomeUrl = new URL('/', Astro.site ?? SITE_ORIGIN).toString()
+const acecoreOrganizationId = `${ACECORE_ORIGIN}#organization`
+const websiteId = `${siteHomeUrl}#website`
+const acecoreOrganizationJsonLd = serializeJsonForHtmlScript({
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': acecoreOrganizationId,
+  name: ACECORE_ORGANIZATION_NAME,
+  legalName: ACECORE_LEGAL_NAME,
+  url: ACECORE_ORIGIN,
+})
+const websiteJsonLd = serializeJsonForHtmlScript({
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  '@id': websiteId,
+  name: SITE_NAME,
+  url: siteHomeUrl,
+  inLanguage: 'ja',
+  publisher: { '@id': acecoreOrganizationId },
+})
 ---
 
 <!doctype html>
@@ -84,6 +108,12 @@ const absoluteOgImage = ogImage
         />
       )
     }
+    <script
+      is:inline
+      type="application/ld+json"
+      set:html={acecoreOrganizationJsonLd}
+    />
+    <script is:inline type="application/ld+json" set:html={websiteJsonLd} />
     <title>{title}</title>
   </head>
   <body>
@@ -97,6 +127,12 @@ const absoluteOgImage = ogImage
           <AlphaGuide />
         </div>
       </main>
+      <footer class="site-footer">
+        <div class="site-footer__inner">
+          <a href={ACECORE_ORIGIN}>運営：{ACECORE_LEGAL_NAME}</a>
+          <span>© {new Date().getFullYear()} {ACECORE_LEGAL_NAME}</span>
+        </div>
+      </footer>
     </div>
   </body>
 </html>

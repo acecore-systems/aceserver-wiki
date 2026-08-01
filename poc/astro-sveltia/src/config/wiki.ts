@@ -1,5 +1,8 @@
 export const SITE_ORIGIN = 'https://asv-wiki.acecore.net'
 export const SITE_NAME = 'エースサーバー公式Wiki'
+export const ACECORE_ORGANIZATION_NAME = 'Acecore'
+export const ACECORE_LEGAL_NAME = '株式会社Acecore'
+export const ACECORE_ORIGIN = 'https://acecore.net/'
 export const HEADER_TITLE = 'エースサーバーWIKI'
 export const ROOT_META_TITLE =
   'エースサーバー公式Wiki｜ルール・参加方法・コマンド案内'
