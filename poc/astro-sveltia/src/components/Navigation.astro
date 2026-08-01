@@ -10,6 +10,10 @@ const { categories, currentId } = Astro.props
 ---
 
 <nav class="side-navigation" aria-label="記事一覧">
+  <div class="side-navigation__title">
+    <span class="side-navigation__title-mark" aria-hidden="true"></span>
+    <span>記事ナビゲーション</span>
+  </div>
   {
     categories.map((category) => (
       <section class="side-navigation__category">

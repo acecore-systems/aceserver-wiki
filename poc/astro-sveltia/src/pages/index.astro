@@ -33,52 +33,96 @@ const startArticle =
   categories={categories}
 >
   <section class="home">
-    <h1>{HEADER_TITLE}</h1>
-    <p class="home__description">{ROOT_DESCRIPTION}</p>
-    {
-      startArticle && (
-        <a class="home__start" href={articlePath(startArticle.id)}>
-          Wikiを読む
-        </a>
-      )
-    }
+    <section class="home__hero" aria-labelledby="home-title">
+      <div class="home__hero-content">
+        <h1 id="home-title">{HEADER_TITLE}</h1>
+        <p class="home__description">{ROOT_DESCRIPTION}</p>
+        {
+          startArticle && (
+            <a class="home__start" href={articlePath(startArticle.id)}>
+              <svg
+                class="home__start-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path d="M4.5 5.5A2.5 2.5 0 0 1 7 3h4.25A2.75 2.75 0 0 1 14 5.75V20a2.5 2.5 0 0 0-2.5-2.5H7A2.5 2.5 0 0 0 4.5 20Z" />
+                <path d="M19.5 5.5A2.5 2.5 0 0 0 17 3h-3v17a2.5 2.5 0 0 1 2.5-2.5H17a2.5 2.5 0 0 1 2.5 2.5Z" />
+              </svg>
+              <span>Wikiを読む</span>
+              <svg
+                class="home__start-arrow"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path d="M5 12h13" />
+                <path d="m13 6 6 6-6 6" />
+              </svg>
+            </a>
+          )
+        }
+      </div>
+      <a
+        class="home__scroll-cue"
+        href="#wiki-directory"
+        aria-label="記事一覧へ移動"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="m6 9 6 6 6-6" />
+        </svg>
+      </a>
+    </section>
 
     {
       quickArticles.length > 0 && (
         <nav class="home__quick-links" aria-label="よく使う記事">
-          <h2>よく使う記事</h2>
-          <ul>
-            {quickArticles.map((article) => (
-              <li>
-                <a href={articlePath(article.id)}>{article.data.title}</a>
-              </li>
-            ))}
-          </ul>
+          <div class="home__quick-links-inner">
+            <h2>よく使う記事</h2>
+            <ul>
+              {quickArticles.map((article) => (
+                <li>
+                  <a href={articlePath(article.id)}>{article.data.title}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
         </nav>
       )
     }
 
-    {
-      categories.map((category) => (
-        <section class="home__category">
-          <h2>{category.name}</h2>
-          {
-            category.articles.length > 0 ? (
-              <ul>
-                {category.articles.map((article) => (
-                  <li>
-                    <a href={articlePath(article.id)}>{article.data.title}</a>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p class="home__empty">
-                現在、公開中の記事はありません。
-              </p>
-            )
-          }
-        </section>
-      ))
-    }
+    <div id="wiki-directory" class="home__directory">
+      {
+        categories.map((category, index) => (
+          <section
+            class:list={[
+              'home__category',
+              `home__category--${index + 1}`,
+            ]}
+          >
+            <h2>{category.name}</h2>
+            {
+              category.articles.length > 0 ? (
+                <ul>
+                  {category.articles.map((article) => (
+                    <li>
+                      <a href={articlePath(article.id)}>
+                        <span>{article.data.title}</span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M5 12h13" />
+                          <path d="m13 6 6 6-6 6" />
+                        </svg>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p class="home__empty">
+                  現在、公開中の記事はありません。
+                </p>
+              )
+            }
+          </section>
+        ))
+      }
+    </div>
   </section>
 </WikiLayout>

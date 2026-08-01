@@ -76,7 +76,7 @@ const websiteJsonLd = serializeJsonForHtmlScript({
     <meta name="description" content={description} />
     <meta name="robots" content={robots} />
     <meta name="msvalidate.01" content={BING_SITE_VERIFICATION} />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#15130f" />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href={WIKI_ICON_PATH} type="image/png" />
     <meta property="og:locale" content="ja_JP" />
@@ -116,7 +116,7 @@ const websiteJsonLd = serializeJsonForHtmlScript({
     <script is:inline type="application/ld+json" set:html={websiteJsonLd} />
     <title>{title}</title>
   </head>
-  <body>
+  <body class:list={[{ 'page--home': canonicalPath === '/' }]}>
     <a class="skip-link" href="#main-content">本文へ移動</a>
     <div class="wrapper">
       <Header categories={categories} currentId={currentId} />
