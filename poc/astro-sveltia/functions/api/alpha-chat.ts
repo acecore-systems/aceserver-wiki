@@ -52,9 +52,15 @@ const MODEL_FAILURE_ANSWER =
 
 type AlphaChatEnv = Omit<
   Env,
-  'ALPHA_CHAT_ENABLED' | 'SEARCH_ENABLED' | 'SEARCH_INDEX'
+  | 'ALPHA_CHAT_ENABLED'
+  | 'ALPHA_CHAT_SERVICE'
+  | 'ALPHA_CHAT_SHARED_ENABLED'
+  | 'SEARCH_ENABLED'
+  | 'SEARCH_INDEX'
 > & {
   ALPHA_CHAT_ENABLED?: string
+  ALPHA_CHAT_SERVICE?: Fetcher
+  ALPHA_CHAT_SHARED_ENABLED?: string
   ASSETS?: Fetcher
   OPENAI_API_KEY?: string
   OPENAI_EMBEDDING_DIMENSIONS?: string
@@ -67,6 +73,7 @@ type AlphaChatEnv = Omit<
 
 type ChatMessage = {
   content: string
+  loreRevisionId?: string
   role: 'assistant' | 'user'
 }
 
@@ -99,6 +106,7 @@ type ValidatedCitation = {
 
 type AlphaResponse = {
   answer: string
+  loreRevisionId?: string
   ok: boolean
   sources: AlphaSource[]
 }
@@ -110,7 +118,7 @@ type PayloadValidation =
       ok: false
     }
 
-export const createAlphaChatHandler =
+const createLegacyAlphaChatHandler =
   (openAiFetch: typeof fetch = fetch): PagesFunction<AlphaChatEnv> =>
   async (context) => {
     const startedAt = performance.now()
@@ -375,7 +383,222 @@ export const createAlphaChatHandler =
     }
   }
 
+export const createAlphaChatHandler = (
+  openAiFetch: typeof fetch = fetch,
+): PagesFunction<AlphaChatEnv> => {
+  const legacyHandler = createLegacyAlphaChatHandler(openAiFetch)
+  return async (context) => {
+    if (context.env.ALPHA_CHAT_SHARED_ENABLED === 'true') {
+      return proxySharedAlphaChat(context)
+    }
+    return legacyHandler(context)
+  }
+}
+
 export const onRequestPost = createAlphaChatHandler()
+
+async function proxySharedAlphaChat(
+  context: Parameters<PagesFunction<AlphaChatEnv>>[0],
+): Promise<Response> {
+  const startedAt = performance.now()
+  const requestId = crypto.randomUUID()
+  const { env, request } = context
+
+  try {
+    if (!isSameOriginRequest(request)) {
+      return alphaResponse(
+        { ok: false, answer: INVALID_REQUEST_ANSWER, sources: [] },
+        403,
+        requestId,
+        startedAt,
+      )
+    }
+    if (!isJsonRequest(request)) {
+      return alphaResponse(
+        { ok: false, answer: INVALID_REQUEST_ANSWER, sources: [] },
+        415,
+        requestId,
+        startedAt,
+      )
+    }
+    if (
+      env.ALPHA_CHAT_ENABLED !== 'true' ||
+      !env.CMS_DATABASE ||
+      !env.ALPHA_CHAT_SERVICE
+    ) {
+      return alphaResponse(
+        { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+        503,
+        requestId,
+        startedAt,
+      )
+    }
+
+    let clientKey = ''
+    let shouldCleanupRateLimits = false
+    try {
+      clientKey = await createClientRateLimitKey(request)
+      const clientLimit = await consumeRateLimit(
+        env.CMS_DATABASE,
+        `alpha-client:${clientKey}`,
+        CLIENT_RATE_LIMIT,
+      )
+      if (!clientLimit.allowed) {
+        return alphaResponse(
+          { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+          429,
+          requestId,
+          startedAt,
+          { 'Retry-After': String(RATE_LIMIT_WINDOW_SECONDS) },
+        )
+      }
+
+      const globalLimit = await consumeRateLimit(
+        env.CMS_DATABASE,
+        'alpha-global',
+        GLOBAL_RATE_LIMIT,
+      )
+      if (!globalLimit.allowed) {
+        return alphaResponse(
+          { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+          429,
+          requestId,
+          startedAt,
+          { 'Retry-After': String(RATE_LIMIT_WINDOW_SECONDS) },
+        )
+      }
+      shouldCleanupRateLimits = globalLimit.count === 1
+    } catch (error) {
+      logAlphaError(
+        requestId,
+        'rate_limit',
+        getErrorCode(error, 'storage_error'),
+      )
+      return alphaResponse(
+        { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+        503,
+        requestId,
+        startedAt,
+      )
+    }
+
+    if (shouldCleanupRateLimits) {
+      context.waitUntil(
+        deleteExpiredRateLimits(env.CMS_DATABASE).catch((error) => {
+          logAlphaError(
+            requestId,
+            'rate_limit_cleanup',
+            getErrorCode(error, 'storage_error'),
+          )
+        }),
+      )
+    }
+
+    const requestText = await readBoundedText(request, MAX_REQUEST_BYTES)
+    if (requestText === null) {
+      return alphaResponse(
+        { ok: false, answer: REQUEST_TOO_LARGE_ANSWER, sources: [] },
+        413,
+        requestId,
+        startedAt,
+      )
+    }
+    let parsedPayload: unknown
+    try {
+      parsedPayload = JSON.parse(requestText)
+    } catch {
+      return alphaResponse(
+        { ok: false, answer: INVALID_REQUEST_ANSWER, sources: [] },
+        400,
+        requestId,
+        startedAt,
+      )
+    }
+    const payloadResult = normalizePayload(parsedPayload)
+    if (!payloadResult.ok) {
+      return alphaResponse(
+        { ok: false, answer: payloadResult.answer, sources: [] },
+        400,
+        requestId,
+        startedAt,
+      )
+    }
+
+    const serviceResponse = await env.ALPHA_CHAT_SERVICE.fetch(
+      new Request('https://aceserver-alpha-chat.internal/v1/chat', {
+        body: JSON.stringify({
+          payload: {
+            locale: 'ja',
+            messages: payloadResult.value.conversation,
+            question: payloadResult.value.question,
+          },
+          surface: 'wiki',
+          version: 1,
+        }),
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        method: 'POST',
+      }),
+    )
+    const responseText = await readBoundedText(serviceResponse, 32_000)
+    if (responseText === null) throw namedError('AlphaChatServiceResponseSize')
+    const sharedBody = normalizeSharedAlphaResponse(JSON.parse(responseText))
+    if (!sharedBody) throw namedError('AlphaChatServiceResponsePayload')
+
+    return alphaResponse(
+      sharedBody,
+      normalizeServiceStatus(serviceResponse.status),
+      requestId,
+      startedAt,
+    )
+  } catch (error) {
+    logAlphaError(
+      requestId,
+      'shared_service',
+      getErrorCode(error, 'service_error'),
+    )
+    return alphaResponse(
+      { ok: false, answer: UNAVAILABLE_ANSWER, sources: [] },
+      503,
+      requestId,
+      startedAt,
+    )
+  }
+}
+
+function normalizeSharedAlphaResponse(value: unknown): AlphaResponse | null {
+  if (!isJsonObject(value) || typeof value.ok !== 'boolean') return null
+  const answer = normalizeText(value.answer, false)
+  if (!answer) return null
+
+  const loreRevisionId = readString(value.loreRevisionId, 128)
+  const sources = Array.isArray(value.sources)
+    ? value.sources
+        .map((source) => {
+          if (!isJsonObject(source)) return null
+          const title = readString(source.title, 240)
+          const url = normalizeArticleUrl(source.url, ORIGIN_PLACEHOLDER)
+          return title && url ? { title, url } : null
+        })
+        .filter((source): source is AlphaSource => source !== null)
+        .slice(0, MAX_RESPONSE_SOURCES)
+    : []
+
+  return {
+    answer,
+    ok: value.ok,
+    sources,
+    ...(loreRevisionId ? { loreRevisionId } : {}),
+  }
+}
+
+const ORIGIN_PLACEHOLDER = 'https://asv-wiki.acecore.net/'
+
+function normalizeServiceStatus(value: number): number {
+  return Number.isInteger(value) && value >= 200 && value <= 599 ? value : 502
+}
 
 function normalizePayload(value: unknown): PayloadValidation {
   if (!isJsonObject(value)) {
@@ -410,7 +633,12 @@ function normalizePayload(value: unknown): PayloadValidation {
     if (!content) {
       return { ok: false, answer: INVALID_REQUEST_ANSWER }
     }
-    messages.push({ role: rawMessage.role, content })
+    const loreRevisionId = readString(rawMessage.loreRevisionId, 128)
+    messages.push({
+      role: rawMessage.role,
+      content,
+      ...(loreRevisionId ? { loreRevisionId } : {}),
+    })
   }
 
   if (

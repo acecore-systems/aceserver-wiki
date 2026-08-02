@@ -947,6 +947,108 @@ describe('Alpha-kun WIKI chat D1 rate limits', () => {
     vi.setSystemTime(new Date('2026-07-30T00:01:01Z'))
     expect((await makeRequest()).status).toBe(200)
   })
+
+  it('forwards shared-mode WIKI requests after the entry-point rate limit', async () => {
+    const serviceRequests: Request[] = []
+    const serviceFetch = vi.fn(async (request: Request) => {
+      serviceRequests.push(request)
+      return Response.json({
+        answer: '次の小さな記憶だよ。',
+        loreRevisionId: '018f7e5a-7b4d-7c6a-8e9f-0123456789ac',
+        ok: true,
+        sources: [
+          {
+            title: '基本ルール',
+            url: 'https://asv-wiki.acecore.net/article/rules/',
+          },
+        ],
+      })
+    })
+    const response = await createAlphaChatHandler()({
+      env: {
+        ALPHA_CHAT_ENABLED: 'true',
+        ALPHA_CHAT_SERVICE: { fetch: serviceFetch } as unknown as Fetcher,
+        ALPHA_CHAT_SHARED_ENABLED: 'true',
+        CMS_DATABASE: createRateLimitDatabase({
+          clientRateLimitSuccess: true,
+          globalRateLimitSuccess: true,
+          onRateLimit: () => undefined,
+        }),
+      },
+      request: chatRequest({
+        messages: [
+          {
+            content: '前の記憶だよ。',
+            loreRevisionId: '018f7e5a-7b4d-7c6a-8e9f-0123456789ab',
+            role: 'assistant',
+          },
+        ],
+        question: 'そのあとどうなった？',
+      }),
+      waitUntil(promise: Promise<unknown>) {
+        void promise
+      },
+    } as unknown as Parameters<ReturnType<typeof createAlphaChatHandler>>[0])
+
+    expect(response.status).toBe(200)
+    expect(serviceRequests).toHaveLength(1)
+    const serviceRequest = serviceRequests[0]
+    expect(serviceRequest?.url).toBe(
+      'https://aceserver-alpha-chat.internal/v1/chat',
+    )
+    await expect(serviceRequest?.json()).resolves.toEqual({
+      payload: {
+        locale: 'ja',
+        messages: [
+          {
+            content: '前の記憶だよ。',
+            loreRevisionId: '018f7e5a-7b4d-7c6a-8e9f-0123456789ab',
+            role: 'assistant',
+          },
+          { content: 'そのあとどうなった?', role: 'user' },
+        ],
+        question: 'そのあとどうなった?',
+      },
+      surface: 'wiki',
+      version: 1,
+    })
+    await expect(response.json()).resolves.toMatchObject({
+      answer: '次の小さな記憶だよ。',
+      loreRevisionId: '018f7e5a-7b4d-7c6a-8e9f-0123456789ac',
+      ok: true,
+      sources: [
+        { title: '基本ルール', url: '/article/rules/' },
+      ],
+    })
+  })
+
+  it('does not fall back to the local model when the shared service fails', async () => {
+    const response = await createAlphaChatHandler(async () => {
+      throw new Error('Local model must not be used')
+    })({
+      env: {
+        ALPHA_CHAT_ENABLED: 'true',
+        ALPHA_CHAT_SERVICE: {
+          async fetch() {
+            throw new Error('ServiceUnavailable')
+          },
+        } as unknown as Fetcher,
+        ALPHA_CHAT_SHARED_ENABLED: 'true',
+        CMS_DATABASE: createRateLimitDatabase({
+          clientRateLimitSuccess: true,
+          globalRateLimitSuccess: true,
+          onRateLimit: () => undefined,
+        }),
+      },
+      request: chatRequest({ question: 'こんにちは' }),
+      waitUntil(promise: Promise<unknown>) {
+        void promise
+      },
+    } as unknown as Parameters<ReturnType<typeof createAlphaChatHandler>>[0])
+
+    expect(response.status).toBe(503)
+    await expect(response.json()).resolves.toMatchObject({ ok: false })
+  })
 })
 
 function chatRequest(

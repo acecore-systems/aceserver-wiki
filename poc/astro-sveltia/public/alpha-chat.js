@@ -35,8 +35,14 @@
   let inputIsComposing = false
   let returnFocusAfterClose = true
 
-  function appendHistory(role, content) {
-    history.push({ role, content })
+  function appendHistory(role, content, loreRevisionId = '') {
+    history.push({
+      role,
+      content,
+      ...(role === 'assistant' && UUID_PATTERN.test(loreRevisionId)
+        ? { loreRevisionId }
+        : {}),
+    })
     if (history.length > MAX_HISTORY_MESSAGES) {
       history.splice(0, history.length - MAX_HISTORY_MESSAGES)
     }
@@ -319,9 +325,13 @@
           : fallback
       const sources =
         payload && Array.isArray(payload.sources) ? payload.sources : []
+      const loreRevisionId =
+        payload && UUID_PATTERN.test(payload.loreRevisionId)
+          ? payload.loreRevisionId
+          : ''
 
       loadingMessage.remove()
-      appendHistory('assistant', answer)
+      appendHistory('assistant', answer, loreRevisionId)
       createMessage('assistant', answer, sources)
     } catch {
       const fallback =

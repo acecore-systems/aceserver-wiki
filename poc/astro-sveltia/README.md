@@ -142,31 +142,26 @@ PRを作り、CIを通して`main`へ反映します。
 
 全公開ページに、現在のWikiアイコンを使ったアルファくん案内チャットを表示します。
 ブラウザはsame-originの`POST /api/alpha-chat`だけを呼び出し、OpenAI API keyや
-Cloudflareのcredentialを受け取りません。Pages FunctionがOpenAI APIへ直接接続し、
-Cloudflare AI GatewayやWorkers AIは経由しません。入力は500文字以下に制限し、
-`Origin`をrequest先originと照合してcross-origin requestを拒否します。
-`X-Acecore-Chat-Client`にはブラウザごとのUUIDを送ります。
+Cloudflareのcredentialを受け取りません。Pages Functionは同一origin検証と
+entry-point rate limitを行い、共有モードではPrivate Service Binding
+`ALPHA_CHAT_SERVICE`で`aceserver-alpha-chat` Workerを呼びます。共有Workerが
+人格、質問分類、RAG、出典検証、OpenAI Responses API、正史生成を一元管理します。
+通常会話は`reasoning.effort=medium`、正史の執筆・レビューだけは`max`です。
 
-チャットはこのWikiの公開記事だけを情報源にします。質問をOpenAI
-`text-embedding-3-large`（1536次元）でembeddingし、`SEARCH_INDEX`から候補を
-検索した後、build済み`/vector-corpus.json`の元chunkへ照合してからOpenAI
-Responses APIの`gpt-5.6-luna`（`reasoning.effort=medium`、`store=false`）へ渡します。
-ポータルや他サイトの固定知識から
-ルール・コマンド・参加条件を補いません。根拠を取得できない場合は
-「確認できない」と明示し、一般論から可否を推測せずWiki内の確認導線を返します。
+Wiki surfaceでは、共有WorkerにこのWikiの正本だけを使わせます。ルール、コマンド、
+参加条件、ワールド、運用情報は架空の正史や他サイト情報より常に優先します。
+API応答は`{ ok, answer, sources, loreRevisionId? }`で、`sources`は実際に採用した
+同一originのWiki記事だけを返します。`loreRevisionId`は直後の続き質問にだけ使い、
+会話全文をDBへ保存しません。
 
-API応答は`{ ok, answer, sources }`で、`sources`は
-`Array<{ title, url }>`として回答本文と分離します。出典は実際に根拠へ採用した
-同一originの`/article/` URLだけを最大2件返します。モデルには
-Responses APIの`text.format` JSON Schema（strict）で根拠番号とWiki本文の
-完全一致引用だけを選ばせ、
-サーバーが取得済みchunkに対して検証します。
-モデル生成文は公開せず、検証済み引用からサーバーが固定文を組み立てます。
-検証不能な選択は`502`、根拠なしは固定の「確認できない」へ戻します。
-クライアントは文字列をHTMLとして挿入せず、安全なDOM APIで本文とリンクを
-構築します。
+`ALPHA_CHAT_SHARED_ENABLED=false`は共有Worker未配備中の移行用です。`true`にした
+後にService Bindingが失敗しても、Wiki側のローカルLLMへフォールバックしません。
+固定案内を返して正史・人格の分岐を防ぎます。詳細は
+[`ALPHA-CHAT-SHARED-ROLLOUT.md`](ALPHA-CHAT-SHARED-ROLLOUT.md)を参照してください。
 
 - `ALPHA_CHAT_ENABLED`: chatのkill switch。`"true"`のときだけAI処理を行う
+- `ALPHA_CHAT_SHARED_ENABLED`: `"true"`のときだけ共有Workerへ切り替える
+- `ALPHA_CHAT_SERVICE`: 共有WorkerへのPrivate Service Binding（配備後に追加）
 - `OPENAI_API_KEY`: Pages secret。リポジトリや`wrangler.jsonc`へ保存しない
 - `OPENAI_RESPONSE_MODEL`: `gpt-5.6-luna`
 - `OPENAI_REASONING_EFFORT`: `medium`
