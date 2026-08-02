@@ -18,6 +18,13 @@
       "migrations_dir": "migrations",
     },
   ],
+  "services": [
+    {
+      "binding": "ALPHA_CHAT_SERVICE",
+      "service": "aceserver-alpha-chat-production",
+      "remote": false,
+    },
+  ],
   "vars": {
     "SKIP_DEPENDENCY_INSTALL": "1",
     "CMS_REPOSITORY_OWNER": "acecore-systems",

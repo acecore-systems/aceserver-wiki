@@ -30,6 +30,16 @@ export default defineConfig({
           ...testSecrets,
           TEST_D1_MIGRATIONS: cmsStateMigrations,
         },
+        serviceBindings: {
+          ALPHA_CHAT_SERVICE: async () =>
+            Response.json(
+              {
+                ok: false,
+                error: 'Shared Alpha chat is not available in this test.',
+              },
+              { status: 503 },
+            ),
+        },
       },
     }),
   ],
