@@ -49,6 +49,8 @@ export const WIKI_HEADER_LINKS = [
 ] as const
 
 export const ARTICLE_REDIRECTS = new Map<string, string>([
+  ['/article/how', '/article/howto/'],
+  ['/article/how/', '/article/howto/'],
   ['/article/SurvivalRules', '/article/rule/'],
   ['/article/SurvivalRules/', '/article/rule/'],
   ['/article/how to discordsrv link', '/article/how-to-discordsrv-link/'],

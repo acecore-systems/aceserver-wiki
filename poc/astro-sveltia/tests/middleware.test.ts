@@ -18,6 +18,20 @@ describe('Pages middleware', () => {
     expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff')
   })
 
+  it('redirects the legacy short how URL to the current article', async () => {
+    const response = await onRequest({
+      request: new Request(
+        'https://asv-wiki.acecore.net/article/how?source=bing',
+      ),
+      next: async () => new Response('not reached'),
+    } as Parameters<typeof onRequest>[0])
+
+    expect(response.status).toBe(301)
+    expect(response.headers.get('Location')).toBe(
+      'https://asv-wiki.acecore.net/article/howto/?source=bing',
+    )
+  })
+
   it('applies a stricter policy and no-store to the CMS surface', async () => {
     const response = await onRequest({
       request: new Request('https://asv-wiki.acecore.net/admin/index.html'),
