@@ -48,7 +48,7 @@ describe('migrated public site configuration', () => {
       },
       {
         text: 'Aceserverグッズ',
-        href: 'https://shop.acecore.net/collections/aceserver/',
+        href: 'https://store.acecore.net/collections/aceserver/',
       },
     ])
   })
