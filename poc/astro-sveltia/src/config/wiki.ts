@@ -44,7 +44,7 @@ export const WIKI_HEADER_LINKS = [
   },
   {
     text: 'Aceserverグッズ',
-    href: 'https://shop.acecore.net/collections/aceserver/',
+    href: 'https://store.acecore.net/collections/aceserver/',
   },
 ] as const
 
