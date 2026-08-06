@@ -54,6 +54,8 @@ draft: false
 -   Japan Minecraft Servers（掲載ページが404のため、リンク掲載を終了）
     投票
 -   Discoparty（掲載ページが404のため、リンク掲載を終了）
+-   [鯖ちゃんねる](https://discord.sabach.jp/ja/guilds/737538781024092170)
+-   [Dislist](https://dislist.net/server/737538781024092170)
 -   [ディス速](https://dissoku.net/ja/server/737538781024092170)
 
 ## 一覧形式（修正のみ）
