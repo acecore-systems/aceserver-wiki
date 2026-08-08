@@ -1016,9 +1016,75 @@ describe('Alpha-kun WIKI chat D1 rate limits', () => {
       answer: '次の小さな記憶だよ。',
       loreRevisionId: '018f7e5a-7b4d-7c6a-8e9f-0123456789ac',
       ok: true,
-      sources: [
-        { title: '基本ルール', url: '/article/rules/' },
+      sources: [{ title: '基本ルール', url: '/article/rules/' }],
+    })
+  })
+
+  it('forwards opaque WIKI conversation state without rebuilding a raw transcript', async () => {
+    const conversationContext = {
+      items: [
+        {
+          encrypted_content: 'opaque-state',
+          id: 'cmp_1',
+          type: 'compaction',
+        },
       ],
+      scope: {
+        locale: 'ja',
+        personaVersion: '2026-08-02.2',
+        surface: 'wiki',
+      },
+    }
+    const serviceRequests: Request[] = []
+    const response = await createAlphaChatHandler()({
+      env: {
+        ALPHA_CHAT_ENABLED: 'true',
+        ALPHA_CHAT_SERVICE: {
+          async fetch(request: Request) {
+            serviceRequests.push(request)
+            return Response.json({
+              answer: '続きの案内だよ。',
+              conversationContextReset: false,
+              nextConversationContext: conversationContext,
+              ok: true,
+              sources: [],
+            })
+          },
+        } as unknown as Fetcher,
+        ALPHA_CHAT_SHARED_ENABLED: 'true',
+        CMS_DATABASE: createRateLimitDatabase({
+          clientRateLimitSuccess: true,
+          globalRateLimitSuccess: true,
+          onRateLimit: () => undefined,
+        }),
+      },
+      request: chatRequest({
+        conversationContext,
+        loreRevisionId: '018f7e5a-7b4d-7c6a-8e9f-0123456789ab',
+        question: '続きは',
+      }),
+      waitUntil(promise: Promise<unknown>) {
+        void promise
+      },
+    } as unknown as Parameters<ReturnType<typeof createAlphaChatHandler>>[0])
+
+    expect(response.status).toBe(200)
+    expect(serviceRequests).toHaveLength(1)
+    await expect(serviceRequests[0]?.json()).resolves.toEqual({
+      payload: {
+        conversationContext,
+        locale: 'ja',
+        loreRevisionId: '018f7e5a-7b4d-7c6a-8e9f-0123456789ab',
+        question: '続きは',
+      },
+      surface: 'wiki',
+      version: 1,
+    })
+    await expect(response.json()).resolves.toMatchObject({
+      answer: '続きの案内だよ。',
+      conversationContextReset: false,
+      nextConversationContext: conversationContext,
+      ok: true,
     })
   })
 

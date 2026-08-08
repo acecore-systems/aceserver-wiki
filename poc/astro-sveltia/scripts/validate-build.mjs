@@ -114,11 +114,17 @@ assert(
 assert(
   alphaChatScript.includes('/api/alpha-chat') &&
     alphaChatScript.includes('X-Acecore-Chat-Client') &&
-    alphaChatScript.includes('MAX_HISTORY_CHARACTERS') &&
+    alphaChatScript.includes('MAX_CONVERSATION_CONTEXT_BYTES') &&
+    alphaChatScript.includes('conversationContext') &&
+    alphaChatScript.includes('nextConversationContext') &&
+    alphaChatScript.includes('conversationContextReset') &&
+    !alphaChatScript.includes('MAX_HISTORY_CHARACTERS') &&
+    !alphaChatScript.includes('MAX_HISTORY_MESSAGES') &&
+    !alphaChatScript.includes('history.shift()') &&
     alphaChatScript.includes('compositionstart') &&
     alphaChatScript.includes('アルファくん: ') &&
     alphaChatScript.includes('あなた: '),
-  'Alpha chat must keep the endpoint, bounded history, IME guard, and accessible speaker labels.',
+  'Alpha chat must keep the endpoint, compressed conversation state, untrimmed visible history, IME guard, and accessible speaker labels.',
 )
 assert(
   alphaChatScript.includes('createElement(') &&

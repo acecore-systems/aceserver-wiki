@@ -25,36 +25,22 @@
   widget.dataset.alphaBound = 'true'
 
   const CLIENT_STORAGE_KEY = 'acecore-alpha-chat-client'
-  const MAX_HISTORY_MESSAGES = 8
-  const MAX_HISTORY_CHARACTERS = 2_800
+  const MAX_CONVERSATION_CONTEXT_BYTES = 64 * 1024
   const REQUEST_TIMEOUT_MS = 25_000
   const UUID_PATTERN =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
   const history = []
+  let conversationContext = null
+  let latestLoreRevisionId = ''
   let sending = false
   let inputIsComposing = false
   let returnFocusAfterClose = true
 
-  function appendHistory(role, content, loreRevisionId = '') {
+  function appendHistory(role, content) {
     history.push({
       role,
       content,
-      ...(role === 'assistant' && UUID_PATTERN.test(loreRevisionId)
-        ? { loreRevisionId }
-        : {}),
     })
-    if (history.length > MAX_HISTORY_MESSAGES) {
-      history.splice(0, history.length - MAX_HISTORY_MESSAGES)
-    }
-    while (
-      history.length > 1 &&
-      history.reduce(
-        (total, message) => total + [...message.content].length,
-        0,
-      ) > MAX_HISTORY_CHARACTERS
-    ) {
-      history.shift()
-    }
   }
 
   function appendInlineText(parent, value) {
@@ -276,6 +262,99 @@
     }
   }
 
+  function showStatusNotice(message, transient = false) {
+    if (!message) return
+    const notice = document.createElement('p')
+    notice.className = 'alpha-context-notice'
+    notice.setAttribute('role', 'status')
+    notice.textContent = message
+    messagesContainer.append(notice)
+    messagesContainer.scrollTop = messagesContainer.scrollHeight
+    if (transient) window.setTimeout(() => notice.remove(), 8_000)
+  }
+
+  function readConversationContext(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return null
+    }
+    try {
+      return new TextEncoder().encode(JSON.stringify(value)).byteLength <=
+        MAX_CONVERSATION_CONTEXT_BYTES
+        ? value
+        : null
+    } catch {
+      return null
+    }
+  }
+
+  function isResponsePayload(value) {
+    return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+  }
+
+  function isResettableConversationResponse(response, payload) {
+    return (
+      response.status === 400 ||
+      response.status === 413 ||
+      response.status === 422 ||
+      (isResponsePayload(payload) && payload.conversationContextReset === true)
+    )
+  }
+
+  async function requestAlphaResponse(
+    question,
+    signal,
+    allowContextResetRetry = true,
+  ) {
+    const response = await fetch(
+      widget.dataset.alphaEndpoint || '/api/alpha-chat',
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Acecore-Chat-Client': getClientId(),
+        },
+        body: JSON.stringify({
+          question,
+          locale: 'ja',
+          ...(conversationContext ? { conversationContext } : {}),
+          ...(latestLoreRevisionId
+            ? { loreRevisionId: latestLoreRevisionId }
+            : {}),
+        }),
+        signal,
+      },
+    )
+    const payload = await response.json().catch(() => null)
+    const answer =
+      isResponsePayload(payload) && typeof payload.answer === 'string'
+        ? payload.answer.trim()
+        : ''
+
+    if (
+      response.ok &&
+      isResponsePayload(payload) &&
+      payload.ok === true &&
+      answer
+    ) {
+      return { answer, payload }
+    }
+
+    if (
+      allowContextResetRetry &&
+      conversationContext &&
+      isResettableConversationResponse(response, payload)
+    ) {
+      conversationContext = null
+      showStatusNotice(
+        '会話の継続情報を更新しました。表示中のメッセージはそのままです。',
+      )
+      return requestAlphaResponse(question, signal, false)
+    }
+
+    throw new Error('AlphaChatRequestFailed')
+  }
+
   async function sendQuestion(rawQuestion) {
     const question = String(rawQuestion || '').trim()
     if (!question || sending) return
@@ -298,48 +377,38 @@
     )
 
     try {
-      const response = await fetch(
-        widget.dataset.alphaEndpoint || '/api/alpha-chat',
-        {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'X-Acecore-Chat-Client': getClientId(),
-          },
-          body: JSON.stringify({
-            question,
-            messages: history.slice(0, -1).slice(-(MAX_HISTORY_MESSAGES - 1)),
-            locale: 'ja',
-          }),
-          signal: controller.signal,
-        },
+      const { answer, payload } = await requestAlphaResponse(
+        question,
+        controller.signal,
       )
-      const payload = await response.json().catch(() => null)
-      const fallback =
-        widget.dataset.alphaError ||
-        'いまはアルファくんの案内につながらなかったよ。少し時間をおいて試してね。'
-      const answer =
-        payload && typeof payload.answer === 'string' && payload.answer.trim()
-          ? payload.answer.trim()
-          : fallback
-      const sources =
-        payload && Array.isArray(payload.sources) ? payload.sources : []
-      const loreRevisionId =
-        payload && UUID_PATTERN.test(payload.loreRevisionId)
-          ? payload.loreRevisionId
-          : ''
+      const sources = Array.isArray(payload.sources) ? payload.sources : []
+      const loreRevisionId = UUID_PATTERN.test(payload.loreRevisionId)
+        ? payload.loreRevisionId
+        : ''
+      latestLoreRevisionId = loreRevisionId
+
+      const nextContext = readConversationContext(
+        payload.nextConversationContext,
+      )
+      const contextReset =
+        payload.conversationContextReset === true ||
+        (conversationContext !== null && nextContext === null)
+      conversationContext = nextContext
+      if (contextReset) {
+        showStatusNotice(
+          '会話の継続情報を更新しました。表示中のメッセージはそのままです。',
+        )
+      }
 
       loadingMessage.remove()
-      appendHistory('assistant', answer, loreRevisionId)
+      appendHistory('assistant', answer)
       createMessage('assistant', answer, sources)
     } catch {
-      const fallback =
+      const errorNotice =
         widget.dataset.alphaError ||
         'いまはアルファくんの案内につながらなかったよ。少し時間をおいて試してね。'
       loadingMessage.remove()
-      appendHistory('assistant', fallback)
-      createMessage('assistant', fallback)
+      showStatusNotice(errorNotice, true)
     } finally {
       window.clearTimeout(timeout)
       setSending(false)

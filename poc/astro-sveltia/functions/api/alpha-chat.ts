@@ -13,6 +13,8 @@ const SEARCH_NAMESPACE = 'ja'
 const DEFAULT_MIN_SCORE = 0.4
 
 const MAX_REQUEST_BYTES = 12_000
+const MAX_SHARED_REQUEST_BYTES = 96 * 1024
+const MAX_SHARED_RESPONSE_BYTES = 96 * 1024
 const MAX_QUESTION_CHARACTERS = 500
 const MAX_MESSAGES = 8
 const MAX_CONVERSATION_CHARACTERS = 2_800
@@ -106,13 +108,22 @@ type ValidatedCitation = {
 
 type AlphaResponse = {
   answer: string
+  conversationContextReset?: boolean
   loreRevisionId?: string
+  nextConversationContext?: Record<string, unknown>
   ok: boolean
   sources: AlphaSource[]
 }
 
 type PayloadValidation =
   | { ok: true; value: NormalizedPayload }
+  | {
+      answer: string
+      ok: false
+    }
+
+type SharedPayloadValidation =
+  | { ok: true; value: Record<string, unknown> }
   | {
       answer: string
       ok: false
@@ -494,7 +505,7 @@ async function proxySharedAlphaChat(
       )
     }
 
-    const requestText = await readBoundedText(request, MAX_REQUEST_BYTES)
+    const requestText = await readBoundedText(request, MAX_SHARED_REQUEST_BYTES)
     if (requestText === null) {
       return alphaResponse(
         { ok: false, answer: REQUEST_TOO_LARGE_ANSWER, sources: [] },
@@ -514,7 +525,7 @@ async function proxySharedAlphaChat(
         startedAt,
       )
     }
-    const payloadResult = normalizePayload(parsedPayload)
+    const payloadResult = normalizeSharedPayload(parsedPayload)
     if (!payloadResult.ok) {
       return alphaResponse(
         { ok: false, answer: payloadResult.answer, sources: [] },
@@ -527,11 +538,7 @@ async function proxySharedAlphaChat(
     const serviceResponse = await env.ALPHA_CHAT_SERVICE.fetch(
       new Request('https://aceserver-alpha-chat.internal/v1/chat', {
         body: JSON.stringify({
-          payload: {
-            locale: 'ja',
-            messages: payloadResult.value.conversation,
-            question: payloadResult.value.question,
-          },
+          payload: payloadResult.value,
           surface: 'wiki',
           version: 1,
         }),
@@ -542,7 +549,10 @@ async function proxySharedAlphaChat(
         method: 'POST',
       }),
     )
-    const responseText = await readBoundedText(serviceResponse, 32_000)
+    const responseText = await readBoundedText(
+      serviceResponse,
+      MAX_SHARED_RESPONSE_BYTES,
+    )
     if (responseText === null) throw namedError('AlphaChatServiceResponseSize')
     const sharedBody = normalizeSharedAlphaResponse(JSON.parse(responseText))
     if (!sharedBody) throw namedError('AlphaChatServiceResponsePayload')
@@ -574,6 +584,15 @@ function normalizeSharedAlphaResponse(value: unknown): AlphaResponse | null {
   if (!answer) return null
 
   const loreRevisionId = readString(value.loreRevisionId, 128)
+  const nextConversationContext = readSharedConversationContext(
+    value.nextConversationContext,
+  )
+  const conversationContextReset =
+    value.conversationContextReset === true ||
+    (value.nextConversationContext !== undefined && !nextConversationContext)
+  const hasConversationContextReset =
+    typeof value.conversationContextReset === 'boolean' ||
+    (value.nextConversationContext !== undefined && !nextConversationContext)
   const sources = Array.isArray(value.sources)
     ? value.sources
         .map((source) => {
@@ -590,7 +609,23 @@ function normalizeSharedAlphaResponse(value: unknown): AlphaResponse | null {
     answer,
     ok: value.ok,
     sources,
+    ...(hasConversationContextReset ? { conversationContextReset } : {}),
     ...(loreRevisionId ? { loreRevisionId } : {}),
+    ...(nextConversationContext ? { nextConversationContext } : {}),
+  }
+}
+
+function readSharedConversationContext(
+  value: unknown,
+): Record<string, unknown> | null {
+  if (!isJsonObject(value)) return null
+  try {
+    return new TextEncoder().encode(JSON.stringify(value)).byteLength <=
+      64 * 1024
+      ? value
+      : null
+  } catch {
+    return null
   }
 }
 
@@ -598,6 +633,61 @@ const ORIGIN_PLACEHOLDER = 'https://asv-wiki.acecore.net/'
 
 function normalizeServiceStatus(value: number): number {
   return Number.isInteger(value) && value >= 200 && value <= 599 ? value : 502
+}
+
+function normalizeSharedPayload(value: unknown): SharedPayloadValidation {
+  if (!isJsonObject(value)) {
+    return { ok: false, answer: INVALID_REQUEST_ANSWER }
+  }
+
+  const question = normalizeText(value.question)
+  if (!question) {
+    return { ok: false, answer: INVALID_REQUEST_ANSWER }
+  }
+  if (characterLength(question) > MAX_QUESTION_CHARACTERS) {
+    return { ok: false, answer: QUESTION_TOO_LONG_ANSWER }
+  }
+
+  const locale =
+    value.locale === undefined ? 'ja' : readString(value.locale, 16)
+  if (!locale) return { ok: false, answer: INVALID_REQUEST_ANSWER }
+
+  const hasConversationContext = Object.hasOwn(value, 'conversationContext')
+  const loreRevisionId = readString(value.loreRevisionId, 128)
+  if (value.loreRevisionId !== undefined && !loreRevisionId) {
+    return { ok: false, answer: INVALID_REQUEST_ANSWER }
+  }
+
+  // Preserve existing clients only while they still send a legacy transcript.
+  // New callers never have this field, so no raw-history selection is applied.
+  if (
+    !hasConversationContext &&
+    !loreRevisionId &&
+    value.messages !== undefined
+  ) {
+    const legacy = normalizePayload(value)
+    if (!legacy.ok) return legacy
+    return {
+      ok: true,
+      value: {
+        locale,
+        messages: legacy.value.conversation,
+        question: legacy.value.question,
+      },
+    }
+  }
+
+  return {
+    ok: true,
+    value: {
+      locale,
+      question,
+      ...(hasConversationContext
+        ? { conversationContext: value.conversationContext }
+        : {}),
+      ...(loreRevisionId ? { loreRevisionId } : {}),
+    },
+  }
 }
 
 function normalizePayload(value: unknown): PayloadValidation {
