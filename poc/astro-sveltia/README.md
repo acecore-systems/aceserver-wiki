@@ -143,28 +143,24 @@ PRを作り、CIを通して`main`へ反映します。
 全公開ページに、現在のWikiアイコンを使ったアルファくん案内チャットを表示します。
 ブラウザはsame-originの`POST /api/alpha-chat`だけを呼び出し、OpenAI API keyや
 Cloudflareのcredentialを受け取りません。Pages Functionは同一origin検証と
-entry-point rate limitを行い、共有モードではPrivate Service Binding
+entry-point rate limitを行い、Private Service Binding
 `ALPHA_CHAT_SERVICE`で`aceserver-alpha-chat` Workerを呼びます。共有Workerが
 人格、質問分類、RAG、出典検証、OpenAI Responses API、正史生成を一元管理します。
-通常会話は`reasoning.effort=medium`、正史の執筆・レビューだけは`max`です。
 
 Wiki surfaceでは、共有WorkerにこのWikiの正本だけを使わせます。ルール、コマンド、
 参加条件、ワールド、運用情報は架空の正史や他サイト情報より常に優先します。
-API応答は`{ ok, answer, sources, loreRevisionId? }`で、`sources`は実際に採用した
-同一originのWiki記事だけを返します。`loreRevisionId`は直後の続き質問にだけ使い、
-会話全文をDBへ保存しません。
+API応答は後方互換のshapeを維持し、`sources`は実際に採用した同一originのWiki記事だけを
+返します。続き質問には共有Workerが返す不透明な会話コンテキストを使い、会話全文を
+WIKI側のDBへ保存しません。`personaVersion`が変わった会話はブラウザ側で自動的に
+初期化します。
 
-`ALPHA_CHAT_SHARED_ENABLED=false`は共有Worker未配備中の移行用です。`true`にした
-後にService Bindingが失敗しても、Wiki側のローカルLLMへフォールバックしません。
-固定案内を返して正史・人格の分岐を防ぎます。詳細は
+Service Bindingが失敗しても、WIKI側のローカルLLMへフォールバックしません。
+ローカライズ済みの固定案内を返して正史・人格の分岐を防ぎます。詳細は
 [`ALPHA-CHAT-SHARED-ROLLOUT.md`](ALPHA-CHAT-SHARED-ROLLOUT.md)を参照してください。
 
 - `ALPHA_CHAT_ENABLED`: chatのkill switch。`"true"`のときだけAI処理を行う
-- `ALPHA_CHAT_SHARED_ENABLED`: `"true"`のときだけ共有Workerへ切り替える
 - `ALPHA_CHAT_SERVICE`: 共有WorkerへのPrivate Service Binding（配備後に追加）
-- `OPENAI_API_KEY`: Pages secret。リポジトリや`wrangler.jsonc`へ保存しない
-- `OPENAI_RESPONSE_MODEL`: `gpt-5.6-luna`
-- `OPENAI_REASONING_EFFORT`: `medium`
+- `OPENAI_API_KEY`: 独立した`/api/search`のembedding用Pages secret。chat生成には使わない
 - `OPENAI_EMBEDDING_MODEL` / `OPENAI_EMBEDDING_DIMENSIONS`:
   `text-embedding-3-large` / `1536`
 - `SEARCH_ENABLED` / `SEARCH_MIN_SCORE`: 共用するWiki検索の有効化とscore下限
@@ -174,7 +170,7 @@ API応答は`{ ok, answer, sources, loreRevisionId? }`で、`sources`は実際�
 Production indexだけを使用し、全件同期と収束確認を終えたProductionでは
 `SEARCH_ENABLED=true`と`ALPHA_CHAT_ENABLED=true`を維持します。
 
-AI呼び出し前に`CMS_DATABASE`で60秒窓のrate limitを適用します。
+共有Worker呼び出し前に`CMS_DATABASE`で60秒窓のrate limitを適用します。
 clientは5回/分、全体は60回/分で、超過時は`429`と`Retry-After`を返します。
 client keyは`CF-Connecting-IP`を優先し、利用できない場合は
 `X-Acecore-Chat-Client`のUUIDを使用します。不正・欠落したUUIDは

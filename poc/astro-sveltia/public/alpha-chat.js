@@ -215,7 +215,7 @@
     if (history.length > 0) return
     const greeting =
       widget.dataset.alphaGreeting ||
-      'やあ、アルファくんだよ。公開中のAceserver WIKIから案内するね。'
+      'やあ、ぼくはアルファくんだよ。公開中のAceserver WIKIから案内するね。'
     appendHistory('assistant', greeting)
     createMessage('assistant', greeting)
   }
@@ -347,7 +347,7 @@
     ) {
       conversationContext = null
       showStatusNotice(
-        '会話の継続情報を更新しました。表示中のメッセージはそのままです。',
+        '会話の継続情報を更新したよ。表示中のメッセージはそのままだよ。',
       )
       return requestAlphaResponse(question, signal, false)
     }
@@ -366,7 +366,7 @@
 
     const loadingMessage = createMessage(
       'assistant',
-      widget.dataset.alphaLoading || 'アルファくんがWIKIを調べているよ…',
+      widget.dataset.alphaLoading || 'いまWIKIを調べているよ…',
       [],
       true,
     )
@@ -396,7 +396,7 @@
       conversationContext = nextContext
       if (contextReset) {
         showStatusNotice(
-          '会話の継続情報を更新しました。表示中のメッセージはそのままです。',
+          '会話の継続情報を更新したよ。表示中のメッセージはそのままだよ。',
         )
       }
 
@@ -406,7 +406,7 @@
     } catch {
       const errorNotice =
         widget.dataset.alphaError ||
-        'いまはアルファくんの案内につながらなかったよ。少し時間をおいて試してね。'
+        'いまはうまく答えを届けられなかったよ。少し時間をおいて、もう一度聞いてね。'
       loadingMessage.remove()
       showStatusNotice(errorNotice, true)
     } finally {
