@@ -279,27 +279,24 @@ Direct Uploadや手動uploadを復旧経路にしません。
 ## アルファくん WIKI案内チャット
 
 アルファくんは全公開ページからsame-originの`POST /api/alpha-chat`を呼び出します。
-このWikiの`SEARCH_INDEX`と`/vector-corpus.json`だけをRAGの情報源とし、
-Pages FunctionからOpenAIへ直接接続します。回答モデルはResponses APIの
-`OPENAI_RESPONSE_MODEL=gpt-5.6-luna`、
-`OPENAI_REASONING_EFFORT=medium`、`store=false`です。Cloudflare AI Gatewayや
-Workers AIは経由しません。ルール、コマンド、
-参加条件などをポータルやモデルの固定知識から補いません。取得したWiki根拠で
-確認できない質問は「確認できない」と明示し、一般論から可否を推測しません。
+Pages Functionはsame-origin検証、入力検証、entry-point rate limitを行った後、
+Private Service Binding `ALPHA_CHAT_SERVICE`だけで共有`aceserver-alpha-chat` Workerへ
+転送します。人格、口調、モデル呼び出し、質問分類、RAG、出典検証、正史境界は共有Workerが
+一元管理します。WIKI側にローカル生成経路はなく、Binding不在・接続失敗・壊れた応答は
+`503`でfail closedします。
 
-応答の`answer`と`sources`は分離し、`sources`には根拠へ採用した同一originの
-`/article/` URLと記事タイトルだけを最大2件入れます。モデルには
-Responses APIのstrictな`text.format` JSON Schemaで根拠番号とWiki本文からの
-完全一致引用だけを選ばせ、
-サーバーが取得済みchunkに対して番号・引用・文字数を検証します。モデル生成文は
-公開せず、検証済み引用から
-サーバーが固定文を組み立てます。検証できない選択は`502`、回答根拠がない選択は
-固定の「確認できない」回答へ戻します。
-`/vector-corpus.json`はPagesの`ASSETS` bindingを優先してdeployment固有assetから
-読みます。ブラウザ側は
-`innerHTML`を使わず本文とリンクをDOM APIで構築します。入力上限は500文字です。
+共有WorkerがWIKI surfaceを扱うときは、このWikiの検索serviceから得た正本だけをRAGの
+情報源にします。ルール、コマンド、参加条件などを架空の正史やモデルの固定知識から
+補いません。取得したWiki根拠で確認できない質問は「確認できない」と明示し、一般論から
+可否を推測しません。
 
-AI呼び出し前に`CMS_DATABASE`の`semantic_search_rate_limits`を使用し、
+応答の`answer`と`sources`は分離し、`sources`には共有Workerが根拠へ採用した
+同一originの`/article/` URLと記事タイトルだけを入れます。WIKI adapterは共有Workerの
+JSON shapeと応答サイズを検証し、WIKI記事URLをsame-origin pathへ正規化します。本文は
+作り直しません。ブラウザ側は`innerHTML`を使わず本文とリンクをDOM APIで構築します。
+入力上限は500文字です。
+
+共有Worker呼び出し前に`CMS_DATABASE`の`semantic_search_rate_limits`を使用し、
 60秒窓でclient 5回、全体60回に制限します。clientは
 `CF-Connecting-IP`を優先し、取得できない場合は
 `X-Acecore-Chat-Client`のUUIDからSHA-256 keyを作ります。不正・欠落したUUIDは
@@ -311,9 +308,9 @@ D1障害時はAIを呼ばず`503`でfail closedにします。
 GitHubへpushし、GitHub連携Pages deploymentから反映します。Direct Uploadや
 dashboardだけの恒久的な上書きを正本にしません。
 
-### Preview非VectorizeゲートとProduction実AIゲート
+### PreviewゲートとProduction共有Workerゲート
 
-unit testやWrangler bundle成功だけではOpenAI APIとVectorizeの実接続を証明
+unit testやWrangler bundle成功だけでは共有Worker、検索service、正史D1の実接続を証明
 できません。一方、通常のPages PreviewへProduction相当の書込み可能bindingは
 渡しません。次の順序で確認します。
 
@@ -333,8 +330,6 @@ unit testやWrangler bundle成功だけではOpenAI APIとVectorizeの実接続�
 2. Previewに`SEARCH_INDEX`がなく、preview専用`CMS_DATABASE`だけがbinding
    されていることを確認する。varsは
    `SEARCH_ENABLED=false`、`ALPHA_CHAT_ENABLED=false`、
-   `OPENAI_RESPONSE_MODEL=gpt-5.6-luna`、
-   `OPENAI_REASONING_EFFORT=medium`、
    `OPENAI_EMBEDDING_MODEL=text-embedding-3-large`、
    `OPENAI_EMBEDDING_DIMENSIONS=1536`、
    `CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretは置かない。
