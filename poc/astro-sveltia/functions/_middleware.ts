@@ -9,7 +9,7 @@ const ADMIN_CONTENT_SECURITY_POLICY = [
   "default-src 'none'",
   "base-uri 'none'",
   "connect-src 'self'",
-  "font-src 'self' data:",
+  "font-src 'self' data: https://fonts.gstatic.com",
   "form-action 'self'",
   "frame-ancestors 'none'",
   "img-src 'self' data: blob:",
@@ -17,7 +17,7 @@ const ADMIN_CONTENT_SECURITY_POLICY = [
   "media-src 'self' blob:",
   "object-src 'none'",
   "script-src 'self' https://unpkg.com",
-  "style-src 'self' 'unsafe-inline'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "worker-src 'self' blob:",
 ].join('; ')
 
