@@ -1,9 +1,20 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { onRequestGet } from '../functions/admin/config.yml.ts'
+import adminIndex from '../public/admin/index.html?raw'
 import adminInit from '../public/admin/init.js?raw'
 
+const SVELTIA_CMS_SCRIPT_URL =
+  'https://unpkg.com/@sveltia/cms@0.191.1/dist/sveltia-cms.js'
+const SVELTIA_CMS_INTEGRITY =
+  'sha384-1e+sEYxphmj/Z7BnuanO53c4BveZJ5fdJIkHSuHRO2T7jmC7Ih0BeJPK6x5XHxx6'
+
 describe('Sveltia config delivery', () => {
+  it('検証済みのSveltia CMS配布物をバージョンとSRIで固定する', () => {
+    expect(adminIndex).toContain(`src="${SVELTIA_CMS_SCRIPT_URL}"`)
+    expect(adminIndex).toContain(`integrity="${SVELTIA_CMS_INTEGRITY}"`)
+  })
+
   it('CMSの公開案内で保存は直接公開、削除は管理者対応と案内する', async () => {
     expect(adminInit).toContain('保存すると自動で公開されます')
     expect(adminInit).toContain('CMSから記事・画像は削除できません')
