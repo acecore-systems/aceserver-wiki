@@ -46,6 +46,12 @@ describe('Pages middleware', () => {
     expect(response.headers.get('Cache-Control')).toBe('no-store')
     expect(policy).toContain("default-src 'none'")
     expect(policy).toContain('https://unpkg.com')
+    expect(policy).toContain(
+      "font-src 'self' data: https://fonts.gstatic.com",
+    )
+    expect(policy).toContain(
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    )
     expect(policy).not.toContain('pagead2.googlesyndication.com')
   })
 
