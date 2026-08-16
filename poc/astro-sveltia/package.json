@@ -18,7 +18,7 @@
     "migrate:newt-public:check": "node scripts/import-newt-public.mjs --check",
     "search:sync": "node scripts/sync-vectorize.mjs",
     "search:sync:dry-run": "node scripts/sync-vectorize.mjs --dry-run",
-    "test": "npm run test:unit && npm run test:vectorize && npm run test:migration:unit",
+    "test": "npm run test:unit && node --test tests/alpha-chat-ui.test.mjs && npm run test:vectorize && npm run test:migration:unit",
     "test:build": "node scripts/validate-build.mjs",
     "test:migration": "node scripts/validate-newt-migration.mjs",
     "test:migration:acceptance": "npm run migrate:newt-drafts:check && node scripts/validate-newt-full-migration.mjs",
