@@ -45,9 +45,10 @@ describe('Pages middleware', () => {
 
     expect(response.headers.get('Cache-Control')).toBe('no-store')
     expect(policy).toContain("default-src 'none'")
-    expect(policy).toContain('https://unpkg.com')
+    expect(policy).toContain("connect-src 'self' https://unpkg.com")
+    expect(policy).toContain("script-src 'self' https://unpkg.com")
     expect(policy).toContain(
-      "font-src 'self' data: https://fonts.gstatic.com",
+      "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
     )
     expect(policy).toContain(
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",

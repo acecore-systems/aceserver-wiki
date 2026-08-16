@@ -10,7 +10,7 @@ fail closedで無効です。
 ## 構成
 
 1. Astroが `src/content/wiki/*.md` を静的な記事ページへ変換する。
-2. `/admin/` ではforkしていないSveltia CMS 0.172.4を起動する。
+2. `/admin/` ではforkしていないSveltia CMS 0.191.1を起動する。
 3. Wiki専用OIDC brokerがDiscord OAuth2をOIDCへ変換し、Cloudflare Accessが
    ログインを担当する。
 4. Pages Functionsのcontent gatewayがAccess JWT内のDiscord属性を検証する。

@@ -8,8 +8,8 @@ const LEGACY_ROOT_TITLES = new Set([
 const ADMIN_CONTENT_SECURITY_POLICY = [
   "default-src 'none'",
   "base-uri 'none'",
-  "connect-src 'self'",
-  "font-src 'self' data: https://fonts.gstatic.com",
+  "connect-src 'self' https://unpkg.com",
+  "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net",
   "form-action 'self'",
   "frame-ancestors 'none'",
   "img-src 'self' data: blob:",
