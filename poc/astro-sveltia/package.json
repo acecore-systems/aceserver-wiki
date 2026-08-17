@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "@astrojs/markdown-remark": "7.2.2",
-    "astro": "7.2.0",
+    "astro": "7.2.2",
     "graphql": "17.0.2",
     "jose": "6.2.8",
     "mdast-util-from-markdown": "2.0.3",
@@ -43,14 +43,14 @@
   },
   "devDependencies": {
     "@astrojs/check": "0.9.10",
-    "@cloudflare/vitest-pool-workers": "0.20.3",
-    "@types/node": "26.1.2",
+    "@cloudflare/vitest-pool-workers": "0.21.3",
+    "@types/node": "26.2.0",
     "devalue": "5.9.0",
     "pagefind": "^1.5.2",
     "parse5": "^8.0.1",
     "turndown": "^7.2.4",
     "typescript": "6.0.3",
     "vitest": "4.1.10",
-    "wrangler": "4.120.0"
+    "wrangler": "4.123.0"
   }
 }
