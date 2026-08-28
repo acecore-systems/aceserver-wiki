@@ -145,7 +145,7 @@ PRを作り、CIを通して`main`へ反映します。
 Cloudflareのcredentialを受け取りません。Pages Functionは同一origin検証と
 entry-point rate limitを行い、Private Service Binding
 `ALPHA_CHAT_SERVICE`で`aceserver-alpha-chat` Workerを呼びます。共有Workerが
-人格、質問分類、RAG、出典検証、OpenAI Responses API、正史生成を一元管理します。
+人格、質問分類、RAG、出典検証、Workers AI `@cf/zai-org/glm-5.3-flash`による生成、正史生成を一元管理します。
 
 Wiki surfaceでは、共有WorkerにこのWikiの正本だけを使わせます。ルール、コマンド、
 参加条件、ワールド、運用情報は架空の正史や他サイト情報より常に優先します。
