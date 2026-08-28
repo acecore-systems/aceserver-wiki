@@ -1,6 +1,4 @@
 export const OPENAI_API_BASE_URL = 'https://api.openai.com/v1'
-export const OPENAI_RESPONSE_MODEL = 'gpt-5.6-luna'
-export const OPENAI_REASONING_EFFORT = 'medium'
 export const OPENAI_EMBEDDING_MODEL = 'text-embedding-3-large'
 export const OPENAI_EMBEDDING_DIMENSIONS = 1536
 
@@ -10,7 +8,7 @@ const MAX_RESPONSE_BYTES = 1_000_000
 type OpenAiRequestOptions = {
   apiKey: string
   body: Record<string, unknown>
-  endpoint: '/embeddings' | '/responses'
+  endpoint: '/embeddings'
   fetchImpl: typeof fetch
   requestTimeoutMs: number
 }
@@ -23,21 +21,6 @@ type OpenAiEmbeddingOptions = {
   model?: string
   requestTimeoutMs?: number
   user?: string
-}
-
-type OpenAiStructuredResponseOptions = {
-  apiKey: string
-  description: string
-  fetchImpl?: typeof fetch
-  input: string
-  instructions: string
-  maxOutputTokens: number
-  model?: string
-  reasoningEffort?: string
-  requestTimeoutMs?: number
-  safetyIdentifier?: string
-  schema: Record<string, unknown>
-  schemaName: string
 }
 
 export async function createOpenAiEmbeddings({
@@ -86,59 +69,6 @@ export async function createOpenAiEmbeddings({
   return extractOpenAiEmbeddingData(payload, inputs.length, dimensions)
 }
 
-export async function createOpenAiStructuredResponse({
-  apiKey,
-  description,
-  fetchImpl = fetch,
-  input,
-  instructions,
-  maxOutputTokens,
-  model = OPENAI_RESPONSE_MODEL,
-  reasoningEffort = OPENAI_REASONING_EFFORT,
-  requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
-  safetyIdentifier,
-  schema,
-  schemaName,
-}: OpenAiStructuredResponseOptions): Promise<string> {
-  if (
-    model !== OPENAI_RESPONSE_MODEL ||
-    reasoningEffort !== OPENAI_REASONING_EFFORT
-  ) {
-    throw namedError('OpenAIResponseConfigurationError')
-  }
-
-  const body: Record<string, unknown> = {
-    model,
-    instructions,
-    input,
-    reasoning: {
-      effort: reasoningEffort,
-    },
-    max_output_tokens: maxOutputTokens,
-    store: false,
-    text: {
-      format: {
-        type: 'json_schema',
-        name: schemaName,
-        description,
-        strict: true,
-        schema,
-      },
-    },
-  }
-  if (safetyIdentifier) body.safety_identifier = safetyIdentifier
-
-  const payload = await requestOpenAiJson({
-    apiKey,
-    endpoint: '/responses',
-    body,
-    fetchImpl,
-    requestTimeoutMs,
-  })
-
-  return extractOpenAiResponseText(payload)
-}
-
 export function extractOpenAiEmbeddingData(
   payload: unknown,
   expectedCount: number,
@@ -179,42 +109,6 @@ export function extractOpenAiEmbeddingData(
     throw namedError('OpenAIEmbeddingIndexError')
   }
   return ordered as number[][]
-}
-
-export function extractOpenAiResponseText(payload: unknown): string {
-  if (
-    !isJsonObject(payload) ||
-    payload.status !== 'completed' ||
-    payload.error ||
-    !Array.isArray(payload.output)
-  ) {
-    throw namedError('OpenAIResponsePayloadError')
-  }
-
-  const texts: string[] = []
-  for (const output of payload.output) {
-    if (!isJsonObject(output) || output.type !== 'message') continue
-    if (!Array.isArray(output.content)) {
-      throw namedError('OpenAIResponsePayloadError')
-    }
-
-    for (const content of output.content) {
-      if (!isJsonObject(content)) {
-        throw namedError('OpenAIResponsePayloadError')
-      }
-      if (content.type === 'refusal') {
-        throw namedError('OpenAIResponseRefusalError')
-      }
-      if (content.type === 'output_text' && typeof content.text === 'string') {
-        texts.push(content.text)
-      }
-    }
-  }
-
-  if (texts.length !== 1 || !texts[0].trim()) {
-    throw namedError('OpenAIResponsePayloadError')
-  }
-  return texts[0]
 }
 
 async function requestOpenAiJson({
