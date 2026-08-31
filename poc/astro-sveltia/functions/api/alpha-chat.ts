@@ -24,10 +24,7 @@ const UNAVAILABLE_ANSWER =
 const SERVICE_FAILURE_ANSWER =
   'いまはうまく答えを届けられなかったよ。少し時間をおいて、もう一度聞いてね。'
 
-type AlphaChatEnv = Omit<
-  Env,
-  'ALPHA_CHAT_ENABLED' | 'ALPHA_CHAT_SERVICE'
-> & {
+type AlphaChatEnv = Omit<Env, 'ALPHA_CHAT_ENABLED' | 'ALPHA_CHAT_SERVICE'> & {
   ALPHA_CHAT_ENABLED?: string
   ALPHA_CHAT_SERVICE?: Fetcher
 }
@@ -54,14 +51,14 @@ type AlphaResponse = {
 }
 
 type SharedPayloadValidation =
-  | { ok: true; value: Record<string, unknown> }
-  | { answer: string; ok: false }
+  { ok: true; value: Record<string, unknown> } | { answer: string; ok: false }
 
-export const createAlphaChatHandler = (): PagesFunction<AlphaChatEnv> =>
-  async (context) => {
+export const createAlphaChatHandler =
+  (): PagesFunction<AlphaChatEnv> => async (context) => {
     const startedAt = performance.now()
     const requestId = crypto.randomUUID()
     const { env, request } = context
+    const streamRequested = acceptsEventStream(request)
 
     try {
       if (!isSameOriginRequest(request)) {
@@ -183,13 +180,16 @@ export const createAlphaChatHandler = (): PagesFunction<AlphaChatEnv> =>
             version: 1,
           }),
           headers: {
-            Accept: 'application/json',
+            Accept: streamRequested ? 'text/event-stream' : 'application/json',
             'Accept-Language': locale,
             'Content-Type': 'application/json',
           },
           method: 'POST',
         }),
       )
+      if (streamRequested && isEventStreamResponse(serviceResponse)) {
+        return alphaEventStreamResponse(serviceResponse, requestId, startedAt)
+      }
       const responseText = await readBoundedText(
         serviceResponse,
         MAX_SHARED_RESPONSE_BYTES,
@@ -197,9 +197,7 @@ export const createAlphaChatHandler = (): PagesFunction<AlphaChatEnv> =>
       if (responseText === null) {
         throw namedError('AlphaChatServiceResponseSize')
       }
-      const sharedBody = normalizeSharedAlphaResponse(
-        JSON.parse(responseText),
-      )
+      const sharedBody = normalizeSharedAlphaResponse(JSON.parse(responseText))
       if (!sharedBody) throw namedError('AlphaChatServiceResponsePayload')
 
       return alphaResponse(
@@ -294,9 +292,7 @@ function normalizeSharedPayload(value: unknown): SharedPayloadValidation {
     value: {
       locale,
       question,
-      ...(messagesResult.messages
-        ? { messages: messagesResult.messages }
-        : {}),
+      ...(messagesResult.messages ? { messages: messagesResult.messages } : {}),
       ...(Object.hasOwn(value, 'conversationContext')
         ? { conversationContext: value.conversationContext }
         : {}),
@@ -308,9 +304,7 @@ function normalizeSharedPayload(value: unknown): SharedPayloadValidation {
 function normalizeMessages(
   value: unknown,
   question: string,
-):
-  | { ok: true; messages?: ChatMessage[] }
-  | { answer: string; ok: false } {
+): { ok: true; messages?: ChatMessage[] } | { answer: string; ok: false } {
   if (value === undefined) return { ok: true }
   if (!Array.isArray(value)) {
     return { ok: false, answer: INVALID_REQUEST_ANSWER }
@@ -456,6 +450,66 @@ function isJsonRequest(request: Request): boolean {
       ?.trim()
       .toLowerCase() === 'application/json'
   )
+}
+
+function acceptsEventStream(request: Request): boolean {
+  return String(request.headers.get('Accept') || '')
+    .split(',')
+    .some((entry) => {
+      const [mediaType, ...parameters] = entry.split(';')
+      if (mediaType.trim().toLowerCase() !== 'text/event-stream') return false
+      return !parameters.some((parameter) =>
+        /^\s*q\s*=\s*0(?:\.0*)?\s*$/iu.test(parameter),
+      )
+    })
+}
+
+function isEventStreamResponse(response: Response): boolean {
+  return Boolean(
+    response.body &&
+    response.ok &&
+    response.headers
+      .get('Content-Type')
+      ?.toLowerCase()
+      .startsWith('text/event-stream'),
+  )
+}
+
+function alphaEventStreamResponse(
+  serviceResponse: Response,
+  requestId: string,
+  startedAt: number,
+): Response {
+  let byteLength = 0
+  const body = serviceResponse.body!.pipeThrough(
+    new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        if (!(chunk instanceof Uint8Array)) {
+          controller.error(namedError('AlphaChatServiceResponsePayload'))
+          return
+        }
+        byteLength += chunk.byteLength
+        if (byteLength > MAX_SHARED_RESPONSE_BYTES) {
+          controller.error(namedError('AlphaChatServiceResponseSize'))
+          return
+        }
+        controller.enqueue(chunk)
+      },
+    }),
+  )
+  const duration = Math.max(0, performance.now() - startedAt).toFixed(1)
+
+  return new Response(body, {
+    status: normalizeServiceStatus(serviceResponse.status),
+    headers: {
+      'Cache-Control': 'no-store, no-transform',
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cross-Origin-Resource-Policy': 'same-origin',
+      'Server-Timing': `alpha-chat;dur=${duration}`,
+      'X-Alpha-Chat-Request-Id': requestId,
+      'X-Content-Type-Options': 'nosniff',
+    },
+  })
 }
 
 function isSameOriginRequest(request: Request): boolean {

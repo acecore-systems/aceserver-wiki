@@ -147,6 +147,10 @@ entry-point rate limitを行い、Private Service Binding
 `ALPHA_CHAT_SERVICE`で`aceserver-alpha-chat` Workerを呼びます。共有Workerが
 人格、質問分類、RAG、出典検証、Workers AI `@cf/zai-org/glm-5.3-flash`による生成、正史生成を一元管理します。
 
+ブラウザは`Accept: text/event-stream`を指定し、Pages Functionは共有WorkerのSSE bodyを
+バッファせず転送します。生成deltaはリンク化しない平文として逐次表示し、共有Workerが
+検証を終えた`complete`イベントだけを最終回答と会話コンテキストへ反映します。
+
 Wiki surfaceでは、共有WorkerにこのWikiの正本だけを使わせます。ルール、コマンド、
 参加条件、ワールド、運用情報は架空の正史や他サイト情報より常に優先します。
 API応答は後方互換のshapeを維持し、`sources`は実際に採用した同一originのWiki記事だけを
