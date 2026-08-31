@@ -134,6 +134,13 @@ assert(
   'Alpha chat must construct messages with safe DOM APIs instead of HTML string injection.',
 )
 assert(
+  alphaChatScript.includes('normalizeAnswerLink') &&
+    alphaChatScript.includes("document.createElement('a')") &&
+    alphaChatScript.includes("element.rel = 'ugc nofollow noopener noreferrer'") &&
+    alphaChatScript.includes("url.protocol !== 'https:'"),
+  'Alpha chat must render bounded Markdown links with the external UGC policy.',
+)
+assert(
   normalizedAlphaGuideStyles.includes(
     '.alpha-message__sources a { display: inline-flex; min-width: 2.75rem; min-height: 2.75rem; align-items: center; justify-content: center;',
   ),

@@ -182,17 +182,21 @@
 }
 
 .alpha-message__bubble p,
-.alpha-message__bubble ul {
+.alpha-message__bubble ul,
+.alpha-message__bubble ol {
   margin: 0;
 }
 
 .alpha-message__bubble p + p,
 .alpha-message__bubble p + ul,
-.alpha-message__bubble ul + p {
+.alpha-message__bubble p + ol,
+.alpha-message__bubble ul + p,
+.alpha-message__bubble ol + p {
   margin-block-start: 0.55em;
 }
 
-.alpha-message__bubble ul {
+.alpha-message__bubble ul,
+.alpha-message__bubble ol {
   padding-inline-start: 1.25em;
 }
 
@@ -212,6 +216,24 @@
   background: rgb(255 216 77 / 16%);
   font-family: var(--font-mono);
   font-size: 0.9em;
+}
+
+.alpha-message__bubble a {
+  color: #ffe16a;
+  font-weight: 800;
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.1em;
+  text-underline-offset: 0.16em;
+}
+
+.alpha-message__bubble a:hover {
+  color: #fff2a8;
+}
+
+.alpha-message__bubble a:focus-visible {
+  border-radius: 0.2rem;
+  outline: 2px solid #ffd84d;
+  outline-offset: 2px;
 }
 
 .alpha-message__sources {

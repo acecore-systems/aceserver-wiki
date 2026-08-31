@@ -376,6 +376,19 @@ describe('Alpha-kun WIKI fixed copy', () => {
     expect(alphaChatEndpointSource).not.toContain('SEARCH_INDEX')
     expect(alphaChatEndpointSource).not.toContain('createOpenAi')
   })
+
+  it('renders bounded Markdown links with safe DOM APIs', () => {
+    expect(alphaChatClientSource).toContain('normalizeAnswerLink')
+    expect(alphaChatClientSource).toContain("document.createElement('a')")
+    expect(alphaChatClientSource).toContain(
+      "element.rel = 'ugc nofollow noopener noreferrer'",
+    )
+    expect(alphaChatClientSource).toContain("url.protocol !== 'https:'")
+    expect(alphaChatClientSource).toMatch(/const pattern =\s*\/\\\[/u)
+    expect(alphaChatClientSource).not.toMatch(
+      /\b(?:innerHTML|outerHTML|insertAdjacentHTML)\b/u,
+    )
+  })
 })
 
 function chatRequest(
