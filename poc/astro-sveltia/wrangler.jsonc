@@ -23,6 +23,10 @@
   ],
   "services": [
     {
+      "binding": "CMS_AI",
+      "service": "cms-ai",
+    },
+    {
       "binding": "ALPHA_CHAT_SERVICE",
       "service": "aceserver-alpha-chat-production",
       "remote": false,
@@ -56,6 +60,12 @@
           "database_name": "aceserver-wiki-cms-preview",
           "database_id": "6f1c4dff-9c89-4a34-bd4c-0de865b5f22d",
           "migrations_dir": "migrations",
+        },
+      ],
+      "services": [
+        {
+          "binding": "CMS_AI",
+          "service": "cms-ai",
         },
       ],
       "vars": {

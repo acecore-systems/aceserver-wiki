@@ -31,6 +31,13 @@ export default defineConfig({
           TEST_D1_MIGRATIONS: cmsStateMigrations,
         },
         serviceBindings: {
+          CMS_AI: async () =>
+            Response.json(
+              {
+                message: 'CMS AI is not available in this test.',
+              },
+              { status: 503 },
+            ),
           ALPHA_CHAT_SERVICE: async () =>
             Response.json(
               {
