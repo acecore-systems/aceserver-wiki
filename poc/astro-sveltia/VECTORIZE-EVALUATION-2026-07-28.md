@@ -1,8 +1,8 @@
 # Vectorize検索モデル評価（2026-07-28）
 
-> 履歴資料です。現行ProductionはOpenAI `text-embedding-3-large`の1536次元index
-> で稼働しているため、この旧BGE-M3の結果やscore閾値を現行モデルの評価結果として
-> 扱いません。
+> 履歴資料です。現行構成はCloudflare Workers AI `@cf/baai/bge-m3`の1024次元indexです。
+> この2026-07-28時点の小規模評価だけを現行モデルの合否根拠にはせず、2026-08-31の
+> shadow評価とProduction query canaryを併用します。
 
 ASV Wikiの公開15記事を対象に、Cloudflare Workers AIの実APIでembeddingを生成し、
 cosine類似度による検索結果を比較した記録です。tokenやraw embeddingは保存して

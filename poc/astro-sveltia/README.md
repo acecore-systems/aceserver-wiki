@@ -141,8 +141,8 @@ PRを作り、CIを通して`main`へ反映します。
 ## アルファくん WIKI案内チャット
 
 全公開ページに、現在のWikiアイコンを使ったアルファくん案内チャットを表示します。
-ブラウザはsame-originの`POST /api/alpha-chat`だけを呼び出し、OpenAI API keyや
-Cloudflareのcredentialを受け取りません。Pages Functionは同一origin検証と
+ブラウザはsame-originの`POST /api/alpha-chat`だけを呼び出し、Cloudflareの
+credentialを受け取りません。Pages Functionは同一origin検証と
 entry-point rate limitを行い、Private Service Binding
 `ALPHA_CHAT_SERVICE`で`aceserver-alpha-chat` Workerを呼びます。共有Workerが
 人格、質問分類、RAG、出典検証、Workers AI `@cf/zai-org/glm-5.3-flash`による生成、正史生成を一元管理します。
@@ -164,9 +164,9 @@ Service Bindingが失敗しても、WIKI側のローカルLLMへフォールバ�
 
 - `ALPHA_CHAT_ENABLED`: chatのkill switch。`"true"`のときだけAI処理を行う
 - `ALPHA_CHAT_SERVICE`: 共有WorkerへのPrivate Service Binding（配備後に追加）
-- `OPENAI_API_KEY`: 独立した`/api/search`のembedding用Pages secret。chat生成には使わない
-- `OPENAI_EMBEDDING_MODEL` / `OPENAI_EMBEDDING_DIMENSIONS`:
-  `text-embedding-3-large` / `1536`
+- `AI`: 独立した`/api/search`のWorkers AI binding。chat生成には使わない
+- `SEARCH_EMBEDDING_MODEL` / `SEARCH_EMBEDDING_DIMENSIONS`:
+  `@cf/baai/bge-m3` / `1024`
 - `SEARCH_ENABLED` / `SEARCH_MIN_SCORE`: 共用するWiki検索の有効化とscore下限
 
 通常のPages Previewは`SEARCH_INDEX`をbindingせず、`SEARCH_ENABLED=false`と
