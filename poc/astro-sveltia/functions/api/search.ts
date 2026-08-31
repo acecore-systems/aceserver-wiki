@@ -1,9 +1,5 @@
-import {
-  createOpenAiEmbeddings,
-  OPENAI_EMBEDDING_DIMENSIONS,
-  OPENAI_EMBEDDING_MODEL,
-} from './_openai'
-
+const SEARCH_EMBEDDING_MODEL = '@cf/baai/bge-m3'
+const SEARCH_EMBEDDING_DIMENSIONS = 1024
 const SEARCH_LOCALE = 'ja'
 const DEFAULT_MIN_SCORE = 0.4
 const MAX_REQUEST_BYTES = 2048
@@ -22,10 +18,10 @@ const CLIENT_ID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu
 
 type SemanticSearchEnv = {
+  AI?: Ai
   CMS_DATABASE?: D1Database
-  OPENAI_API_KEY?: string
-  OPENAI_EMBEDDING_DIMENSIONS?: string
-  OPENAI_EMBEDDING_MODEL?: string
+  SEARCH_EMBEDDING_DIMENSIONS?: string
+  SEARCH_EMBEDDING_MODEL?: string
   SEARCH_ENABLED?: string
   SEARCH_INDEX?: Vectorize
   SEARCH_MIN_SCORE?: string
@@ -56,7 +52,7 @@ type SearchResult = {
 }
 
 export const createSearchHandler =
-  (openAiFetch: typeof fetch = fetch): PagesFunction<SemanticSearchEnv> =>
+  (): PagesFunction<SemanticSearchEnv> =>
   async ({ request, env, waitUntil }) => {
     const startedAt = performance.now()
     const requestId = crypto.randomUUID()
@@ -82,7 +78,7 @@ export const createSearchHandler =
 
       if (
         env.SEARCH_ENABLED !== 'true' ||
-        !env.OPENAI_API_KEY?.trim() ||
+        !env.AI ||
         !env.SEARCH_INDEX ||
         !env.CMS_DATABASE
       ) {
@@ -159,17 +155,7 @@ export const createSearchHandler =
 
       let embedding: number[]
       try {
-        const embeddings = await createOpenAiEmbeddings({
-          apiKey: env.OPENAI_API_KEY,
-          input: query,
-          model: env.OPENAI_EMBEDDING_MODEL || OPENAI_EMBEDDING_MODEL,
-          dimensions: Number(
-            env.OPENAI_EMBEDDING_DIMENSIONS || OPENAI_EMBEDDING_DIMENSIONS,
-          ),
-          user: clientKey,
-          fetchImpl: openAiFetch,
-        })
-        embedding = embeddings[0]
+        embedding = await createWorkersAiEmbedding(env, query)
       } catch (error) {
         logSearchError(
           requestId,
@@ -218,6 +204,60 @@ export const createSearchHandler =
   }
 
 export const onRequestPost = createSearchHandler()
+
+async function createWorkersAiEmbedding(
+  env: SemanticSearchEnv,
+  query: string,
+): Promise<number[]> {
+  const model = env.SEARCH_EMBEDDING_MODEL || SEARCH_EMBEDDING_MODEL
+  const dimensions = Number(
+    env.SEARCH_EMBEDDING_DIMENSIONS || SEARCH_EMBEDDING_DIMENSIONS,
+  )
+  if (
+    model !== SEARCH_EMBEDDING_MODEL ||
+    dimensions !== SEARCH_EMBEDDING_DIMENSIONS ||
+    !env.AI
+  ) {
+    throw namedError('WorkersAiEmbeddingConfigurationError')
+  }
+
+  const payload: unknown = await env.AI.run(SEARCH_EMBEDDING_MODEL, {
+    text: [query],
+    truncate_inputs: false,
+  })
+  if (!isJsonObject(payload) || !Array.isArray(payload.data)) {
+    throw namedError('WorkersAiEmbeddingCountError')
+  }
+  if (payload.data.length !== 1 || !Array.isArray(payload.data[0])) {
+    throw namedError('WorkersAiEmbeddingCountError')
+  }
+  const embedding = payload.data[0]
+  if (
+    embedding.length !== SEARCH_EMBEDDING_DIMENSIONS ||
+    embedding.some(
+      (value) => typeof value !== 'number' || !Number.isFinite(value),
+    )
+  ) {
+    throw namedError('WorkersAiEmbeddingDimensionsError')
+  }
+  if (
+    (payload.pooling !== undefined && payload.pooling !== 'cls') ||
+    (payload.shape !== undefined &&
+      (!Array.isArray(payload.shape) ||
+        payload.shape.length !== 2 ||
+        payload.shape[0] !== 1 ||
+        payload.shape[1] !== SEARCH_EMBEDDING_DIMENSIONS))
+  ) {
+    throw namedError('WorkersAiEmbeddingContractError')
+  }
+  return embedding as number[]
+}
+
+function namedError(name: string): Error {
+  const error = new Error(name)
+  error.name = name
+  return error
+}
 
 function normalizeQuery(value: unknown): string | null {
   if (typeof value !== 'string') return null

@@ -53,7 +53,7 @@ test('CMS rollback always checks out main before pushing to main', async () => {
   assert.doesNotMatch(workflow, /git push[^\n]*--force/u)
 })
 
-test('Vectorize and OpenAI secrets are used only by the protected-main production sync', async () => {
+test('Vectorize credential is used only by the protected-main production sync', async () => {
   const workflow = await readFile(vectorizeWorkflowUrl, 'utf8')
   const protectedCheckout = getStepBlock(
     workflow,
@@ -94,15 +94,15 @@ test('Vectorize and OpenAI secrets are used only by the protected-main productio
     workflow.match(/CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN/gmu)?.length,
     2,
   )
-  assert.equal(workflow.match(/secrets\.OPENAI_API_KEY/gmu)?.length, 1)
-  assert.doesNotMatch(workflow, /aceserver-wiki-search-openai-1536-preview/u)
+  assert.doesNotMatch(workflow, /secrets\.OPENAI_API_KEY/u)
+  assert.doesNotMatch(workflow, /aceserver-wiki-search-bge-m3-1024-preview/u)
   assert.match(
     productionSync,
-    /VECTORIZE_INDEX_NAME: aceserver-wiki-search-openai-1536-production/u,
+    /VECTORIZE_INDEX_NAME: aceserver-wiki-search-bge-m3-1024-production-v1/u,
   )
   assert.match(
     productionSync,
-    /--confirm-production aceserver-wiki-search-openai-1536-production/u,
+    /--confirm-production aceserver-wiki-search-bge-m3-1024-production-v1/u,
   )
   assert.doesNotMatch(workflow, /--allow-large-delete/u)
   assert.match(
@@ -128,9 +128,9 @@ test('Preview has no Vectorize binding while converged production search remains
 
   assert.match(
     config,
-    /"index_name": "aceserver-wiki-search-openai-1536-production"/u,
+    /"index_name": "aceserver-wiki-search-bge-m3-1024-production-v1"/u,
   )
-  assert.doesNotMatch(config, /aceserver-wiki-search-openai-1536-preview/u)
+  assert.doesNotMatch(config, /aceserver-wiki-search-bge-m3-1024-preview/u)
   assert.equal(config.match(/"SEARCH_ENABLED": "false"/gu)?.length, 1)
   assert.equal(config.match(/"SEARCH_ENABLED": "true"/gu)?.length, 1)
   assert.equal(config.match(/"ALPHA_CHAT_ENABLED": "false"/gu)?.length, 1)

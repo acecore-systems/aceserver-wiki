@@ -136,7 +136,9 @@ assert(
 assert(
   alphaChatScript.includes('normalizeAnswerLink') &&
     alphaChatScript.includes("document.createElement('a')") &&
-    alphaChatScript.includes("element.rel = 'ugc nofollow noopener noreferrer'") &&
+    alphaChatScript.includes(
+      "element.rel = 'ugc nofollow noopener noreferrer'",
+    ) &&
     alphaChatScript.includes("url.protocol !== 'https:'"),
   'Alpha chat must render bounded Markdown links with the external UGC policy.',
 )
@@ -470,10 +472,10 @@ const articleByUrl = new Map(
 )
 assert(vectorCorpus.schemaVersion === 1, 'Vector corpus schema must be v1.')
 assert(
-  vectorCorpus.embedding?.model === 'text-embedding-3-large' &&
-    vectorCorpus.embedding?.dimensions === 1536 &&
+  vectorCorpus.embedding?.model === '@cf/baai/bge-m3' &&
+    vectorCorpus.embedding?.dimensions === 1024 &&
     vectorCorpus.embedding?.metric === 'cosine',
-  'Vector corpus embedding contract differs from text-embedding-3-large 1536/cosine.',
+  'Vector corpus embedding contract differs from BGE-M3 1024/cosine.',
 )
 assert(
   vectorCorpus.chunking?.targetCharacters === 850 &&

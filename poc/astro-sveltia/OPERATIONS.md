@@ -200,13 +200,13 @@ asset側のETagを除去します。CSS、画像、JSON等の静的assetはこ�
 ## Vectorize検索
 
 通常の`/search-index.json`による文字列検索を常に残し、その結果を先に表示します。
-Vectorizeは同じ検索画面へ意味の近い記事を補う用途に限定し、OpenAI API、
+Vectorizeは同じ検索画面へ意味の近い記事を補う用途に限定し、Workers AI、
 Vectorize、D1のいずれかが失敗・timeout・rate limitになった場合は、文字列検索
 だけで応答します。
 
-- embedding model: OpenAI `text-embedding-3-large`
-- index: 1536 dimensions / cosine
-- production index: `aceserver-wiki-search-openai-1536-production`
+- embedding model: Cloudflare Workers AI `@cf/baai/bge-m3`
+- index: 1024 dimensions / cosine
+- production index: `aceserver-wiki-search-bge-m3-1024-production-v1`
 - namespace: `ja`
 - corpus: 公開対象Markdown 15記事からbuild時に生成する
   `dist/vector-corpus.json`
@@ -218,10 +218,10 @@ Vectorize、D1のいずれかが失敗・timeout・rate limitになった場合�
 
 corpusのchunk IDは本文・記事URL・見出しから決定的に生成します。同期scriptは
 現行indexとの差分だけをupsertし、削除はupsert後に行います。管理外ID、index名の
-allowlist外、1536/cosine以外、20%を超える削除を既定で拒否します。
-Vectorizeのdimensionsは作成後に変更できないため、旧1024次元indexは再利用しません。
-1536次元Production indexはGitHub Actions run `30599607992`で
-`current=26`、`expected=26`、`upsert=0`、`delete=0`の収束を確認済みです。
+allowlist外、1024/cosine以外、20%を超える削除を既定で拒否します。
+Vectorizeのdimensionsは作成後に変更できないため、旧OpenAI 1536次元indexは
+再利用せずrollback用に保持します。BGE-M3 indexは全量同期後にID集合の完全一致と
+query canaryを確認してからProduction bindingへ切り替えます。
 Productionは`SEARCH_ENABLED=true`と`ALPHA_CHAT_ENABLED=true`を維持します。
 Pages PreviewはVectorize bindingを持たず、両flagを`false`に固定します。
 旧indexはproductionの実API確認とrollback期間が終わるまで残します。
@@ -236,9 +236,9 @@ npm ci
 npm run build
 npm run search:sync:dry-run
 
-npx wrangler vectorize create aceserver-wiki-search-openai-1536-production \
-  --dimensions 1536 --metric cosine \
-  --description "Ace Server Wiki production semantic search (OpenAI text-embedding-3-large, 1536 dimensions)"
+npx wrangler vectorize create aceserver-wiki-search-bge-m3-1024-production-v1 \
+  --dimensions 1024 --metric cosine \
+  --description "Ace Server Wiki production semantic search (Cloudflare Workers AI BGE-M3, 1024 dimensions)"
 
 npx wrangler d1 migrations apply CMS_DATABASE --env preview --remote
 npx wrangler d1 migrations apply CMS_DATABASE --remote
@@ -249,17 +249,16 @@ npx wrangler d1 migrations list CMS_DATABASE --remote
 Production同期workflowは次のGitHub Environmentだけを参照し、deployment
 branchを`main`だけに制限します。
 
-| Environment                         | Secrets                                                         |
-| ----------------------------------- | --------------------------------------------------------------- |
-| `cloudflare-wiki-search-production` | `CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN`, `OPENAI_API_KEY` |
+| Environment                         | Secrets                                       |
+| ----------------------------------- | --------------------------------------------- |
+| `cloudflare-wiki-search-production` | `CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN` |
 
-Cloudflare tokenは対象accountのVectorize Writeに必要な最小権限だけを付与します。
-OpenAI keyはこの用途専用projectへ限定し、project側の
-rate limitと予算上限を設定します。workflowは任意PRのcodeへsecretを渡さず、
+Cloudflare tokenは対象accountのVectorize WriteとWorkers AI実行に必要な最小権限だけを
+付与します。workflowは任意PRのcodeへsecretを渡さず、
 protected `main`の同期scriptだけを実行します。
 既存のPreview用Environment、token、index、Pages secretはこの変更では削除しませんが、
-workflow、binding、移行gateからは参照しません。ProductionのPages runtime secret
-`OPENAI_API_KEY`の値は`wrangler.jsonc`、`.dev.vars.example`、workflow logへ書きません。
+workflow、binding、移行gateからは参照しません。Production runtimeのembeddingは
+`AI` bindingだけを使い、外部provider fallbackを設けません。
 
 1. Productionの`SEARCH_ENABLED=true`と`ALPHA_CHAT_ENABLED=true`、
    Previewの両flagが`false`でVectorize bindingがないことを確認する。
@@ -267,7 +266,7 @@ workflow、binding、移行gateからは参照しません。ProductionのPages 
    `/.well-known/aceserver-wiki-build.json`のcommit/corpus version一致を確認する。
 3. Production同期workflowを実行し、全件収束後に再実行してno-opを確認する。
    workflowはlive同期時だけ
-   `--confirm-production aceserver-wiki-search-openai-1536-production`を渡し、
+   `--confirm-production aceserver-wiki-search-bge-m3-1024-production-v1`を渡し、
    `--allow-large-delete`は渡さない。
 4. custom domainで文字列検索、意味検索、API障害時fallbackを再確認する。
 
@@ -330,15 +329,14 @@ unit testやWrangler bundle成功だけでは共有Worker、検索service、正�
 2. Previewに`SEARCH_INDEX`がなく、preview専用`CMS_DATABASE`だけがbinding
    されていることを確認する。varsは
    `SEARCH_ENABLED=false`、`ALPHA_CHAT_ENABLED=false`、
-   `OPENAI_EMBEDDING_MODEL=text-embedding-3-large`、
-   `OPENAI_EMBEDDING_DIMENSIONS=1536`、
+   `SEARCH_EMBEDDING_MODEL=@cf/baai/bge-m3`、
+   `SEARCH_EMBEDDING_DIMENSIONS=1024`、
    `CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretは置かない。
 3. Previewの`/.well-known/aceserver-wiki-build.json`のcommit・corpus versionが
    review対象と一致し、`/search-index.json`の文字列検索が動作することを確認する。
    `/api/search`と`/api/alpha-chat`は`503`でfail closedすることを確認する。
 4. Production indexの同期を2回通し、2回目がno-opであることを確認する。
-   現行の収束証跡はGitHub Actions run `30599607992`で、
-   `current=26`、`expected=26`、`upsert=0`、`delete=0`。
+   ID集合の完全一致とquery canaryを同期workflowのrelease証跡として残す。
    Productionの`SEARCH_ENABLED`と`ALPHA_CHAT_ENABLED`は`true`を維持する。
 5. UUIDをclient headerへ付け、Productionへ根拠が存在する質問を実送信する。
 
