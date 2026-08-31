@@ -77,6 +77,36 @@ describe('Alpha-kun WIKI shared-service adapter', () => {
     )
   })
 
+  it('forwards SSE without buffering the private service body', async () => {
+    const source = [
+      'event: delta\ndata: {"text":"やあ、"}\n\n',
+      'event: complete\ndata: {"ok":true,"answer":"やあ、案内するよ。","sources":[]}\n\n',
+    ].join('')
+    let forwardedAccept: string | null = null
+    const response = await invoke(
+      chatRequest(
+        { locale: 'ja', question: 'こんにちは' },
+        { accept: 'text/event-stream' },
+      ),
+      createEnv({
+        async serviceFetch(request) {
+          forwardedAccept = request.headers.get('Accept')
+          return new Response(source, {
+            headers: { 'Content-Type': 'text/event-stream; charset=utf-8' },
+          })
+        },
+      }),
+    )
+
+    expect(forwardedAccept).toBe('text/event-stream')
+    expect(response.status).toBe(200)
+    expect(response.headers.get('Content-Type')).toBe(
+      'text/event-stream; charset=utf-8',
+    )
+    expect(response.headers.get('Cache-Control')).toContain('no-transform')
+    await expect(response.text()).resolves.toBe(source)
+  })
+
   it('preserves opaque conversation state without rebuilding a transcript', async () => {
     const conversationContext = {
       items: [
@@ -134,7 +164,8 @@ describe('Alpha-kun WIKI shared-service adapter', () => {
   })
 
   it('keeps the shared answer text byte-for-byte apart from outer trimming', async () => {
-    const answer = '  `／home` と URL https://example.invalid/Ａ をそのまま伝えるよ。  '
+    const answer =
+      '  `／home` と URL https://example.invalid/Ａ をそのまま伝えるよ。  '
     const response = await invoke(
       chatRequest({ question: '表示を確認して' }),
       createEnv({
@@ -327,6 +358,13 @@ describe('Alpha-kun WIKI fixed copy', () => {
     expect(`${alphaGuideSource}\n${alphaChatClientSource}`).not.toMatch(
       /(?:です|ます|ください)(?:[。！？!?…]|$)/u,
     )
+    expect(alphaChatClientSource).toMatch(/Accept:\s*'text\/event-stream'/u)
+    expect(alphaChatClientSource).toMatch(/response\.body\.getReader\(\)/u)
+    expect(alphaChatClientSource).toMatch(/event === 'delta'/u)
+    expect(alphaChatClientSource).toMatch(
+      /event === 'complete' \|\| event === 'error'/u,
+    )
+    expect(alphaChatClientSource).toMatch(/bubble\.textContent = text/u)
   })
 
   it('keeps the public endpoint free of local model and search generation', async () => {
@@ -343,12 +381,14 @@ describe('Alpha-kun WIKI fixed copy', () => {
 function chatRequest(
   body: unknown,
   {
+    accept,
     clientId = '018f7e5a-7b4d-7c6a-8e9f-0123456789ab',
     connectingIp,
     contentLength,
     origin = ORIGIN,
     secFetchSite,
   }: {
+    accept?: string
     clientId?: string
     connectingIp?: string
     contentLength?: string
@@ -357,6 +397,7 @@ function chatRequest(
   } = {},
 ): Request {
   const headers = new Headers({
+    ...(accept ? { Accept: accept } : {}),
     'Content-Type': 'application/json',
     'X-Acecore-Chat-Client': clientId,
   })
@@ -422,7 +463,8 @@ function createRateLimitDatabase({
         bind(key: string) {
           return {
             async first() {
-              const allowed = key === 'alpha-global' ? globalAllowed : clientAllowed
+              const allowed =
+                key === 'alpha-global' ? globalAllowed : clientAllowed
               return allowed ? { request_count: 1 } : null
             },
           }
