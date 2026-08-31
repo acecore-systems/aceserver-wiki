@@ -43,9 +43,45 @@
     })
   }
 
+  function normalizeAnswerLink(value) {
+    const rawUrl = String(value || '').trim()
+    if (
+      !rawUrl ||
+      rawUrl.length > 2_048 ||
+      /[\u0000-\u001f\u007f]/u.test(rawUrl) ||
+      rawUrl.includes('\\')
+    ) {
+      return null
+    }
+
+    try {
+      const url = new URL(rawUrl, window.location.href)
+      const sameOrigin = url.origin === window.location.origin
+      if (
+        url.username ||
+        url.password ||
+        (sameOrigin
+          ? url.protocol !== 'http:' && url.protocol !== 'https:'
+          : url.protocol !== 'https:')
+      ) {
+        return null
+      }
+
+      return {
+        external: !sameOrigin,
+        href: sameOrigin
+          ? `${url.pathname}${url.search}${url.hash}`
+          : url.href,
+      }
+    } catch {
+      return null
+    }
+  }
+
   function appendInlineText(parent, value) {
     const text = String(value || '')
-    const pattern = /\*\*([^*\n]{1,160})\*\*|`([^`\n]{1,160})`/gu
+    const pattern =
+      /\[([^\]\n]{1,160})\]\(([^\s)\n]{1,2048})\)|\*\*([^*\n]{1,160})\*\*|__([^_\n]{1,160})__|~~([^~\n]{1,160})~~|`([^`\n]{1,160})`|\*([^*\n]{1,160})\*|_([^_\n]{1,160})_/gu
     let cursor = 0
     let match
 
@@ -54,8 +90,40 @@
         parent.append(document.createTextNode(text.slice(cursor, match.index)))
       }
 
-      const element = document.createElement(match[1] ? 'strong' : 'code')
-      element.textContent = match[1] || match[2]
+      let element
+      if (match[1]) {
+        const destination = normalizeAnswerLink(match[2])
+        if (!destination) {
+          parent.append(document.createTextNode(match[0]))
+          cursor = pattern.lastIndex
+          continue
+        }
+
+        element = document.createElement('a')
+        element.href = destination.href
+        appendInlineText(element, match[1])
+        if (destination.external) {
+          element.target = '_blank'
+          element.rel = 'ugc nofollow noopener noreferrer'
+        }
+      } else {
+        const tagName =
+          match[3] || match[4]
+            ? 'strong'
+            : match[5]
+              ? 'del'
+              : match[6]
+                ? 'code'
+                : 'em'
+        element = document.createElement(tagName)
+        element.textContent =
+          match[3] ||
+          match[4] ||
+          match[5] ||
+          match[6] ||
+          match[7] ||
+          match[8]
+      }
       parent.append(element)
       cursor = pattern.lastIndex
     }
@@ -72,6 +140,7 @@
       .split('\n')
     let paragraphLines = []
     let list = null
+    let listTagName = ''
 
     const flushParagraph = () => {
       if (paragraphLines.length === 0) return
@@ -86,14 +155,19 @@
       if (!trimmed) {
         flushParagraph()
         list = null
+        listTagName = ''
         continue
       }
 
-      const listMatch = trimmed.match(/^[-*+・]\s+(.+)$/u)
+      const unorderedMatch = trimmed.match(/^[-*+・]\s+(.+)$/u)
+      const orderedMatch = trimmed.match(/^\d{1,3}[.)]\s+(.+)$/u)
+      const listMatch = unorderedMatch || orderedMatch
       if (listMatch) {
         flushParagraph()
-        if (!list) {
-          list = document.createElement('ul')
+        const nextListTagName = orderedMatch ? 'ol' : 'ul'
+        if (!list || listTagName !== nextListTagName) {
+          list = document.createElement(nextListTagName)
+          listTagName = nextListTagName
           container.append(list)
         }
         const item = document.createElement('li')
@@ -103,6 +177,7 @@
       }
 
       list = null
+      listTagName = ''
       paragraphLines.push(trimmed.replace(/^#{1,3}\s+/u, ''))
     }
 
