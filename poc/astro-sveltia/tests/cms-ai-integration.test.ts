@@ -13,6 +13,8 @@ describe('CMS AI integration', () => {
     expect(client).toMatch(/\/admin\/api\/ai/)
     expect(client).toMatch(/sessionEndpoint/)
     expect(client).toMatch(/reasoningEffort/)
+    expect(client).toMatch(/cms-ai-image-input/)
+    expect(client).toMatch(/revokeObjectURL/)
     expect(client).toMatch(/\/messages/)
     expect(client).toMatch(/session\?\.role/)
     expect(client).not.toMatch(/targetUrl|referenceImage/)

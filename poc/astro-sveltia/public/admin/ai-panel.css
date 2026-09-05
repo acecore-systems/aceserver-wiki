@@ -284,6 +284,44 @@
   border-top: 1px solid #e2e8f0;
   background: #fff;
   padding: 0.875rem 1rem 1rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.cms-ai-image-input {
+  width: 100%;
+  min-width: 0;
+  font: inherit;
+}
+.cms-ai-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+}
+.cms-ai-attachments:empty {
+  display: none;
+}
+.cms-ai-attachments figure {
+  margin: 0;
+  display: grid;
+  gap: 0.25rem;
+}
+.cms-ai-attachments img {
+  width: 5rem;
+  height: 4rem;
+  object-fit: contain;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.35rem;
+  background: #fff;
+}
+.cms-ai-attachments button {
+  min-height: 2rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.35rem;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
 }
 
 .cms-ai-form label {
@@ -357,6 +395,12 @@
 }
 
 @media (max-width: 40rem) {
+  .cms-ai-conversation-select,
+  .cms-ai-form select,
+  .cms-ai-form textarea,
+  .cms-ai-image-input {
+    font-size: 1rem;
+  }
   .cms-ai-launcher {
     right: 0.75rem;
     bottom: 6rem;
@@ -369,11 +413,5 @@
     width: 100vw;
     border: 0;
     border-radius: 0;
-  }
-
-  .cms-ai-conversation-select,
-  .cms-ai-form select,
-  .cms-ai-form textarea {
-    font-size: 1rem;
   }
 }
