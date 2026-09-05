@@ -30,7 +30,10 @@
     '  </div>',
     '  <ol class="cms-ai-messages" aria-live="polite"></ol>',
     '  <form class="cms-ai-form">',
-    '    <label>メッセージ<textarea name="instruction" required maxlength="4000" placeholder="例: トップページの文章について相談したい"></textarea></label>',
+    '    <label>メッセージ<textarea name="instruction" maxlength="4000" placeholder="例: この画像を参考にトップページを直して"></textarea></label>',
+    '    <label>参考画像<input class="cms-ai-image-input" type="file" accept="image/png,image/jpeg,image/webp" multiple aria-describedby="cms-ai-image-hint"></label>',
+    '    <div class="cms-ai-attachments" aria-label="送信する画像"></div>',
+    '    <p class="cms-ai-form__hint" id="cms-ai-image-hint">PNG・JPEG・WebP、4枚まで／各2MB。画像の貼り付けもできます。添付は公開されません。</p>',
     '    <div class="cms-ai-form__actions"><label>考える深さ<select name="reasoningEffort" required><option value="low">低</option><option value="medium" selected>標準</option><option value="high">高</option></select></label><button class="cms-ai-form__submit" type="submit">送信</button></div>',
     '    <p class="cms-ai-capability"></p>',
     '    <p class="cms-ai-form__hint">高いほど丁寧に考えますが、完了時間と利用量が増える場合があります。</p>',
@@ -56,6 +59,10 @@
   const conversationSelect = panel.querySelector('.cms-ai-conversation-select')
   const newConversation = panel.querySelector('.cms-ai-new-conversation')
   const formStatus = panel.querySelector('.cms-ai-form__status')
+  const imageInput = panel.querySelector('.cms-ai-image-input')
+  const attachments = panel.querySelector('.cms-ai-attachments')
+  let selectedImages = []
+  let sending = false
   let conversation = null
   let conversationSummaries = []
   let session = null
@@ -79,6 +86,7 @@
   })
   newConversation.addEventListener('click', startNewConversation)
   conversationSelect.addEventListener('change', () => {
+    clearImages()
     const id = conversationSelect.value
     if (!id) return startNewConversation()
     clearTimer()
@@ -87,9 +95,31 @@
     })
   })
 
+  imageInput.addEventListener('change', () => {
+    addImages(Array.from(imageInput.files || []))
+    imageInput.value = ''
+  })
+  instruction.addEventListener('paste', (event) => {
+    const files = Array.from(event.clipboardData?.files || [])
+    if (!files.length || instruction.disabled) return
+    // Let mixed text paste normally; image-only clipboard entries need no text insertion.
+    if (!event.clipboardData.getData('text/plain')) event.preventDefault()
+    addImages(files)
+  })
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault()
-    if (!session || (conversation && isPending(conversation.status))) return
+    if (!session || sending || (conversation && isPending(conversation.status)))
+      return
+    if (!instruction.value.trim() && !selectedImages.length) {
+      renderStatus('メッセージか参考画像を入力してください。', true)
+      return
+    }
+    const data = new FormData(form)
+    data.set('instruction', instruction.value.trim())
+    for (const item of selectedImages) data.append('images', item.file)
+    sending = true
+    renderComposer({ preserveStatus: true })
     clearTimer()
     submit.disabled = true
     renderStatus(
@@ -102,10 +132,11 @@
         ? `${conversationsEndpoint}/${encodeURIComponent(conversation.id)}/messages`
         : apiRoot + '/jobs'
       const payload = await requestJson(endpoint, {
-        body: new FormData(form),
+        body: data,
         method: 'POST',
       })
       instruction.value = ''
+      clearImages()
       if (payload.conversation) setConversation(payload.conversation)
       else if (payload.job?.conversationId)
         await loadConversation(payload.job.conversationId)
@@ -115,6 +146,7 @@
     } catch (error) {
       renderStatus(readError(error, 'メッセージを送信できません。'), true)
     } finally {
+      sending = false
       renderComposer({ preserveStatus: true })
     }
   })
@@ -204,6 +236,8 @@
   }
 
   function startNewConversation() {
+    if (sending) return
+    clearImages()
     clearTimer()
     conversation = null
     forgetConversation()
@@ -255,6 +289,7 @@
         'user',
         `あなた · Turn ${job.turnNumber || ''} · ${effortLabel(job.reasoningEffort)}`,
         job.instruction || '',
+        { attachments: job.attachments, id: job.id },
       ),
       makeMessage(
         'assistant',
@@ -280,6 +315,24 @@
     content.className = 'cms-ai-message__text'
     content.textContent = text
     article.append(meta, content)
+    if (kind === 'user' && Array.isArray(job?.attachments)) {
+      const gallery = document.createElement('div')
+      gallery.className = 'cms-ai-attachments'
+      for (const attachment of job.attachments) {
+        // Construct a same-origin authorized endpoint, never trust a stored URL.
+        if (
+          !/^[0-9a-f-]{36}$/.test(job.id) ||
+          !/^[0-9a-f-]{36}$/.test(attachment.id)
+        )
+          continue
+        const image = document.createElement('img')
+        image.alt = attachment.name || '参考画像'
+        image.src = `${apiRoot}/jobs/${job.id}/images/${attachment.id}`
+        image.loading = 'lazy'
+        gallery.append(image)
+      }
+      article.append(gallery)
+    }
     if (Array.isArray(job?.changedPaths) && job.changedPaths.length) {
       const paths = document.createElement('ul')
       paths.className = 'cms-ai-message__paths'
@@ -303,12 +356,18 @@
   }
 
   function renderComposer(options = {}) {
-    const pending = Boolean(conversation && isPending(conversation.status))
+    const pending =
+      sending || Boolean(conversation && isPending(conversation.status))
     const merged = conversation?.status === 'merged'
     const atLimit = Number(conversation?.jobs?.length || 0) >= 30
     submit.disabled = pending || merged || atLimit
     instruction.disabled = pending || merged || atLimit
     effort.disabled = pending || merged || atLimit
+    imageInput.disabled = pending || merged || atLimit
+    conversationSelect.disabled = sending
+    newConversation.disabled = sending
+    for (const button of attachments.querySelectorAll('button'))
+      button.disabled = pending || merged || atLimit
     submit.textContent = pending ? '処理中…' : '送信'
     if (options.preserveStatus) return
     if (pending) renderStatus(statusLabel(conversation.status), false)
@@ -323,6 +382,58 @@
         false,
       )
     else renderStatus('', false)
+  }
+
+  function addImages(files) {
+    if (imageInput.disabled) return
+    if (selectedImages.length + files.length > 4) {
+      renderStatus('画像は1回4枚までです。', true)
+      return
+    }
+    if (
+      files.some(
+        (file) =>
+          !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) ||
+          !file.size ||
+          file.size > 2 * 1024 * 1024,
+      )
+    ) {
+      renderStatus('PNG・JPEG・WebPの画像を各2MB以下で添付してください。', true)
+      return
+    }
+    selectedImages.push(
+      ...files.map((file) => ({ file, url: URL.createObjectURL(file) })),
+    )
+    renderImages()
+    renderStatus('', false)
+  }
+
+  function clearImages() {
+    for (const item of selectedImages) URL.revokeObjectURL(item.url)
+    selectedImages = []
+    renderImages()
+  }
+
+  function renderImages() {
+    attachments.replaceChildren()
+    selectedImages.forEach((item, index) => {
+      const figure = document.createElement('figure')
+      const image = document.createElement('img')
+      image.src = item.url
+      image.alt = item.file.name
+      const remove = document.createElement('button')
+      remove.type = 'button'
+      remove.textContent = '削除'
+      remove.setAttribute('aria-label', item.file.name + 'を削除')
+      remove.addEventListener('click', () => {
+        if (imageInput.disabled) return
+        URL.revokeObjectURL(item.url)
+        selectedImages.splice(index, 1)
+        renderImages()
+      })
+      figure.append(image, remove)
+      attachments.append(figure)
+    })
   }
 
   async function requestJson(url, options = {}) {
