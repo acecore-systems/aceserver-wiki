@@ -32,8 +32,8 @@
     "pages:dev": "npm run build && wrangler pages dev dist"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "7.2.2",
-    "astro": "7.2.0",
+    "@astrojs/markdown-remark": "7.2.4",
+    "astro": "7.2.9",
     "graphql": "17.0.2",
     "jose": "6.2.8",
     "mdast-util-from-markdown": "2.0.3",
@@ -50,7 +50,10 @@
     "parse5": "^8.0.1",
     "turndown": "^7.2.4",
     "typescript": "6.0.3",
-    "vitest": "4.1.10",
+    "vitest": "4.1.11",
     "wrangler": "4.120.0"
+  },
+  "overrides": {
+    "sharp": "0.35.4"
   }
 }
