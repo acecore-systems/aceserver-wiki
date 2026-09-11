@@ -30,6 +30,18 @@
       "DISCORD_CLIENT_SECRET",
     ],
   },
+  "secrets_store_secrets": [
+    {
+      "binding": "OIDC_ACCESS_CLIENT_SECRET_STORE",
+      "store_id": "f59c889c0fcc405794a34401fb09240c",
+      "secret_name": "aceserver-wiki-discord-oidc-broker-oidc-access-client-secret",
+    },
+    {
+      "binding": "DISCORD_CLIENT_SECRET_STORE",
+      "store_id": "f59c889c0fcc405794a34401fb09240c",
+      "secret_name": "aceserver-wiki-discord-oidc-broker-discord-client-secret",
+    },
+  ],
   "vars": {
     "OIDC_ISSUER": "https://wiki-auth.acecore.net",
     "OIDC_ACCESS_CLIENT_ID": "aceserver-wiki-849c881162001f8b167b58659a04adde",

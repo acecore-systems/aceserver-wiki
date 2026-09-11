@@ -1,5 +1,6 @@
 import type { BrokerConfig } from './config.ts'
 import { readConfig } from './config.ts'
+import { resolveBrokerSecrets } from './secrets-store.ts'
 import {
   pkceChallenge,
   randomToken,
@@ -796,6 +797,7 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const route = logRoute(request)
     try {
+      env = await resolveBrokerSecrets(env)
       const config = readConfig(env)
       return await routeRequest(request, env, config)
     } catch (error) {

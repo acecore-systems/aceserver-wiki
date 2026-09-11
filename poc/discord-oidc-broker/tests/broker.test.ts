@@ -1,7 +1,8 @@
-import { applyD1Migrations, env, SELF } from 'cloudflare:test'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { adminSecretsStore, applyD1Migrations, env, SELF } from 'cloudflare:test'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { pkceChallenge, sha256Hex } from '../src/crypto.ts'
+import { hmacSha256Hex, pkceChallenge, sha256Hex } from '../src/crypto.ts'
+import worker from '../src/index.ts'
 import { cleanupExpiredState, enforceRateLimit } from '../src/store.ts'
 
 const ISSUER = 'https://oidc.example.test'
@@ -12,6 +13,12 @@ const ACCESS_CLIENT_SECRET = 'test-cloudflare-access-secret'
 const DISCORD_ID = '987654321098765432'
 const DISCORD_GUILD_ID = '123456789012345679'
 const VERIFIER = 'v'.repeat(64)
+
+beforeAll(async () => {
+  // Local Miniflare stores only; never access or seed a remote account store.
+  await adminSecretsStore(env.OIDC_ACCESS_CLIENT_SECRET_STORE).create(ACCESS_CLIENT_SECRET)
+  await adminSecretsStore(env.DISCORD_CLIENT_SECRET_STORE).create('test-discord-client-secret')
+})
 
 beforeEach(async () => {
   await applyD1Migrations(env.OIDC_STATE_DB, env.TEST_D1_MIGRATIONS)
@@ -181,6 +188,74 @@ function tokenRequest(
     method: 'POST',
   })
 }
+
+describe('Secrets Store migration', () => {
+  function storeEnv(access: () => Promise<string>, discord = async () => 'store-discord-client-secret'): Env {
+    return {
+      ...env,
+      OIDC_ACCESS_CLIENT_SECRET_STORE: { get: access },
+      DISCORD_CLIENT_SECRET_STORE: { get: discord },
+    }
+  }
+
+  it('uses one Store value for client auth and rate limiting, and observes the next rotation', async () => {
+    let key = 'store-access-client-secret-1'
+    let reads = 0
+    const runtime = storeEnv(async () => { reads++; return key })
+    const request = (secret: string) => tokenRequest('short-code', VERIFIER, `Basic ${btoa(`${ACCESS_CLIENT_ID}:${secret}`)}`)
+    const accepted = await worker.fetch(request(key), runtime)
+    expect(accepted.status).toBe(400)
+    expect(await accepted.json()).toMatchObject({ error: 'invalid_request' })
+    const expectedBucket = await hmacSha256Hex(key, 'token\u0000missing')
+    expect(await env.OIDC_STATE_DB.prepare('SELECT request_count FROM oidc_rate_limits WHERE bucket_hash = ?1')
+      .bind(expectedBucket).first('request_count')).toBe(1)
+    expect(reads).toBe(1)
+    key = 'store-access-client-secret-2'
+    expect((await worker.fetch(request(key), runtime)).status).toBe(400)
+    expect((await worker.fetch(request(ACCESS_CLIENT_SECRET), runtime)).status).toBe(401)
+    expect(reads).toBe(3)
+    expect(env.OIDC_ACCESS_CLIENT_SECRET).toBe(ACCESS_CLIENT_SECRET)
+  })
+
+  it('passes the Store Discord key to OAuth without exposing provider failures', async () => {
+    const { discordState } = await beginAuthorization()
+    const key = 'store-discord-client-secret'
+    let observed = false
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const request = new Request(input, init)
+      expect(request.url).toBe('https://discord.com/api/oauth2/token')
+      expect(request.headers.get('Authorization')).toBe(`Basic ${btoa(`${env.DISCORD_CLIENT_ID}:${key}`)}`)
+      observed = true
+      throw new Error('synthetic provider stop')
+    })
+    const response = await worker.fetch(new Request(`${ISSUER}/callback?code=synthetic&state=${discordState}`),
+      storeEnv(async () => ACCESS_CLIENT_SECRET, async () => key))
+    expect(observed).toBe(true)
+    expect(response.status).toBe(303)
+    expect(new URL(response.headers.get('Location') ?? '').searchParams.get('error')).toBe('server_error')
+  })
+
+  it('fails before rate-limit/state writes during Store failure and recovers on the next request', async () => {
+    let failed = true
+    const logger = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const runtime = storeEnv(async () => {
+      if (failed) throw Object.assign(new Error('sensitive-provider-detail'), { name: 'sensitive-name' })
+      return ACCESS_CLIENT_SECRET
+    })
+    const response = await worker.fetch(tokenRequest('short-code'), runtime)
+    expect(response.status).toBe(503)
+    expect(await response.text()).not.toContain('sensitive')
+    expect(JSON.stringify(logger.mock.calls)).not.toContain('sensitive')
+    expect(await env.OIDC_STATE_DB.prepare('SELECT count(*) AS count FROM oidc_rate_limits').first('count')).toBe(0)
+    failed = false
+    expect((await worker.fetch(tokenRequest('short-code'), runtime)).status).toBe(400)
+  })
+
+  it.each(['', 'short'])('rejects invalid Store values without using the valid legacy key (%s)', async (value) => {
+    const response = await worker.fetch(tokenRequest('short-code'), storeEnv(async () => value))
+    expect(response.status).toBe(503)
+  })
+})
 
 function decodeJwtPayload(token: string): Record<string, unknown> {
   const payload = token.split('.')[1] ?? ''
