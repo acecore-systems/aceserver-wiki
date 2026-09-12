@@ -24,11 +24,7 @@
     "crons": ["*/5 * * * *"],
   },
   "secrets": {
-    "required": [
-      "OIDC_ACCESS_CLIENT_SECRET",
-      "OIDC_SIGNING_PRIVATE_KEY_PEM",
-      "DISCORD_CLIENT_SECRET",
-    ],
+    "required": ["OIDC_SIGNING_PRIVATE_KEY_PEM"],
   },
   "secrets_store_secrets": [
     {

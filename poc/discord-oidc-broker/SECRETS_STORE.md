@@ -1,5 +1,9 @@
 # Wiki認証キーのSecrets Store移行
 
+## 移行後の旧コピー整理（2026-09-12）
+
+Storeへの同値移行は完了しています。Store参照に対応する旧Worker Secretは再配信時に要求せず、削除後の復旧にはStore対応版を使用します。Store本体・接続先側のキー・移行対象外の署名鍵やIDは保持します。以下の旧キー保持・移行前への切り戻しは移行当時の記録であり、整理後には適用しません。
+
 Worker `aceserver-wiki-discord-oidc-broker` の2つのクライアント認証キーを、
 既存値のままAcecoreアカウントのStore `f59c889c0fcc405794a34401fb09240c`へ移す。
 
