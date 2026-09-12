@@ -191,11 +191,14 @@ function tokenRequest(
 
 describe('Secrets Store migration', () => {
   function storeEnv(access: () => Promise<string>, discord = async () => 'store-discord-client-secret'): Env {
-    return {
+    const runtime = {
       ...env,
       OIDC_ACCESS_CLIENT_SECRET_STORE: { get: access },
       DISCORD_CLIENT_SECRET_STORE: { get: discord },
     }
+    Reflect.deleteProperty(runtime, 'OIDC_ACCESS_CLIENT_SECRET')
+    Reflect.deleteProperty(runtime, 'DISCORD_CLIENT_SECRET')
+    return runtime
   }
 
   it('uses one Store value for client auth and rate limiting, and observes the next rotation', async () => {
