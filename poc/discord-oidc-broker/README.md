@@ -169,6 +169,8 @@ custom domain または route が必須です。`workers_dev` は無効なので
 
 ## ローカル検証
 
+クライアント認証キーの移行先・検証・復旧手順は[Secrets Store移行](./SECRETS_STORE.md)を参照。
+
 ```powershell
 npm ci
 npm run cf:typegen
