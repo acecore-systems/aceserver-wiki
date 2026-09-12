@@ -2594,7 +2594,10 @@ function readTestDerElement(
 
 function signAccessJwt(
   type = 'app',
-  custom: Record<string, string> = { discord_id: DISCORD_ID },
+  custom: Record<string, string> = {
+    'https://acecore.net/claims/discord-id': DISCORD_ID,
+    'https://acecore.net/claims/subject': '11111111-1111-4111-8111-111111111111',
+  },
 ) {
   return new SignJWT({
     type,

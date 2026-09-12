@@ -1,5 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose'
 
+import { readDiscordMembership } from './_discord-membership.ts'
+
 import type { CmsRuntimeEnv } from './_cms-policy.ts'
 
 export type AccessIdentity =
@@ -65,7 +67,7 @@ export async function getAccessIdentity(
     return {
       ok: false,
       status: 401,
-      message: 'Cloudflare Accessでログインしてください。',
+      message: 'AcecoreIDでログインしてください。',
     }
   }
 
@@ -79,44 +81,19 @@ export async function getAccessIdentity(
     })
     const custom = isRecord(payload.custom) ? payload.custom : null
     const subject = typeof payload.sub === 'string' ? payload.sub.trim() : ''
-    const discordId =
-      custom && typeof custom.discord_id === 'string'
-        ? custom.discord_id.trim()
-        : ''
-    const discordGuildId =
-      custom && typeof custom.discord_guild_id === 'string'
-        ? custom.discord_guild_id.trim()
-        : ''
-    const rawDiscordRoleIds = custom?.discord_roles
-    const rawDiscordRoleCount = Array.isArray(rawDiscordRoleIds)
-      ? rawDiscordRoleIds.length
-      : authorizationMode !== 'role'
-        ? 0
-        : null
-    const discordRoleIds = Array.isArray(rawDiscordRoleIds)
-      ? rawDiscordRoleIds.flatMap((role): string[] => {
-          return typeof role === 'string' &&
-            DISCORD_SNOWFLAKE_PATTERN.test(role.trim())
-            ? [role.trim()]
-            : []
-        })
-      : authorizationMode !== 'role'
-        ? []
-        : null
+    const acecoreSubject = custom?.['https://acecore.net/claims/subject']
+    const discordId = custom?.['https://acecore.net/claims/discord-id']
+    if (payload.type !== 'app' || !subject || typeof acecoreSubject !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(acecoreSubject) ||
+      typeof discordId !== 'string' || !DISCORD_SNOWFLAKE_PATTERN.test(discordId)) {
+      return { ok: false, status: 403, message: 'AcecoreIDのDiscord連携を確認してください。' }
+    }
 
-    if (
-      payload.type !== 'app' ||
-      !subject ||
-      !DISCORD_SNOWFLAKE_PATTERN.test(discordId) ||
-      !discordRoleIds ||
-      discordRoleIds.length !== rawDiscordRoleCount ||
-      (authorizationMode !== 'account' && discordGuildId !== allowedGuildId)
-    ) {
-      return {
-        ok: false,
-        status: 403,
-        message: 'Cloudflare Access JWTのDiscord属性を確認できません。',
-      }
+    let discordRoleIds: string[] = []
+    if (authorizationMode !== 'account') {
+      const membership = await readDiscordMembership(allowedGuildId!, discordId, env.CMS_DISCORD_BOT_TOKEN)
+      if (!membership.ok) return membership
+      discordRoleIds = membership.roles
     }
 
     if (
