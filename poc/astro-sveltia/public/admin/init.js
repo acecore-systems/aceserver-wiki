@@ -1,11 +1,12 @@
 const root = document.getElementById('nc-root') || document.body
 
 class CmsStartupError extends Error {
-  constructor(kind, message, detail = '') {
+  constructor(kind, message, detail = '', refreshLogin = false) {
     super(message)
     this.name = 'CmsStartupError'
     this.kind = kind
     this.detail = detail
+    this.refreshLogin = refreshLogin
   }
 }
 
@@ -114,6 +115,7 @@ async function getGatewayJson(path, stage) {
       'Cloudflare Access のログインを確認できませんでした。',
       gatewayMessage ||
         'ログインを完了してから、このページを再読み込みしてください。',
+      true,
     )
   }
 
@@ -132,6 +134,7 @@ async function getGatewayJson(path, stage) {
       'このアカウントには Wiki の編集権限がありません。',
       gatewayMessage ||
         '対象の Discord サーバーと編集者ロールを確認してください。',
+      stage === 'session',
     )
   }
 
@@ -177,6 +180,7 @@ function describeError(error) {
       title: error.message,
       message: error.detail,
       kind: error.kind,
+      refreshLogin: error.refreshLogin,
     }
   }
 
@@ -194,6 +198,7 @@ function showStatus({
   kind = 'loading',
   isError = false,
   retry = false,
+  refreshLogin = false,
 }) {
   root.innerHTML = `
     <section class="cms-status${isError ? ' cms-status--error' : ''}">
@@ -213,6 +218,39 @@ function showStatus({
   root
     .querySelector('.cms-status__retry')
     ?.addEventListener('click', () => window.location.reload())
+
+  if (refreshLogin) appendLoginRefresh()
+}
+
+function appendLoginRefresh() {
+  const card = root.querySelector('.cms-status__card')
+
+  if (!card) return
+
+  const guidance = document.createElement('p')
+  const accountLink = document.createElement('a')
+  accountLink.href = 'https://id.acecore.net/'
+  accountLink.target = '_blank'
+  accountLink.rel = 'noopener noreferrer'
+  accountLink.textContent = 'AcecoreIDでDiscord連携を確認'
+  guidance.className = 'cms-status__message'
+  guidance.append(
+    accountLink,
+    document.createTextNode(
+      'してから、このサイトのログイン情報を更新してください。',
+    ),
+  )
+
+  const form = document.createElement('form')
+  form.method = 'post'
+  form.action = '/admin/api/refresh-session'
+
+  const button = document.createElement('button')
+  button.className = 'cms-status__retry'
+  button.type = 'submit'
+  button.textContent = 'ログイン情報を更新'
+  form.append(button)
+  card.append(guidance, form)
 }
 
 function escapeHtml(value) {

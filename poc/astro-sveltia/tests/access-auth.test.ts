@@ -7,15 +7,18 @@ import type { CmsRuntimeEnv } from '../functions/admin/api/_cms-policy.ts'
 const id = '987654321098765432'
 const guild = '123456789012345678'
 const role = '222222222222222222'
+const accessSubject = '22222222-2222-4222-8222-222222222222'
+const acecoreSubject = '11111111-1111-4111-8111-111111111111'
+const issuer = 'https://team.cloudflareaccess.com'
 const custom = {
   'https://acecore.net/claims/discord-id': id,
-  'https://acecore.net/claims/subject': '11111111-1111-4111-8111-111111111111',
+  'https://acecore.net/claims/subject': acecoreSubject,
 }
 const BASE_ENV = {
   CMS_REPOSITORY_OWNER: 'acecore-systems', CMS_REPOSITORY_NAME: 'aceserver-wiki',
   CMS_REPOSITORY_BRANCH: 'main', CMS_CONTENT_ROOT: 'poc/astro-sveltia/src/content/wiki',
   CMS_MEDIA_ROOT: 'poc/astro-sveltia/public/uploads/wiki', CMS_PUBLICATION_MODE: 'direct',
-  CMS_ACCESS_AUD: 'test-audience', CMS_ACCESS_TEAM_DOMAIN: 'https://team.cloudflareaccess.com',
+  CMS_ACCESS_AUD: 'test-audience', CMS_ACCESS_TEAM_DOMAIN: issuer,
   CMS_ACCESS_HOSTNAMES: 'wiki-admin.example.test', CMS_DISCORD_GUILD_ID: guild,
   CMS_DISCORD_AUTHORIZATION_MODE: 'guild', CMS_DISCORD_ALLOWED_ROLE_IDS: '',
   CMS_DISCORD_BOT_TOKEN: 'test-only-bot-token',
@@ -24,12 +27,25 @@ const fetchMock = vi.fn()
 const request = () => new Request('https://wiki-admin.example.test/admin/api/session', {
   headers: { 'cf-access-jwt-assertion': 'test-token' },
 })
-const identity = () => ({ custom, sub: 'access-subject', type: 'app' })
+const identity = () => ({ custom, sub: accessSubject, type: 'app' })
+const fullIdentity = (overrides: Record<string, unknown> = {}) => ({
+  user_uuid: accessSubject,
+  account_id: 'db9b62f409f463da7acbcc374b8385d0',
+  idp: { id: 'a18ae74a-a342-40db-bfb2-7cc515d26637', type: 'oidc' },
+  oidc_fields: custom,
+  ...overrides,
+})
 
 beforeEach(() => {
   joseMock.jwtVerify.mockResolvedValue({ payload: identity() })
   vi.stubGlobal('fetch', fetchMock)
-  fetchMock.mockImplementation(async () => Response.json({ user: { id }, roles: [role], pending: false }))
+  fetchMock.mockImplementation(async (input) => {
+    if (String(input) === `${issuer}/cdn-cgi/access/get-identity`) {
+      return Response.json(fullIdentity())
+    }
+
+    return Response.json({ user: { id }, roles: [role], pending: false })
+  })
 })
 afterEach(() => { vi.unstubAllGlobals(); fetchMock.mockReset(); joseMock.jwtVerify.mockReset() })
 
@@ -56,11 +72,107 @@ describe('AcecoreID Access and existing Discord authorization', () => {
     expect(await getAccessIdentity(request(), BASE_ENV)).toMatchObject({ ok: false, status: 401 })
   })
   it.each([
-    {}, { discord_id: id }, { ...custom, 'https://acecore.net/claims/discord-id': ['987654321098765432'] },
+    [],
+    { ...custom, 'https://acecore.net/claims/discord-id': ['987654321098765432'] },
     { ...custom, 'https://acecore.net/claims/subject': 'not-a-subject' },
-  ])('rejects old-provider or malformed identity attributes', async (claims) => {
+  ])('rejects old-provider or malformed signed identity attributes', async (claims) => {
     joseMock.jwtVerify.mockResolvedValue({ payload: { ...identity(), custom: claims } })
     expect(await getAccessIdentity(request(), BASE_ENV)).toMatchObject({ ok: false, status: 403 })
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+  it.each([
+    undefined,
+    {},
+    { 'https://acecore.net/claims/subject': acecoreSubject },
+    { 'https://acecore.net/claims/discord-id': id },
+  ])('fills only missing signed claims from the matching full identity', async (claims) => {
+    joseMock.jwtVerify.mockResolvedValue({ payload: { ...identity(), custom: claims } })
+    expect(await getAccessIdentity(request(), BASE_ENV)).toEqual({
+      ok: true,
+      discordId: id,
+      discordRoleIds: [role],
+      subject: accessSubject,
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      new URL('/cdn-cgi/access/get-identity', `${issuer}/`),
+      expect.objectContaining({
+        method: 'GET',
+        redirect: 'manual',
+        cache: 'no-store',
+        signal: expect.any(AbortSignal),
+        headers: {
+          Accept: 'application/json',
+          Cookie: 'CF_Authorization=test-token',
+        },
+      }),
+    )
+  })
+  it.each([
+    [fullIdentity({ user_uuid: undefined }), 'CMS_AUTH_IDENTITY_USER_MISSING'],
+    [fullIdentity({ user_uuid: '33333333-3333-4333-8333-333333333333' }), 'CMS_AUTH_IDENTITY_USER_MISMATCH'],
+    [fullIdentity({ account_id: 'other' }), 'CMS_AUTH_IDENTITY_ACCOUNT_MISMATCH'],
+    [fullIdentity({ idp: undefined }), 'CMS_AUTH_IDENTITY_PROVIDER_MISSING'],
+    [fullIdentity({ idp: { id: 'other', type: 'oidc' } }), 'CMS_AUTH_IDENTITY_PROVIDER_MISMATCH'],
+    [fullIdentity({ idp: { id: 'a18ae74a-a342-40db-bfb2-7cc515d26637', type: 'github' } }), 'CMS_AUTH_IDENTITY_PROVIDER_TYPE_MISMATCH'],
+    [fullIdentity({ oidc_fields: undefined }), 'CMS_AUTH_IDENTITY_FIELDS_MISSING'],
+  ])('rejects a full identity outside the fixed boundary: %s', async (value, code) => {
+    joseMock.jwtVerify.mockResolvedValue({ payload: { ...identity(), custom: undefined } })
+    fetchMock.mockResolvedValue(Response.json(value))
+    expect(await getAccessIdentity(request(), BASE_ENV)).toMatchObject({
+      ok: false,
+      status: 403,
+      code,
+    })
+  })
+  it.each([
+    [
+      { 'https://acecore.net/claims/discord-id': id },
+      {
+        ...custom,
+        'https://acecore.net/claims/discord-id': '111111111111111111',
+      },
+    ],
+    [
+      { 'https://acecore.net/claims/subject': acecoreSubject },
+      {
+        ...custom,
+        'https://acecore.net/claims/subject':
+          '33333333-3333-4333-8333-333333333333',
+      },
+    ],
+  ])('rejects conflicts between each direct claim and full identity fallback', async (directClaims, identityClaims) => {
+    joseMock.jwtVerify.mockResolvedValue({
+      payload: { ...identity(), custom: directClaims },
+    })
+    fetchMock.mockResolvedValue(Response.json(fullIdentity({
+      oidc_fields: identityClaims,
+    })))
+    expect(await getAccessIdentity(request(), BASE_ENV)).toMatchObject({
+      ok: false,
+      status: 403,
+      code: 'CMS_AUTH_IDENTITY_SOURCE_CONFLICT',
+    })
+  })
+  it.each([
+    new Response(null, { status: 302 }),
+    new Response('{'),
+    new Response('x'.repeat(65_537)),
+  ])('rejects unavailable, malformed, or oversized full identity responses', async (response) => {
+    joseMock.jwtVerify.mockResolvedValue({ payload: { ...identity(), custom: undefined } })
+    fetchMock.mockResolvedValue(response)
+    expect(await getAccessIdentity(request(), BASE_ENV)).toMatchObject({
+      ok: false,
+      status: 502,
+    })
+  })
+  it('rejects a malformed Access sub before full identity lookup', async () => {
+    joseMock.jwtVerify.mockResolvedValue({ payload: { ...identity(), sub: 'not-a-uuid', custom: undefined } })
+    expect(await getAccessIdentity(request(), BASE_ENV)).toMatchObject({
+      ok: false,
+      status: 401,
+      code: 'CMS_AUTH_ACCESS_SUBJECT_INVALID',
+    })
     expect(fetchMock).not.toHaveBeenCalled()
   })
   it('rejects org/service tokens', async () => {
@@ -69,11 +181,11 @@ describe('AcecoreID Access and existing Discord authorization', () => {
   })
   it('account mode does not add a guild condition', async () => {
     expect(await getAccessIdentity(request(), { ...BASE_ENV, CMS_DISCORD_AUTHORIZATION_MODE: 'account',
-      CMS_DISCORD_GUILD_ID: '', CMS_DISCORD_BOT_TOKEN: '' })).toEqual({ ok: true, discordId: id, discordRoleIds: [], subject: 'access-subject' })
+      CMS_DISCORD_GUILD_ID: '', CMS_DISCORD_BOT_TOKEN: '' })).toEqual({ ok: true, discordId: id, discordRoleIds: [], subject: accessSubject })
     expect(fetchMock).not.toHaveBeenCalled()
   })
   it('guild mode checks the exact linked account in the configured guild', async () => {
-    expect(await getAccessIdentity(request(), BASE_ENV)).toEqual({ ok: true, discordId: id, discordRoleIds: [role], subject: 'access-subject' })
+    expect(await getAccessIdentity(request(), BASE_ENV)).toEqual({ ok: true, discordId: id, discordRoleIds: [role], subject: accessSubject })
     expect(fetchMock).toHaveBeenCalledWith(`https://discord.com/api/v10/guilds/${guild}/members/${id}`,
       expect.objectContaining({ headers: { Authorization: 'Bot test-only-bot-token', Accept: 'application/json' }, redirect: 'error' }))
   })

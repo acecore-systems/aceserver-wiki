@@ -4,6 +4,8 @@ export const CMS_REPOSITORY = {
   branch: 'main',
 } as const
 
+export const CMS_PRODUCTION_HOSTNAME = 'asv-wiki.acecore.net' as const
+
 export const CMS_CONTENT_PREFIX = 'poc/astro-sveltia/src/content/wiki/' as const
 export const CMS_MEDIA_PREFIX =
   'poc/astro-sveltia/public/uploads/wiki/' as const

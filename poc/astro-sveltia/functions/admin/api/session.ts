@@ -8,7 +8,7 @@ export const onRequestGet: PagesFunction<CmsRuntimeEnv> = async ({
   const auth = await getAccessIdentity(request, env)
 
   if (!auth.ok) {
-    return json({ message: auth.message }, auth.status)
+    return json({ message: auth.message, code: auth.code }, auth.status)
   }
 
   return json({
