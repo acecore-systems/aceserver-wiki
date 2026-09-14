@@ -4,6 +4,8 @@ export const CMS_REPOSITORY = {
   branch: 'main',
 } as const
 
+export const CMS_PRODUCTION_HOSTNAME = 'asv-wiki.acecore.net' as const
+
 export const CMS_CONTENT_PREFIX = 'poc/astro-sveltia/src/content/wiki/' as const
 export const CMS_MEDIA_PREFIX =
   'poc/astro-sveltia/public/uploads/wiki/' as const
@@ -23,6 +25,10 @@ export type CmsRuntimeEnv = Pick<
   CMS_DISCORD_ALLOWED_ROLE_IDS: string
   CMS_DISCORD_AUTHORIZATION_MODE: string
   CMS_DISCORD_GUILD_ID?: string
+  CMS_DISCORD_MEMBERSHIP?: Pick<
+    NonNullable<Env['CMS_DISCORD_MEMBERSHIP']>,
+    'fetch'
+  >
   CMS_GITHUB_APP_CLIENT_ID?: string
   CMS_GITHUB_APP_INSTALLATION_ID?: string
   CMS_GITHUB_APP_PRIVATE_KEY?: string

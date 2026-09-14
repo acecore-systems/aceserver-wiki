@@ -4,11 +4,10 @@
 
 エースサーバー公式Wikiのsource repositoryです。公開サイトはAstroで生成し、
 記事の正本はrepository内のMarkdownです。編集画面はSveltia CMS、ログインは
-Discord OAuthを受けるOIDC brokerとCloudflare Access、保存はPages Functionsの
-content gatewayを使用します。編集者はDiscord OAuthでエースサーバー公式Discord
-への参加をログイン時に確認し、参加手続きが完了したメンバーだけを編集者として
-受け入れます。発行済みのCloudflare Access sessionは、設定された期限または
-明示的な失効まで有効です。
+AcecoreIDとCloudflare Access、保存はPages Functionsのcontent gatewayを使用します。
+編集者はAcecoreIDへ連携したDiscord数値IDを使い、エースサーバー公式Discordへの
+現在の所属と参加手続きの完了をサイト専用Botで確認します。発行済みのCloudflare
+Access sessionは、設定された期限または明示的な失効まで有効です。
 
 本番はCloudflare Pages project `aceserver-wiki-astro`にGitHub repositoryを接続し、
 `https://asv-wiki.acecore.net`で公開しています。Direct Uploadは使用しません。

@@ -28,7 +28,8 @@
     "test:unit": "vitest run",
     "test:vectorize": "node --test tests/vectorize-sync.test.mjs tests/deployment-marker.test.mjs",
     "test:watch": "vitest",
-    "cf:typegen": "wrangler types && node scripts/normalize-generated-types.mjs",
+    "cf:typegen": "wrangler types && wrangler types workers/discord-membership/worker-configuration.d.ts --config workers/discord-membership/wrangler.jsonc --env-interface MembershipEnv --include-runtime false && node scripts/normalize-generated-types.mjs",
+    "membership:build": "wrangler deploy --dry-run --config workers/discord-membership/wrangler.jsonc",
     "pages:dev": "npm run build && wrangler pages dev dist"
   },
   "dependencies": {

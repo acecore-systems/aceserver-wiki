@@ -1203,7 +1203,7 @@ describe('CMS read controls', () => {
     ).toBe(false)
   })
 
-  it('rejects an application token that only has custom.sub', async () => {
+  it('fails closed when a legacy-only claim cannot be completed by full identity', async () => {
     const fallbackJwt = await signAccessJwt('app', { sub: DISCORD_ID })
     const fetchMock = mockFetch(async (url) => {
       throw new Error(`Unexpected request: ${url}`)
@@ -1214,7 +1214,7 @@ describe('CMS read controls', () => {
       env: testEnv('direct'),
     } as Parameters<typeof onRequestPost>[0])
 
-    expect(response.status).toBe(403)
+    expect(response.status).toBe(502)
     expect(
       fetchMock.mock.calls.some(([input]) =>
         String(input).includes('/access_tokens'),
@@ -2594,7 +2594,10 @@ function readTestDerElement(
 
 function signAccessJwt(
   type = 'app',
-  custom: Record<string, string> = { discord_id: DISCORD_ID },
+  custom: Record<string, string> = {
+    'https://acecore.net/claims/discord-id': DISCORD_ID,
+    'https://acecore.net/claims/subject': '11111111-1111-4111-8111-111111111111',
+  },
 ) {
   return new SignJWT({
     type,
@@ -2603,7 +2606,7 @@ function signAccessJwt(
     .setProtectedHeader({ alg: 'RS256', kid: ACCESS_KEY_ID })
     .setIssuer(ACCESS_ISSUER)
     .setAudience(ACCESS_AUDIENCE)
-    .setSubject('access-test-subject')
+    .setSubject('22222222-2222-4222-8222-222222222222')
     .setIssuedAt()
     .setExpirationTime('5m')
     .sign(accessPrivateKey)

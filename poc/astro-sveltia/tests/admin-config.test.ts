@@ -21,6 +21,13 @@ describe('Sveltia config delivery', () => {
     expect(adminInit).toContain('削除が必要な場合は管理者へ依頼してください')
   })
 
+  it('連携不足時にAcecoreID確認と同一サイトのログイン更新を案内する', () => {
+    expect(adminInit).toContain('AcecoreIDでDiscord連携を確認')
+    expect(adminInit).toContain('このサイトのログイン情報を更新')
+    expect(adminInit).toContain("form.action = '/admin/api/refresh-session'")
+    expect(adminInit).toContain("form.method = 'post'")
+  })
+
   it('rewrites GitHub API roots to the current protected origin', async () => {
     const next = vi.fn(async (request: Request) => {
       expect(request.headers.get('If-Modified-Since')).toBeNull()
