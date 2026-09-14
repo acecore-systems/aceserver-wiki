@@ -53,7 +53,9 @@ describe('CMS Access session refresh', () => {
       exclude?: string[]
     }
 
-    expect(routes.include).toContain('/admin/api/refresh-session')
-    expect(routes.exclude).not.toContain('/admin/api/refresh-session')
+    // Cloudflare rejects overlapping include rules: the existing wildcard
+    // covers refresh-session without a second explicit route.
+    expect(routes.include).toEqual(['/*'])
+    expect(routes.exclude).toEqual([])
   })
 })
