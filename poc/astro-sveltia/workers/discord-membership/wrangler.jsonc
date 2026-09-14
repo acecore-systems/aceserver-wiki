@@ -1,0 +1,23 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "aceserver-wiki-discord-membership",
+  "main": "index.ts",
+  "compatibility_date": "2026-09-14",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [],
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": { "enabled": true, "invocation_logs": false },
+  },
+  "vars": { "WIKI_GUILD_ID": "737538781024092170" },
+  "secrets_store_secrets": [
+    {
+      "binding": "DISCORD_BOT_TOKEN",
+      "store_id": "f59c889c0fcc405794a34401fb09240c",
+      "secret_name": "aceserver-wiki-production-discord-bot-token",
+    },
+  ],
+}

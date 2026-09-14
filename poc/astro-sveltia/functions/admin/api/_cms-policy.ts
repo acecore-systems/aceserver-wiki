@@ -25,7 +25,10 @@ export type CmsRuntimeEnv = Pick<
   CMS_DISCORD_ALLOWED_ROLE_IDS: string
   CMS_DISCORD_AUTHORIZATION_MODE: string
   CMS_DISCORD_GUILD_ID?: string
-  CMS_DISCORD_BOT_TOKEN?: string
+  CMS_DISCORD_MEMBERSHIP?: Pick<
+    NonNullable<Env['CMS_DISCORD_MEMBERSHIP']>,
+    'fetch'
+  >
   CMS_GITHUB_APP_CLIENT_ID?: string
   CMS_GITHUB_APP_INSTALLATION_ID?: string
   CMS_GITHUB_APP_PRIVATE_KEY?: string

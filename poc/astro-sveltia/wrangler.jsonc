@@ -23,6 +23,11 @@
   ],
   "services": [
     {
+      "binding": "CMS_DISCORD_MEMBERSHIP",
+      "service": "aceserver-wiki-discord-membership",
+      "remote": false,
+    },
+    {
       "binding": "CMS_AI",
       "service": "cms-ai",
     },

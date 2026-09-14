@@ -199,7 +199,7 @@ export async function getAccessIdentity(
     const membership = await readDiscordMembership(
       allowedGuildId!,
       discordId,
-      env.CMS_DISCORD_BOT_TOKEN,
+      env.CMS_DISCORD_MEMBERSHIP,
     )
     if (!membership.ok) return membership
     discordRoleIds = membership.roles
