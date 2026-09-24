@@ -16,10 +16,6 @@ updates:
           - minor
           - patch
     ignore:
-      # Cloudflare's Workers Vitest integration currently requires Vitest 4.
-      - dependency-name: vitest
-        update-types:
-          - version-update:semver-major
       # Keep declarations aligned with the Node 24 runtime.
       - dependency-name: '@types/node'
         update-types:
@@ -54,10 +50,6 @@ updates:
           - minor
           - patch
     ignore:
-      # Cloudflare's Workers Vitest integration currently requires Vitest 4.
-      - dependency-name: vitest
-        update-types:
-          - version-update:semver-major
       # Keep declarations aligned with the Node 24 runtime.
       - dependency-name: '@types/node'
         update-types:
