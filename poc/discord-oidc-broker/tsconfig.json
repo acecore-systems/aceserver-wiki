@@ -7,7 +7,7 @@
     "noEmit": true,
     "skipLibCheck": true,
     "strict": true,
-    "types": ["@cloudflare/vitest-pool-workers/types", "node"]
+    "types": ["@cloudflare/vitest-plugin/types", "node"]
   },
   "include": [
     "worker-configuration.d.ts",
