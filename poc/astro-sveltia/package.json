@@ -46,7 +46,7 @@
     "@astrojs/check": "0.9.10",
     "@cloudflare/vitest-plugin": "https://pkg.pr.new/@cloudflare/vitest-plugin@7b89dc48f3f4b0dfba5df352bcbdf8e2cbcff30e",
     "@types/node": "26.6.1",
-    "devalue": "5.9.2",
+    "devalue": "6.0.0",
     "pagefind": "^1.5.2",
     "parse5": "^8.0.1",
     "turndown": "^7.2.4",
