@@ -16,10 +16,10 @@
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "https://pkg.pr.new/@cloudflare/vitest-plugin@7b89dc48f3f4b0dfba5df352bcbdf8e2cbcff30e",
-    "@types/node": "26.6.1",
+    "@types/node": "26.6.2",
     "typescript": "7.0.2",
     "vitest": "5.0.1",
-    "wrangler": "4.134.0"
+    "wrangler": "4.136.0"
   },
   "overrides": {
     "sharp": "0.35.4"
