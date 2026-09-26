@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
+    inputs:
+      confirm_large_delete:
+        description: '大規模な差し替えを許可する場合、対象の本番インデックス名を入力'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -131,12 +136,22 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: db9b62f409f463da7acbcc374b8385d0
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN }}
           VECTORIZE_INDEX_NAME: aceserver-wiki-search-bge-m3-1024-production-v1
+          LARGE_DELETE_CONFIRMATION: ${{ github.event.inputs.confirm_large_delete || '' }}
         run: |
           set -euo pipefail
           if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
             echo "::error::CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN is not configured."
             exit 1
           fi
+          extra_args=()
+          if [[ -n "$LARGE_DELETE_CONFIRMATION" ]]; then
+            if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" || "$LARGE_DELETE_CONFIRMATION" != "$VECTORIZE_INDEX_NAME" ]]; then
+              echo "::error::Large delete requires a manual dispatch with the exact production index name."
+              exit 1
+            fi
+            extra_args+=(--allow-large-delete)
+          fi
           node tooling/poc/astro-sveltia/scripts/sync-vectorize.mjs \
             --confirm-production aceserver-wiki-search-bge-m3-1024-production-v1 \
-            --corpus site/poc/astro-sveltia/dist/vector-corpus.json
+            --corpus site/poc/astro-sveltia/dist/vector-corpus.json \
+            "${extra_args[@]}"
