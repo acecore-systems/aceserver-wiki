@@ -6,7 +6,6 @@ import { after, test } from 'node:test'
 
 import {
   extractEmbeddingData,
-  isReviewedRulesMigration,
   syncVectorize,
   validateCorpus,
   validateDeletePlan,
@@ -107,19 +106,6 @@ test('20%を超える削除を明示overrideなしでは拒否する', () => {
       allowLargeDelete: true,
     }),
   )
-})
-
-test('Discordルール移行の例外は確認済みcorpusと件数に限る', () => {
-  const plan = {
-    corpusVersion: '4f094fb285870c13f6f8',
-    currentCount: 26,
-    expectedCount: 32,
-    deleteCount: 15,
-  }
-  assert.equal(isReviewedRulesMigration(plan), true)
-  for (const [key, value] of Object.entries(plan)) {
-    assert.equal(isReviewedRulesMigration({ ...plan, [key]: value === 15 ? 14 : 'different' }), false)
-  }
 })
 
 test('既存indexとの差分だけをembedding・upsert・deleteする', async () => {
