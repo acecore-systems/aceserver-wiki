@@ -16,7 +16,8 @@ export const ADSENSE_CLIENT = 'ca-pub-3935803464310919'
 export const WIKI_ICON_PATH = '/uploads/wiki/wiki-icon.png'
 export const WIKI_QUICK_ARTICLE_IDS = [
   'in',
-  'rule',
+  'rules-index',
+  'faq',
   'SurvivalCommand',
 ] as const
 
