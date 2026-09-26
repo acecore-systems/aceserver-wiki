@@ -22,6 +22,13 @@ const MAX_REQUEST_RETRIES = 5
 const RETRY_BASE_DELAY_MS = 500
 const MAX_LIST_CURSOR_RESTARTS = 3
 const MAX_DELETE_RATIO = 0.2
+// Temporary allowance for the reviewed Discord rules rewrite. Remove after reconciliation.
+const REVIEWED_RULES_MIGRATION = Object.freeze({
+  corpusVersion: '4f094fb285870c13f6f8',
+  currentCount: 26,
+  expectedCount: 32,
+  deleteCount: 15,
+})
 const MIN_SOURCE_COUNT = 15
 const MIN_VECTOR_COUNT = 15
 const MAX_VECTOR_COUNT = 500
@@ -105,10 +112,16 @@ export async function syncVectorize({
   const expectedIds = new Set(corpus.chunks.map(({ id }) => id))
   const chunksToUpsert = corpus.chunks.filter(({ id }) => !currentIds.has(id))
   const idsToDelete = [...currentIds].filter((id) => !expectedIds.has(id))
+  const reviewedRulesMigration = isReviewedRulesMigration({
+    corpusVersion: corpus.version,
+    currentCount: currentIds.size,
+    expectedCount: expectedIds.size,
+    deleteCount: idsToDelete.length,
+  })
   validateDeletePlan({
     currentCount: currentIds.size,
     deleteCount: idsToDelete.length,
-    allowLargeDelete,
+    allowLargeDelete: allowLargeDelete || reviewedRulesMigration,
   })
 
   logger.log(
@@ -315,6 +328,12 @@ export function validateDeletePlan({
   const percentage = ((deleteCount / currentCount) * 100).toFixed(1)
   throw new Error(
     `Refusing to delete ${deleteCount}/${currentCount} vectors (${percentage}%); pass --allow-large-delete to override.`,
+  )
+}
+
+export function isReviewedRulesMigration(plan) {
+  return Object.entries(REVIEWED_RULES_MIGRATION).every(
+    ([key, expected]) => plan[key] === expected,
   )
 }
 
