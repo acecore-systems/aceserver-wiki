@@ -15,4 +15,4 @@ draft: false
 - [生活鯖以外のサーバー](/article/other-server/)：資源鯖、シーズン鯖、コンテンツ鯖、コンセプト鯖。
 - [よくある質問](/article/faq/)：登録や接続で困ったとき。
 
-[エースサーバーポータル](https://asv.acecore.net/)では、サーバーの紹介、マップ、記事や動画などを探せます。Wikiは参加手順や規則をまとめる参照先です。新しい告知、接続先、申請フォームは[公式Discord](https://discord.gg/acsv)で確認してください。
+新しい告知、接続先、申請フォームは[公式Discord](https://discord.gg/acsv)で確認してください。

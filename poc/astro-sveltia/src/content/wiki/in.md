@@ -8,8 +8,6 @@ draft: false
 
 ![エースサーバーへ参加するプレイヤー](/uploads/wiki/join-header.jpg)
 
-[ポータル](https://asv.acecore.net/)はエースサーバーの入口です。参加手順とルールはこのWiki、当日の告知と申請先は公式Discordで確認できます。
-
 1. [公式Discord](https://discord.gg/acsv)に参加します。
 2. [コミュニティルール](/article/community-rules/)と[Discordルール](/article/discord-rule/)を読み、[ルール認証](https://discord.com/channels/737538781024092170/1386851151428980856)で🇦のリアクションを**一度だけ**押します。
 3. [自己紹介の部屋](https://discord.com/channels/737538781024092170/773171619031285781)にある現在のテンプレートに沿って自己紹介します。
