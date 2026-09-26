@@ -12,6 +12,9 @@ draft: false
 
 - [ルール一覧](/article/rules-index/)：コミュニティ、Minecraft共通、各サーバー、Discordのルール。
 - [生活鯖のコマンド](/article/SurvivalCommand/)：保護、チャット補助、移動など。
+- [生活鯖ショップ](/article/survival-shop/)：売却できる食料・石材と、公式掲示板の価格。
+- [通貨とマイページ](/article/currency-web/)：Discordからマイページを開き、通貨の案内を確認する方法。
+- [募集を公式Xで紹介してもらう方法](/article/x-introduction/)：画像と紹介文を添えた依頼から掲載承認までの流れ。
 - [生活鯖以外のサーバー](/article/other-server/)：資源鯖、シーズン鯖、コンテンツ鯖、コンセプト鯖。
 - [よくある質問](/article/faq/)：登録や接続で困ったとき。
 
