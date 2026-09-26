@@ -37,6 +37,10 @@ const startArticle =
       <div class="home__hero-content">
         <h1 id="home-title">{HEADER_TITLE}</h1>
         <p class="home__description">{ROOT_DESCRIPTION}</p>
+        <p class="home__description">
+          <a href="https://asv.acecore.net/">ポータル</a>ではサーバーの紹介やマップ、記事を探せます。
+          新しい告知と接続先は<a href="https://discord.gg/acsv">公式Discord</a>で確認してください。
+        </p>
         {
           startArticle && (
             <a class="home__start" href={articlePath(startArticle.id)}>

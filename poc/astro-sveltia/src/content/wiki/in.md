@@ -1,27 +1,25 @@
 ---
-title: 参加方法
-description: エースサーバーへの参加方法を順番に案内します。公式Discordへの参加、Minecraftアカウントとの連携など、初めて遊ぶ前に必要な準備を確認できます。
-category: イントロダクション
+title: "参加方法"
+description: "公式Discordへの参加からルール認証、Minecraft IDの登録、サーバーへの接続までを案内します。"
+category: "イントロダクション"
 order: 90
 draft: false
 ---
 
 ![エースサーバーへ参加するプレイヤー](/uploads/wiki/join-header.jpg)
 
-#### エースサーバーDiscordに参加する。
+[ポータル](https://asv.acecore.net/)はエースサーバーの入口です。参加手順とルールはこのWiki、当日の告知と申請先は公式Discordで確認できます。
 
-###### 以下からエースサーバー公式Discordサーバーに参加してください。
+1. [公式Discord](https://discord.gg/acsv)に参加します。
+2. [コミュニティルール](/article/community-rules/)と[Discordルール](/article/discord-rule/)を読み、[ルール認証](https://discord.com/channels/737538781024092170/1386851151428980856)で🇦のリアクションを**一度だけ**押します。
+3. Discordの案内に従って自己紹介と[Discord連携](/article/how-to-discordsrv-link/)を行います。
+4. 認証後に見える[サーバーアドレス](https://discord.com/channels/737538781024092170/1437221734427398165)で接続先を確認します。アドレスは公開ページには転載していません。
+5. 遊ぶサーバーに応じて[ルール一覧](/article/rules-index/)を確認してから接続してください。
 
-[Discordサーバーへ参加](https://discord.gg/acsv)
+Java版（PC）と統合版（スマートフォンなど）では、サーバー追加画面が異なります。[マイクラマルチの入り方](https://discord.com/channels/737538781024092170/1460983001809948744)も確認してください。Switch版向けには[案内動画](https://www.youtube.com/watch?v=1ndsOexBJIk)があります。
 
-⚠️ 一部マイクラ鯖に参加するにはこちらが必要です
+うまく進められない場合は[よくある質問](/article/faq/)を確認してください。
 
-[マイクラとDiscordを連携する](/article/how-to-discordsrv-link/)
+### 出典
 
-* \* \*
-
-Discordのアカウントがない・インストールしていない方は
-
-[PC版 - 公式サイト](https://discord.com) [Android版](https://play.google.com/store/apps/details?id=com.discord&hl=ja&gl=US) [iOS版](https://apps.apple.com/jp/app/discord-%E8%A9%B1%E3%81%9D%E3%81%86-%E3%83%81%E3%83%A3%E3%83%83%E3%83%88%E3%81%97%E3%82%88%E3%81%86-%E9%9B%86%E3%81%BE%E3%82%8D%E3%81%86/id985746746)
-
-###### Discordサーバーに入室後、まずは注意・規則を必ずよく読んだ上で手続きを行ってください。
+[Discord「マイクラマルチの入り方」](https://discord.com/channels/737538781024092170/1460983001809948744)、[ルール認証](https://discord.com/channels/737538781024092170/1386851151428980856)（2026年9月26日確認）。
