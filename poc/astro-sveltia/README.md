@@ -145,7 +145,7 @@ PRを作り、CIを通して`main`へ反映します。
 credentialを受け取りません。Pages Functionは同一origin検証と
 entry-point rate limitを行い、Private Service Binding
 `ALPHA_CHAT_SERVICE`で`aceserver-alpha-chat` Workerを呼びます。共有Workerが
-人格、質問分類、RAG、出典検証、Workers AI `@cf/zai-org/glm-5.3-flash`による生成、正史生成を一元管理します。
+人格、質問分類、RAG、出典検証、OpenAI `gpt-6-luna`による生成、正史生成を一元管理します。
 
 ブラウザは`Accept: text/event-stream`を指定し、Pages Functionは共有WorkerのSSE bodyを
 バッファせず転送します。生成deltaはリンク化しない平文として逐次表示し、共有Workerが
