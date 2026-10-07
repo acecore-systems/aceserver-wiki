@@ -1,8 +1,9 @@
 import { ARTICLE_REDIRECTS } from '../src/config/wiki'
 
-const LEGACY_ROOT_TITLES = new Set([
-  'メインページ',
-  'カテゴリ:メインサーバーについて',
+const LEGACY_TITLE_REDIRECTS = new Map<string, string>([
+  ['メインページ', '/'],
+  ['カテゴリ:メインサーバーについて', '/'],
+  ['カテゴリ:その他サーバーについて', '/article/other-server/'],
 ])
 
 const ADMIN_CONTENT_SECURITY_POLICY = [
@@ -35,13 +36,12 @@ export const onRequest: PagesFunction = async ({ next, request }) => {
 
 function getLegacyRedirect(url: URL) {
   const queryEntries = [...url.searchParams]
-  const isLegacyRoot =
-    queryEntries.length === 0 ||
-    (queryEntries.length === 1 &&
-      queryEntries[0][0] === 'title' &&
-      LEGACY_ROOT_TITLES.has(queryEntries[0][1]))
-
-  if (url.pathname === '/index.php' && isLegacyRoot) return '/'
+  if (url.pathname === '/index.php') {
+    if (queryEntries.length === 0) return '/'
+    if (queryEntries.length === 1 && queryEntries[0][0] === 'title') {
+      return LEGACY_TITLE_REDIRECTS.get(queryEntries[0][1]) ?? null
+    }
+  }
 
   let decodedPath: string
 
