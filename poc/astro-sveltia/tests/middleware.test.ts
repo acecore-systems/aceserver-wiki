@@ -32,6 +32,39 @@ describe('Pages middleware', () => {
     )
   })
 
+  it('redirects the former other-server category to its published guide', async () => {
+    const response = await onRequest({
+      request: new Request(
+        `https://asv-wiki.acecore.net/index.php?title=${encodeURIComponent('カテゴリ:その他サーバーについて')}`,
+      ),
+      next: async () => new Response('not reached'),
+    } as Parameters<typeof onRequest>[0])
+
+    expect(response.status).toBe(301)
+    expect(response.headers.get('Location')).toBe(
+      'https://asv-wiki.acecore.net/article/other-server/',
+    )
+  })
+
+  it.each([
+    'title=特別:アカウント作成&returnto=特別:追跡カテゴリ',
+    'title=Aceserver_Wiki:免責事項',
+    'title=カテゴリ:その他サーバーについて&action=edit',
+    'title=カテゴリ:その他サーバーについて&title=メインページ',
+    'title=カテゴリ:その他サーバーについて&returnto=https://example.com/',
+  ])(
+    'keeps retired pages and query variants out of redirects: %s',
+    async (query) => {
+      const response = await onRequest({
+        request: new Request(`https://asv-wiki.acecore.net/index.php?${query}`),
+        next: async () => new Response('not found', { status: 404 }),
+      } as Parameters<typeof onRequest>[0])
+
+      expect(response.status).toBe(404)
+      expect(response.headers.get('Location')).toBeNull()
+    },
+  )
+
   it('applies a stricter policy and no-store to the CMS surface', async () => {
     const response = await onRequest({
       request: new Request('https://asv-wiki.acecore.net/admin/index.html'),
