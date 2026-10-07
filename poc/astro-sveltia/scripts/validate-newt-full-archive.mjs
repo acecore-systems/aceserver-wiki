@@ -20,7 +20,7 @@ const normalizedFullAssetManifestRaw = fullAssetManifestRaw.replace(
 const fullAssetManifest = JSON.parse(normalizedFullAssetManifestRaw)
 assert.equal(
   createHash('sha256').update(normalizedFullAssetManifestRaw).digest('hex'),
-  'da69c5b34a9813317672ff2dfc0756b0b9ac8f4b4865dd5e43e87f2b43f4d4d6',
+  'b0d2b00b274cfe2e9c8faccfcb6835e1b480cdf0b017a399b443e7c3ec156663',
   'The complete Newt asset manifest changed.',
 )
 
@@ -135,18 +135,32 @@ assert.deepEqual(
   'The complete Newt asset archive inventory changed.',
 )
 assert.deepEqual(fullAssetManifest.archive.retention, {
-  status: 'local-backup-verified-pending-user-review',
+  status: 'local-backup-verified-and-organized',
   verifiedOn: '2026-07-29',
   localZipSha256Verified: true,
   localExtractedFolderName: 'Aceserver-Newt完全バックアップ-2026-07-29',
   localExtractedFileCount: 72,
   localExtractedBytes: 57_115_787,
-  plannedRemoteCopy: {
-    status: 'not-created',
-    type: 'private-github-release-asset',
-    repository: 'acecore-systems/aceserver-wiki',
-    tag: 'newt-export-2026-07-29',
-    assetName: 'aceserver-newt-assets-2026-07-29.zip',
+  organizedCopy: {
+    status: 'created-and-verified',
+    createdOn: '2026-07-30',
+    localFolderName: 'Aceserver-Newt画像整理-2026-07-29',
+    layout: 'flat-deduplicated-by-sha256',
+    sourceFileCount: 72,
+    fileCount: 69,
+    duplicateFileCount: 3,
+    bytes: 50_087_418,
+    manifestFileName: '_manifest.json',
+    manifestSha256:
+      'fe3c3532f4c81f8f10a618f004f4482df1f931cf965895840ff9fbd80fc9a741',
+    mappingFileName: '_manifest.csv',
+    mappingSha256:
+      'bb196b2ea9079f34c0709d2a4341356df6a35031337ba60afe230054f78847e2',
+  },
+  remoteCopy: {
+    status: 'not-planned',
+    decisionOn: '2026-07-30',
+    policy: 'local-curation-before-selective-wiki-import',
   },
 })
 assert.equal(
