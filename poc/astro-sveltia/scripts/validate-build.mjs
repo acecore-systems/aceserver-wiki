@@ -43,6 +43,7 @@ const expectedQuickArticlePaths = quickArticles.map(({ slug }) =>
   articlePath(slug),
 )
 const startArticle =
+  articles.find(({ slug }) => slug === 'in') ??
   articles.find(({ slug }) => slug === 'rinen') ??
   quickArticles.at(0) ??
   articles.at(0)
@@ -251,7 +252,8 @@ const startArticleLink = findElements(rootDocument, 'a').find((node) =>
 if (startArticle) {
   assert(
     getAttribute(startArticleLink, 'href') === articlePath(startArticle.slug) &&
-      elementText(startArticleLink).trim() === 'Wikiを読む',
+      elementText(startArticleLink).trim() ===
+        (startArticle.slug === 'in' ? '参加方法を読む' : 'Wikiを読む'),
     'The root start CTA differs from the current published article inventory.',
   )
 } else {

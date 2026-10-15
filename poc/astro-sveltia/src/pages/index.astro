@@ -6,11 +6,7 @@ import {
   ROOT_META_TITLE,
   WIKI_QUICK_ARTICLE_IDS,
 } from '../config/wiki'
-import {
-  getWikiArticles,
-  groupWikiArticles,
-  articlePath,
-} from '../lib/wiki'
+import { getWikiArticles, groupWikiArticles, articlePath } from '../lib/wiki'
 
 const articles = await getWikiArticles()
 const categories = groupWikiArticles(articles)
@@ -19,6 +15,7 @@ const quickArticles = WIKI_QUICK_ARTICLE_IDS.flatMap((id) => {
   return article ? [article] : []
 })
 const startArticle =
+  articles.find((article) => article.id === 'in') ??
   articles.find((article) => article.id === 'rinen') ??
   quickArticles.at(0) ??
   articles.toSorted(({ id: left }, { id: right }) =>
@@ -40,7 +37,7 @@ const startArticle =
         {
           startArticle && (
             <a class="home__start" href={articlePath(startArticle.id)}>
-              Wikiを読む
+              {startArticle.id === 'in' ? '参加方法を読む' : 'Wikiを読む'}
             </a>
           )
         }
@@ -66,27 +63,20 @@ const startArticle =
       {
         categories.map((category, index) => (
           <section
-            class:list={[
-              'home__category',
-              `home__category--${index + 1}`,
-            ]}
+            class:list={['home__category', `home__category--${index + 1}`]}
           >
             <h2>{category.name}</h2>
-            {
-              category.articles.length > 0 ? (
-                <ul>
-                  {category.articles.map((article) => (
-                    <li>
-                      <a href={articlePath(article.id)}>{article.data.title}</a>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p class="home__empty">
-                  現在、公開中の記事はありません。
-                </p>
-              )
-            }
+            {category.articles.length > 0 ? (
+              <ul>
+                {category.articles.map((article) => (
+                  <li>
+                    <a href={articlePath(article.id)}>{article.data.title}</a>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p class="home__empty">現在、公開中の記事はありません。</p>
+            )}
           </section>
         ))
       }
