@@ -454,10 +454,10 @@ async function validateRenderedMigration() {
   assert(
     findElements(rootDocument, 'a').some(
       (node) =>
-        getAttribute(node, 'href') === '/article/rinen/' &&
-        elementText(node).trim() === 'Wikiを読む',
+        getAttribute(node, 'href') === '/article/in/' &&
+        elementText(node).trim() === '参加方法を読む',
     ),
-    'The Nuxt home-page start CTA is missing from the rendered site.',
+    'The joining guide CTA is missing from the current rendered home page.',
   )
 
   const ruleDocument = parseHtml(
