@@ -1,11 +1,12 @@
 ---
-title: "サーバー理念"
-description: "エースサーバーが大切にする「みんなの居場所であること」という理念を説明します。参加者だけでなく、これから参加する人、運営やサポーターも含めた考え方です。"
-category: "イントロダクション"
+title: 'サーバー理念'
+description: 'エースサーバーが大切にする「みんなの居場所であること」という理念を説明します。参加者だけでなく、これから参加する人、運営やサポーターも含めた考え方です。'
+category: 'イントロダクション'
 order: 70
-ogImage: "/uploads/wiki/server-philosophy-og.png"
+ogImage: '/uploads/wiki/server-philosophy-og.png'
 draft: false
 ---
+
 ![エースサーバーのアイコン](/uploads/wiki/server-philosophy-icon.png)
 
 ## みんなの居場所で有ること。
@@ -34,3 +35,8 @@ draft: false
 （利用させていただいているサイトはプロモーションページで紹介しています）
 また、エースサーバーでゲーム配信など行っていただける方を、大募集しています。
 ※申請等は不要ですので、自由にご活用ください！！
+
+## 運営元の企業理念
+
+運営元の株式会社Acecoreは「世界を次のステージへ」を掲げ、本質的でない負担を減らし、「やりたいこと」への挑戦を後押しする社会を目指しています。
+サーバー独自の理念とあわせて、[Acecoreの企業理念・目指す姿](https://acecore.net/about/#corporate-philosophy-heading)をご覧ください。
