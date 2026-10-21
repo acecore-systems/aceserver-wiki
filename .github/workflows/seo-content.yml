@@ -1,0 +1,47 @@
+name: SEO Editorial Draft
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: SEO coordinator run ID
+        required: true
+        type: string
+      job_id:
+        description: CMS SEO editorial job ID
+        required: true
+        type: string
+
+concurrency:
+  group: seo-editorial-${{ inputs.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+  pull-requests: write
+
+jobs:
+  draft:
+    if: ${{ github.ref == 'refs/heads/main' && inputs.job_id != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+      - name: サイト依存関係を再現
+        working-directory: poc/astro-sveltia
+        run: npm ci
+      - name: SEO Draft PRを作成
+        uses: acecore-systems/cms-ai/seo-runner@321e7fdff7172c2172856ef600c1e377fded937d
+        with:
+          run-id: ${{ inputs.run_id }}
+          job-id: ${{ inputs.job_id }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
