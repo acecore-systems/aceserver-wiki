@@ -49,7 +49,7 @@ secretを登録しません。
 
 ### D1 migration
 
-repository rootのNode.js 24.18.0を使用します。
+repository rootのNode.js 24.22.1を使用します。
 
 ```bash
 cd poc/discord-oidc-broker
@@ -228,7 +228,7 @@ Pages PreviewはVectorize bindingを持たず、両flagを`false`に固定しま
 
 ### 初回導入
 
-repository rootのNode.js 24.18.0を使用し、次の順序で進めます。
+repository rootのNode.js 24.22.1を使用し、次の順序で進めます。
 
 ```bash
 cd poc/astro-sveltia
@@ -313,7 +313,7 @@ unit testやWrangler bundle成功だけでは共有Worker、検索service、正�
 できません。一方、通常のPages PreviewへProduction相当の書込み可能bindingは
 渡しません。次の順序で確認します。
 
-1. Node.js 24.18.0で次のローカルgateを通す。
+1. Node.js 24.22.1で次のローカルgateを通す。
 
    ```bash
    cd poc/astro-sveltia

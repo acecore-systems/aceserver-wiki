@@ -29,7 +29,7 @@ offline検証します。
 
 ## ローカル検証
 
-Node.js 24.18.0を使用します。
+Node.js 24.22.1を使用します。
 
 ```bash
 cd poc/astro-sveltia
