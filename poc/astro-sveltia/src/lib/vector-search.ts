@@ -314,9 +314,10 @@ const normalizeRequiredText = (
   field: string,
   url: string,
 ): string => {
-  const normalized = normalizeText(value)
+  // Display metadata must match the article; normalize only searchable text.
+  const normalized = String(value ?? '')
 
-  if (!normalized) {
+  if (!normalized.trim()) {
     throw new Error(`Wiki vector source ${field} is empty: ${url}`)
   }
 

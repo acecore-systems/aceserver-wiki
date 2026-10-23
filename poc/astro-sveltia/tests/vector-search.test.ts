@@ -40,6 +40,22 @@ const createSource = (
 })
 
 describe('Wiki Vectorize corpus', () => {
+  it('全角記号とUnicode表記を表示metadataに保持し検索本文だけを正規化する', async () => {
+    const source = createSource({
+      title: '生活鯖コマンド一覧｜使い方と注意点 ＡＢＣ e\u0301',
+      category: 'カテゴリＡ',
+    })
+    const corpus = await buildWikiVectorCorpus([source])
+    const direct = await chunkWikiVectorSource(source)
+    expect(corpus.chunks).toEqual(direct)
+    for (const chunk of corpus.chunks) {
+      expect(chunk.metadata.title).toBe(source.title)
+      expect(chunk.metadata.category).toBe(source.category)
+      expect(chunk.text).toContain(source.title.normalize('NFKC'))
+      expect(chunk.text.length).toBeLessThanOrEqual(SEARCH_MAXIMUM_CHUNK_CHARACTERS)
+    }
+  })
+
   it('公開Markdownから決定的なWorkers AI embedding corpusを作る', async () => {
     const first = await buildWikiVectorCorpus([
       createSource(),
