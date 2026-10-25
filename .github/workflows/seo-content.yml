@@ -39,7 +39,7 @@ jobs:
         working-directory: poc/astro-sveltia
         run: npm ci
       - name: SEO Draft PRを作成
-        uses: acecore-systems/cms-ai/seo-runner@66dda4c87baa37636c6b96bf07274dd3c7caad76
+        uses: acecore-systems/cms-ai/seo-runner@87cfa4e20650806779e4dfc7a16f828d17f482b6
         with:
           run-id: ${{ inputs.run_id }}
           job-id: ${{ inputs.job_id }}
