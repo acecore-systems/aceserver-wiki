@@ -15,7 +15,7 @@
     "deploy": "wrangler deploy"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "https://pkg.pr.new/@cloudflare/vitest-plugin@7b89dc48f3f4b0dfba5df352bcbdf8e2cbcff30e",
+    "@cloudflare/vitest-plugin": "1.4.8",
     "@types/node": "26.6.5",
     "typescript": "7.0.2",
     "vitest": "5.0.5",
