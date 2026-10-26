@@ -33,26 +33,26 @@
     "pages:dev": "npm run build && wrangler pages dev dist"
   },
   "dependencies": {
-    "@astrojs/markdown-remark": "7.3.3",
-    "astro": "7.4.0",
+    "@astrojs/markdown-remark": "7.3.4",
+    "astro": "7.4.2",
     "graphql": "17.0.2",
-    "jose": "6.2.12",
+    "jose": "6.2.13",
     "mdast-util-from-markdown": "2.1.0",
     "remark-parse": "11.0.0",
     "unified": "11.0.5",
     "yaml": "2.9.1"
   },
   "devDependencies": {
-    "@astrojs/check": "0.9.10",
-    "@cloudflare/vitest-plugin": "https://pkg.pr.new/@cloudflare/vitest-plugin@7b89dc48f3f4b0dfba5df352bcbdf8e2cbcff30e",
+    "@astrojs/check": "0.9.12",
+    "@cloudflare/vitest-plugin": "1.4.8",
     "@types/node": "26.6.5",
     "devalue": "6.0.3",
     "pagefind": "^1.5.2",
     "parse5": "^8.0.1",
     "turndown": "^7.2.4",
     "typescript": "6.0.3",
-    "vitest": "5.0.3",
-    "wrangler": "4.151.0"
+    "vitest": "5.0.5",
+    "wrangler": "4.152.0"
   },
   "overrides": {
     "sharp": "0.35.5",
