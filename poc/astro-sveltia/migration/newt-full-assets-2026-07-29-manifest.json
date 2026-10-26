@@ -17,18 +17,30 @@
     "totalUncompressedBytes": 57115787.0,
     "unsafeEntryCount": 0,
     "retention": {
-      "status": "local-backup-verified-pending-user-review",
+      "status": "local-backup-verified-and-organized",
       "verifiedOn": "2026-07-29",
       "localZipSha256Verified": true,
       "localExtractedFolderName": "Aceserver-Newt完全バックアップ-2026-07-29",
       "localExtractedFileCount": 72,
       "localExtractedBytes": 57115787,
-      "plannedRemoteCopy": {
-        "status": "not-created",
-        "type": "private-github-release-asset",
-        "repository": "acecore-systems/aceserver-wiki",
-        "tag": "newt-export-2026-07-29",
-        "assetName": "aceserver-newt-assets-2026-07-29.zip"
+      "organizedCopy": {
+        "status": "created-and-verified",
+        "createdOn": "2026-07-30",
+        "localFolderName": "Aceserver-Newt画像整理-2026-07-29",
+        "layout": "flat-deduplicated-by-sha256",
+        "sourceFileCount": 72,
+        "fileCount": 69,
+        "duplicateFileCount": 3,
+        "bytes": 50087418,
+        "manifestFileName": "_manifest.json",
+        "manifestSha256": "fe3c3532f4c81f8f10a618f004f4482df1f931cf965895840ff9fbd80fc9a741",
+        "mappingFileName": "_manifest.csv",
+        "mappingSha256": "bb196b2ea9079f34c0709d2a4341356df6a35031337ba60afe230054f78847e2"
+      },
+      "remoteCopy": {
+        "status": "not-planned",
+        "decisionOn": "2026-07-30",
+        "policy": "local-curation-before-selective-wiki-import"
       }
     }
   },

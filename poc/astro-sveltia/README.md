@@ -243,8 +243,11 @@ manifestへ保存し、7固有画像すべてを公開path外のmigration archiv
 うち1件は既存公開assetとの完全一致もhash固定しました。本文へは公開前の
 個別確認まで画像を追加しません。Newtメディアライブラリ全72ファイルも一括ZIPで
 取得し、ローカルZIPと展開済み72ファイルを検証しました。ZIPと各ファイルの
-SHA-256はrepositoryへ保存し、private GitHub Releaseへの遠隔保管はユーザー確認後に
-行います。
+SHA-256はrepositoryへ保存しています。検証済み原本は維持したまま、完全重複3件を
+まとめた69固有画像を`Aceserver-Newt画像整理-2026-07-29`の直下へコピーし、
+元UUID・SHA-256・記事用途・現Wiki保全先の対応表もローカルへ保存しました。
+GitHub Releaseは作成せず、画像はローカルで内容・現行性・権利を確認してから
+必要なものだけ記事単位で新Wikiへ反映します。
 公開15件は退役前snapshotとの本文・meta・category履歴照合も固定し、全32件の
 ID/slug/本文hash衝突0と表示タイトル重複2群を監査しています。詳細、明示
 slug/category mapping、Newt管理画面のモデル・view証跡は
@@ -295,8 +298,8 @@ Vectorize bindingを登録しません。
 - Newt全32記事のAPI原本を保存し、未公開17件を`draft: true` Markdownへ移行済み
 - 下書き画像8参照・7固有原本は自己完結archiveへ保存し、既存asset一致1件も記録済み
 - Newtメディアライブラリ全72ファイルはローカルZIPと展開済みフォルダを検証し、
-  ZIPと各ファイルのhashをrepositoryへ記録済み。private GitHub Releaseへの
-  遠隔保管とNewt削除はユーザー確認待ち
+  ZIPと各ファイルのhashをrepositoryへ記録済み。69固有画像のflat整理用コピーも
+  ローカルで検証済み。GitHub Releaseは作成せず、Newt削除はローカル選別後に判断
 
 deployment ID、commit SHA、監査結果、復旧点は
 [`CUTOVER-2026-07-27.md`](./CUTOVER-2026-07-27.md)に記録しています。
