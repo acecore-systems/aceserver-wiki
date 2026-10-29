@@ -2,6 +2,8 @@
 
 ## 概要
 
+記事の編集と共通執筆ガイドの扱いは [AGENTS.md](AGENTS.md) を確認してください。
+
 エースサーバー公式Wikiのsource repositoryです。公開サイトはAstroで生成し、
 記事の正本はrepository内のMarkdownです。編集画面はSveltia CMS、ログインは
 AcecoreIDとCloudflare Access、保存はPages Functionsのcontent gatewayを使用します。
