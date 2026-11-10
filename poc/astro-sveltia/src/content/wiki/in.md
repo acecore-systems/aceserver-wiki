@@ -11,7 +11,7 @@ draft: false
 1. [公式Discord](https://discord.gg/acsv)に参加します。
 2. [コミュニティルール](/article/community-rules/)と[Discordルール](/article/discord-rule/)を読み、[ルール認証](https://discord.com/channels/737538781024092170/1386851151428980856)で🇦のリアクションを**一度だけ**押します。
 3. [自己紹介の部屋](https://discord.com/channels/737538781024092170/773171619031285781)にある現在のテンプレートに沿って自己紹介します。
-4. 認証後に見える[サーバーアドレス](https://discord.com/channels/737538781024092170/1437221734427398165)で接続先を確認し、ロビーに入ります。アドレスは公開ページには転載していません。
+4. 最新の接続先は、Discordで認証後に見える[サーバーアドレス](https://discord.com/channels/737538781024092170/1437221734427398165)で確認し、ロビーに入ります。
 5. 生活鯖・シーズン鯖に入るには、[Discord連携](/article/how-to-discordsrv-link/)を行います。
 6. 遊ぶサーバーに応じて[ルール一覧](/article/rules-index/)を確認してください。
 
