@@ -34,7 +34,7 @@
     '    <label>参考画像<input class="cms-ai-image-input" type="file" accept="image/png,image/jpeg,image/webp" multiple aria-describedby="cms-ai-image-hint"></label>',
     '    <div class="cms-ai-attachments" aria-label="送信する画像"></div>',
     '    <p class="cms-ai-form__hint" id="cms-ai-image-hint">PNG・JPEG・WebP、4枚まで／各2MB。画像の貼り付けもできます。添付は公開されません。</p>',
-    '    <div class="cms-ai-form__actions"><label>考える深さ<select name="reasoningEffort" required><option value="medium" selected>標準</option></select></label><button class="cms-ai-form__submit" type="submit">送信</button></div>',
+    '    <div class="cms-ai-form__actions"><label>考える深さ<select name="reasoningEffort" required><option value="low">速い</option><option value="medium" selected>標準</option><option value="high">深い</option><option value="max">最大</option></select></label><button class="cms-ai-form__submit" type="submit">送信</button></div>',
     '    <p class="cms-ai-capability"></p>',
     '    <p class="cms-ai-form__status" role="status"></p>',
     '  </form>',
@@ -226,9 +226,10 @@
   }
 
   function setConversation(next) {
+    if (conversation?.id !== next.id)
+      effort.value = next.reasoningEffort || 'medium'
     conversation = next
     rememberConversation(next.id)
-    effort.value = 'medium'
     renderConversation()
     renderConversationList()
     renderComposer()
@@ -241,7 +242,7 @@
     conversation = null
     forgetConversation()
     instruction.value = ''
-    effort.value = 'medium'
+    effort.value = session?.capabilities?.edit ? 'medium' : 'low'
     renderConversation()
     renderConversationList()
     renderComposer()
