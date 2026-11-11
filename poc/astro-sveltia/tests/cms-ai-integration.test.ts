@@ -13,10 +13,14 @@ describe('CMS AI integration', () => {
     expect(client).toMatch(/\/admin\/api\/ai/)
     expect(client).toMatch(/sessionEndpoint/)
     expect(client).toMatch(/reasoningEffort/)
-    for (const effort of ['low', 'medium', 'high', 'max'])
+    for (const effort of ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'])
       expect(client).toContain(`<option value="${effort}"`)
-    expect(client).toMatch(/if \(conversation\?\.id !== next\.id\)\s+effort\.value = next\.reasoningEffort/)
-    expect(client).toMatch(/session\?\.capabilities\?\.edit \? 'medium' : 'low'/)
+    expect(client).toMatch(
+      /if \(conversation\?\.id !== next\.id\)\s+effort\.value = next\.reasoningEffort/,
+    )
+    expect(client).toMatch(
+      /session\?\.capabilities\?\.edit \? 'medium' : 'low'/,
+    )
     expect(client).toMatch(/cms-ai-image-input/)
     expect(client).toMatch(/revokeObjectURL/)
     expect(client).toMatch(/\/messages/)
