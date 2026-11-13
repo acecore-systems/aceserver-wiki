@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "0.9.12",
-    "@cloudflare/vitest-plugin": "1.6.0",
+    "@cloudflare/vitest-plugin": "1.6.1",
     "@types/node": "26.6.6",
     "devalue": "6.0.3",
     "pagefind": "^1.6.0",
