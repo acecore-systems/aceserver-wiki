@@ -54,6 +54,18 @@ test('15記事のcorpusを検証し、dry-runはcredentialを要求しない', a
   assert.equal(result.vectors, 15)
 })
 
+test('検索本文を含むmetadataのUTF-8上限超過を拒否する', () => {
+  const corpus = createCorpus()
+  const [chunk] = corpus.chunks
+  chunk.metadata.extra = '文'.repeat(3000)
+  chunk.text = '本'.repeat(600)
+
+  assert.throws(
+    () => validateCorpus(corpus),
+    /Vectorize metadata with content exceeds 10240 UTF-8 bytes/u,
+  )
+})
+
 test('同期先indexをWiki productionだけに制限する', async () => {
   const corpusFile = await writeCorpus(createCorpus())
 
@@ -154,6 +166,10 @@ test('既存indexとの差分だけをembedding・upsert・deleteする', async 
       const vector = JSON.parse(ndjson.trim())
       assert.equal(vector.id, newChunk.id)
       assert.equal(vector.values.length, 1024)
+      assert.deepEqual(vector.metadata, {
+        ...newChunk.metadata,
+        content: newChunk.text,
+      })
       existingIds = [...existingIds, vector.id]
       return cloudflareResponse({ mutationId: 'mutation-upsert' })
     }
