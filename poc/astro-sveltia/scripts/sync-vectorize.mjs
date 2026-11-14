@@ -26,6 +26,7 @@ const MIN_SOURCE_COUNT = 15
 const MIN_VECTOR_COUNT = 15
 const MAX_VECTOR_COUNT = 500
 const MAX_CLOUDFLARE_RESPONSE_BYTES = 4_000_000
+const MAX_VECTOR_METADATA_BYTES = 10 * 1024
 const MANAGED_VECTOR_ID_PATTERN = /^v1-[0-9a-f]{48}$/u
 const CORPUS_VERSION_PATTERN = /^[0-9a-f]{20}$/u
 const PRODUCTION_INDEX_NAME = 'aceserver-wiki-search-bge-m3-1024-production-v1'
@@ -136,7 +137,7 @@ export async function syncVectorize({
       id: chunk.id,
       values: embeddings[indexInBatch],
       namespace: chunk.namespace,
-      metadata: chunk.metadata,
+      metadata: vectorMetadata(chunk),
     }))
 
     for (const vectorBatch of batches(vectors, UPSERT_BATCH_SIZE)) {
@@ -249,6 +250,14 @@ export function validateCorpus(corpus) {
     ) {
       throw new Error('Corpus contains an invalid chunk.')
     }
+    if (
+      Buffer.byteLength(JSON.stringify(vectorMetadata(chunk)), 'utf8') >
+      MAX_VECTOR_METADATA_BYTES
+    ) {
+      throw new Error(
+        `Vectorize metadata with content exceeds ${MAX_VECTOR_METADATA_BYTES} UTF-8 bytes for chunk ${chunk.id}.`,
+      )
+    }
     if (ids.has(chunk.id)) {
       throw new Error(`Duplicate vector id: ${chunk.id}`)
     }
@@ -259,6 +268,10 @@ export function validateCorpus(corpus) {
   if (urls.size !== corpus.sourceCount) {
     throw new Error('Corpus sourceCount must match the unique article URLs.')
   }
+}
+
+function vectorMetadata({ metadata, text }) {
+  return { ...metadata, content: text }
 }
 
 export function extractEmbeddingData(payload, expectedCount) {
