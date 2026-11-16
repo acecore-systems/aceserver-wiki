@@ -11,7 +11,8 @@ Markdownへ固定しました。
 - 未公開記事の画像参照8件（固有7件）: 7画像すべてを公開path外のmigration
   archiveへ保存し、うち1画像は既存公開assetとの完全一致も記録
 - Newtメディアライブラリ全体: 72ファイルを一括ZIPで取得し、ZIPと全ファイルの
-  SHA-256を固定。ローカルZIPと展開済みフォルダを検証し、遠隔保管は確認待ち
+  SHA-256を固定。ローカル原本を検証し、69固有画像のflat整理用コピーも作成済み
+- GitHub Releaseは作成せず、整理用コピーから必要な画像だけ新Wikiへ選択反映
 - 下書き画像を`public/uploads/wiki`へ追加せず、本文は公開前reviewまで画像非表示
 
 移行manifestは
@@ -190,13 +191,16 @@ archiveは証跡保全用であり、Astroの公開静的ファイルではあ�
 - 危険な絶対path・`..` entry: 0
 - 現在の保持状態: ローカルZIPと
   `Aceserver-Newt完全バックアップ-2026-07-29`展開済みフォルダを検証済み
-- 遠隔保持予定: private repository
-  `acecore-systems/aceserver-wiki`のGitHub Release
-  `newt-export-2026-07-29`（ユーザー確認後。現時点では未作成）
+- 整理用コピー: `Aceserver-Newt画像整理-2026-07-29`
+  （69固有画像、`50087418` bytes、完全重複3件をSHA-256で統合）
+- 整理用コピーでは画像をサブフォルダなしで直下へ配置し、元UUID・SHA-256・
+  Newt記事用途・現Wiki保全先を`_manifest.csv`へ記録
+- GitHub Release: 作成しない
 
 ZIP本体を通常のGit履歴へ入れずcloneとCloudflare Pages buildを肥大化させないため、
-ローカルで確認後、必要に応じてRelease assetとして遠隔保持します。ファイル名、
-byte数、各SHA-256、現在の保持状態と遠隔保持予定は
+検証済み原本はローカルに維持します。整理用コピーで画像の内容・現行性・権利を
+確認し、必要なものだけWeb向けファイル名へ変更して記事単位で新Wikiへ反映します。
+ファイル名、byte数、各SHA-256、現在の保持状態とローカル整理方針は
 [`migration/newt-full-assets-2026-07-29-manifest.json`](./migration/newt-full-assets-2026-07-29-manifest.json)
 へ保存しています。manifestは恒久CIで、Newt管理画像と本文参照画像の既知対応も
 検証します。
@@ -206,7 +210,17 @@ byte数、各SHA-256、現在の保持状態と遠隔保持予定は
 ```powershell
 .\scripts\inventory-newt-assets.ps1 `
   -ArchivePath .\aceserver-newt-assets-2026-07-29.zip `
-  -OutputPath .\migration\newt-full-assets-2026-07-29-manifest.json
+  -OutputPath .\migration\newt-full-assets-2026-07-29-manifest.json `
+  -OrganizedPath <Aceserver-Newt画像整理-2026-07-29へのpath>
+```
+
+検証済みの展開フォルダを変更せず、画像を重複排除して別フォルダの直下へ整理する
+場合は次を実行します。出力先が既に存在する場合は上書きせず停止します。
+
+```powershell
+.\scripts\organize-newt-assets.ps1 `
+  -SourcePath <Aceserver-Newt完全バックアップ-2026-07-29へのpath> `
+  -OutputPath <Aceserver-Newt画像整理-2026-07-29へのpath>
 ```
 
 ## 監査の分離
@@ -250,8 +264,9 @@ npm run test:migration:acceptance
 記事本文・カテゴリ・リンクのAPI原本とMarkdown移行はrepository内で復元できます。
 下書き画像も7固有原本をarchiveでhash固定し、うち1件は既存assetとの完全一致も
 記録しました。さらにメディアライブラリ全72ファイルの一括ZIPと展開済みフォルダを
-ローカルで検証し、ZIPと全ファイルのhashをrepositoryで固定しました。遠隔保管は
-ユーザー確認待ちのため、Newt削除はまだ実行しません。公開15件は退役前snapshotとの
+ローカルで検証し、ZIPと全ファイルのhashをrepositoryで固定しました。69固有画像の
+flat整理用コピーと対応表も検証済みです。GitHub Releaseは作成せず、ローカルでの
+画像選別が終わるまではNewtを削除しません。公開15件は退役前snapshotとの
 meta/category履歴照合も完了しています。
 ただし、下書き17件の内容確認と2件の追加security reviewは公開可否の判断として
 別に残ります。
