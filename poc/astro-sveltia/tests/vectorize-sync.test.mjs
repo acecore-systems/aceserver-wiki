@@ -415,6 +415,33 @@ test('Voyage候補だけへ文書embeddingを同期し契約とキー欠落を�
   assert.equal(calls, 1)
 })
 
+test('Voyage応答が不正なら候補索引を変更しない', async () => {
+  const corpus = createCorpus()
+  const corpusFile = await writeCorpus(corpus)
+  const indexName = 'aceserver-wiki-search-voyage-4-lite-1024-production-v1'
+  const existing = corpus.chunks.slice(0, -1).map(({ id }) => id)
+  for (const payload of [
+    { model: 'other', data: [{ index: 0, embedding }] },
+    { model: 'voyage-4-lite', data: [] },
+    { model: 'voyage-4-lite', data: [{ index: 1, embedding }] },
+    { model: 'voyage-4-lite', data: [{ index: 0, embedding: [1] }] },
+    { model: 'voyage-4-lite', data: [{ index: 0, embedding: [...embedding.slice(1), null] }] },
+  ]) {
+    let mutated = false
+    await assert.rejects(syncVectorize({ accountId: 'account', apiToken: 'token', indexName, confirmProduction: indexName, corpusFile, voyageApiKey: 'synthetic-key', waitForMutations: false, logger: silentLogger,
+      fetchImpl: async (input) => {
+        const url = String(input)
+        if (url.endsWith(`/vectorize/v2/indexes/${indexName}`)) return cloudflareResponse({ config: { dimensions: 1024, metric: 'cosine' } })
+        if (url.includes('/list?')) return cloudflareResponse({ vectors: existing.map((id) => ({ id })), count: existing.length, totalCount: existing.length, isTruncated: false })
+        if (url === 'https://ai.mongodb.com/v1/embeddings') return Response.json(payload)
+        mutated = true
+        throw new Error('unexpected mutation')
+      },
+    }))
+    assert.equal(mutated, false)
+  }
+})
+
 function createCorpus() {
   const chunks = Array.from({ length: 15 }, (_, index) => ({
     id: managedId(index),

@@ -31,6 +31,8 @@ export default defineConfig({
           TEST_D1_MIGRATIONS: cmsStateMigrations,
         },
         serviceBindings: {
+          VOYAGE_EMBEDDER: async () =>
+            Response.json({ error: 'unavailable' }, { status: 503 }),
           CMS_DISCORD_MEMBERSHIP: async () =>
             Response.json({ ok: false }, { status: 503 }),
           CMS_AI: async () =>

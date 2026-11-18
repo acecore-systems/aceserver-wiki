@@ -128,7 +128,7 @@ test('Preview has no Vectorize binding while converged production search remains
 
   assert.match(
     config,
-    /"index_name": "aceserver-wiki-search-bge-m3-1024-production-v1"/u,
+    /"index_name": "aceserver-wiki-search-voyage-4-lite-1024-production-v1"/u,
   )
   assert.doesNotMatch(config, /aceserver-wiki-search-bge-m3-1024-preview/u)
   assert.equal(config.match(/"SEARCH_ENABLED": "false"/gu)?.length, 1)

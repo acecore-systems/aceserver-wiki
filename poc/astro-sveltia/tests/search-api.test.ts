@@ -61,6 +61,41 @@ describe('semantic search API', () => {
     })
   })
 
+  it('Voyage queryを専用bindingへ送りBGEを呼ばない', async () => {
+    const onAiRun = vi.fn()
+    const fetch = vi.fn(async (url: string, init: RequestInit) => {
+      expect(url).toBe('https://voyage-embeddings.internal/v1/embeddings')
+      expect(init.method).toBe('POST')
+      expect(JSON.parse(String(init.body))).toEqual({ model: 'voyage-4-lite', input: ['サーバー検索'], input_type: 'query', output_dimension: 1024, output_dtype: 'float', truncation: false })
+      return Response.json({ model: 'voyage-4-lite', data: [{ index: 0, embedding: QUERY_VECTOR }] })
+    })
+    const env = { ...createEnv({ onAiRun }), SEARCH_EMBEDDING_MODEL: 'voyage-4-lite', VOYAGE_EMBEDDER: { fetch } }
+    const response = await invoke(searchRequest({ query: 'サーバー検索' }), env)
+    expect(response.status).toBe(200)
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(onAiRun).not.toHaveBeenCalled()
+  })
+
+  it('Voyage binding欠落と不正な応答はfail closedする', async () => {
+    const missing = await invoke(searchRequest({ query: '検索' }), { ...createEnv(), SEARCH_EMBEDDING_MODEL: 'voyage-4-lite' })
+    expect(missing.status).toBe(503)
+    const invalidPayloads = [
+      { model: 'other', data: [{ index: 0, embedding: QUERY_VECTOR }] },
+      { model: 'voyage-4-lite', data: [] },
+      { model: 'voyage-4-lite', data: [{ index: 1, embedding: QUERY_VECTOR }] },
+      { model: 'voyage-4-lite', data: [{ index: 0, embedding: [1] }] },
+      { model: 'voyage-4-lite', data: [{ index: 0, embedding: [...QUERY_VECTOR.slice(1), null] }] },
+    ]
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    try {
+      for (const payload of invalidPayloads) {
+        const env = { ...createEnv(), SEARCH_EMBEDDING_MODEL: 'voyage-4-lite', VOYAGE_EMBEDDER: { async fetch() { return Response.json(payload) } } }
+        expect((await invoke(searchRequest({ query: '秘密の検索' }), env)).status).toBe(502)
+      }
+      expect(JSON.stringify(errors.mock.calls)).not.toContain('秘密の検索')
+    } finally { errors.mockRestore() }
+  })
+
   it('rejects requests without a matching Origin before Workers AI runs', async () => {
     const onAiRun = vi.fn()
     const request = new Request('https://asv-wiki.acecore.net/api/search', {
