@@ -200,13 +200,13 @@ asset側のETagを除去します。CSS、画像、JSON等の静的assetはこ�
 ## Vectorize検索
 
 通常の`/search-index.json`による文字列検索を常に残し、その結果を先に表示します。
-Vectorizeは同じ検索画面へ意味の近い記事を補う用途に限定し、Workers AI、
+Vectorizeは同じ検索画面へ意味の近い記事を補う用途に限定し、Voyage埋め込み、
 Vectorize、D1のいずれかが失敗・timeout・rate limitになった場合は、文字列検索
 だけで応答します。
 
-- embedding model: Cloudflare Workers AI `@cf/baai/bge-m3`
+- embedding model: `voyage-4-lite`（query / float / 1024次元）
 - index: 1024 dimensions / cosine
-- production index: `aceserver-wiki-search-bge-m3-1024-production-v1`
+- production index: `aceserver-wiki-search-voyage-4-lite-1024-production-v1`
 - namespace: `ja`
 - corpus: 公開対象Markdown 15記事からbuild時に生成する
   `dist/vector-corpus.json`
@@ -220,13 +220,13 @@ corpusのchunk IDは本文・記事URL・見出しから決定的に生成しま
 現行indexとの差分だけをupsertし、削除はupsert後に行います。管理外ID、index名の
 allowlist外、1024/cosine以外、20%を超える削除を既定で拒否します。
 Vectorizeのdimensionsは作成後に変更できないため、旧OpenAI 1536次元indexは
-再利用せずrollback用に保持します。BGE-M3 indexは全量同期後にID集合の完全一致と
+再利用せずrollback用に保持します。Voyage indexは全量同期後にID集合の完全一致と
 query canaryを確認してからProduction bindingへ切り替えます。
 Productionは`SEARCH_ENABLED=true`と`ALPHA_CHAT_ENABLED=true`を維持します。
 Pages PreviewはVectorize bindingを持たず、両flagを`false`に固定します。
 旧indexはproductionの実API確認とrollback期間が終わるまで残します。
 
-### 初回導入
+### 旧BGE索引の初回導入記録
 
 repository rootのNode.js 24.22.1を使用し、次の順序で進めます。
 
@@ -257,8 +257,8 @@ Cloudflare tokenは対象accountのVectorize WriteとWorkers AI実行に必要�
 付与します。workflowは任意PRのcodeへsecretを渡さず、
 protected `main`の同期scriptだけを実行します。
 既存のPreview用Environment、token、index、Pages secretはこの変更では削除しませんが、
-workflow、binding、移行gateからは参照しません。Production runtimeのembeddingは
-`AI` bindingだけを使い、外部provider fallbackを設けません。
+workflow、binding、移行gateからは参照しません。現在のProduction runtimeは
+`VOYAGE_EMBEDDER` service bindingから共有Workerの`VoyageEmbedding`を呼びます。
 
 1. Productionの`SEARCH_ENABLED=true`と`ALPHA_CHAT_ENABLED=true`、
    Previewの両flagが`false`でVectorize bindingがないことを確認する。
@@ -274,6 +274,17 @@ Previewは有効化PR後も`SEARCH_ENABLED=false`と`ALPHA_CHAT_ENABLED=false`�
 `SEARCH_ENABLED=false`の間も文字列検索は動作します。緊急停止はProductionの値を
 `false`へ戻してGitHubへpushし、Pagesの`github:push` deploymentを通します。
 Direct Uploadや手動uploadを復旧経路にしません。
+
+### Voyage索引への切替と継続同期
+
+`cloudflare-wiki-search-production` Environmentに`VOYAGE_API_KEY`を登録し、
+`WIKI_VOYAGE_SYNC_ENABLED=true`を設定した場合だけ、公開commitとcorpusが一致する
+Voyage候補索引へ同期します。候補索引は事前に作成し、1024次元/cosine・件数・ID・
+query canaryと検索品質を確認してからPagesの切替を反映します。
+共有検索などがBGE索引を参照する間、BGE同期は既定で継続します。依存がなくなった後は
+`WIKI_BGE_SYNC_ENABLED=false`で停止できます。候補同期前後の公開identityを確認し、
+既存の削除ガードは両索引に適用します。問題時はPagesの設定変更をrevertして
+BGEモデル・索引へ一緒に戻し、Git連携deploymentと検索結果を確認します。
 
 ## アルファくん WIKI案内チャット
 

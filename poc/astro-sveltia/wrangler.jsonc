@@ -7,7 +7,7 @@
   "vectorize": [
     {
       "binding": "SEARCH_INDEX",
-      "index_name": "aceserver-wiki-search-bge-m3-1024-production-v1",
+      "index_name": "aceserver-wiki-search-voyage-4-lite-1024-production-v1",
     },
   ],
   "ai": {
@@ -22,6 +22,11 @@
     },
   ],
   "services": [
+    {
+      "binding": "VOYAGE_EMBEDDER",
+      "service": "acecore-chat-worker",
+      "entrypoint": "VoyageEmbedding",
+    },
     {
       "binding": "CMS_DISCORD_MEMBERSHIP",
       "service": "aceserver-wiki-discord-membership",
@@ -51,7 +56,7 @@
     "SEARCH_ENABLED": "true",
     "SEARCH_MIN_SCORE": "0.40",
     "ALPHA_CHAT_ENABLED": "true",
-    "SEARCH_EMBEDDING_MODEL": "@cf/baai/bge-m3",
+    "SEARCH_EMBEDDING_MODEL": "voyage-4-lite",
     "SEARCH_EMBEDDING_DIMENSIONS": "1024",
   },
   "env": {
