@@ -75,7 +75,7 @@ test('Vectorize credential is used only by the protected-main production sync', 
   assert.equal(workflow.match(/^ {10}fetch-depth: 0$/gmu)?.length, 1)
   assert.equal(
     workflow.match(/^ {10}persist-credentials: false$/gmu)?.length,
-    2,
+    3,
   )
   assert.doesNotMatch(workflow, /persist-credentials: true/u)
   assert.match(
@@ -92,7 +92,7 @@ test('Vectorize credential is used only by the protected-main production sync', 
   assert.doesNotMatch(workflow, /CLOUDFLARE_WIKI_SEARCH_PREVIEW_API_TOKEN/u)
   assert.equal(
     workflow.match(/CLOUDFLARE_WIKI_SEARCH_PRODUCTION_API_TOKEN/gmu)?.length,
-    2,
+    3,
   )
   assert.doesNotMatch(workflow, /secrets\.OPENAI_API_KEY/u)
   assert.doesNotMatch(workflow, /aceserver-wiki-search-bge-m3-1024-preview/u)
@@ -135,4 +135,30 @@ test('Preview has no Vectorize binding while converged production search remains
   assert.equal(config.match(/"SEARCH_ENABLED": "true"/gu)?.length, 1)
   assert.equal(config.match(/"ALPHA_CHAT_ENABLED": "false"/gu)?.length, 1)
   assert.equal(config.match(/"ALPHA_CHAT_ENABLED": "true"/gu)?.length, 1)
+})
+
+
+test('Voyage同期は明示的に有効化しBGE同期は別に停止できる', async () => {
+  const workflow = await readFile(vectorizeWorkflowUrl, 'utf8')
+  assert.match(workflow, /name: Sync production Vectorize index\s+if: vars\.WIKI_BGE_SYNC_ENABLED != 'false'/u)
+  assert.match(workflow, /name: Sync Voyage candidate Vectorize index\s+if: vars\.WIKI_VOYAGE_SYNC_ENABLED == 'true'/u)
+  assert.match(workflow, /VOYAGE_API_KEY: \$\{\{ secrets\.VOYAGE_API_KEY \}\}/u)
+  assert.match(workflow, /--confirm-production aceserver-wiki-search-voyage-4-lite-1024-production-v1/u)
+  assert.ok(workflow.indexOf('Confirm Voyage corpus is still public') < workflow.indexOf('Sync Voyage candidate Vectorize index'))
+  assert.ok(workflow.indexOf('Sync Voyage candidate Vectorize index') < workflow.indexOf('Confirm synced Voyage corpus is still public'))
+})
+
+test('手動Voyage probeはmain限定で同期や索引変更を起動しない', async () => {
+  const workflow = await readFile(new URL('../.github/workflows/sync-vectorize.yml', import.meta.url), 'utf8')
+  const sync = workflow.slice(workflow.indexOf('  sync-production:'), workflow.indexOf('  probe-voyage-document:'))
+  const probe = workflow.slice(workflow.indexOf('  probe-voyage-document:'))
+  assert.match(workflow, /voyage_probe:[\s\S]*?type: boolean\s+default: false/u)
+  assert.match(sync, /!\(github\.event_name == 'workflow_dispatch' && inputs\.voyage_probe == true\)/u)
+  assert.match(probe, /github\.ref == 'refs\/heads\/main'[\s\S]*?github\.event_name == 'workflow_dispatch'[\s\S]*?inputs\.voyage_probe == true/u)
+  assert.match(probe, /name: cloudflare-wiki-search-production/u)
+  assert.match(probe, /vars\.WIKI_VOYAGE_SYNC_ENABLED/u)
+  assert.match(probe, /secrets\.VOYAGE_API_KEY/u)
+  assert.match(probe, /\$VOYAGE_ENABLED.*!=.*true/u)
+  assert.match(probe, /\$\{VOYAGE_API_KEY:-\}/u)
+  assert.doesNotMatch(probe, /CLOUDFLARE_API_TOKEN|sync-vectorize\.mjs|sync-portal-vectorize\.mjs/u)
 })
