@@ -383,6 +383,37 @@ test('Vectorize一覧の欠損や不整合をmutation前に拒否する', async 
   }
 })
 
+test('Voyage候補だけへ文書embeddingを同期し契約とキー欠落を検証する', async () => {
+  const corpus = createCorpus()
+  const corpusFile = await writeCorpus(corpus)
+  const indexName = 'aceserver-wiki-search-voyage-4-lite-1024-production-v1'
+  const existing = corpus.chunks.slice(0, -1).map(({ id }) => id)
+  let calls = 0
+  const fetchImpl = async (input, init = {}) => {
+    const url = String(input)
+    if (url.endsWith(`/vectorize/v2/indexes/${indexName}`)) return cloudflareResponse({ config: { dimensions: 1024, metric: 'cosine' } })
+    if (url.includes('/list?')) return cloudflareResponse({ vectors: existing.map((id) => ({ id })), count: existing.length, totalCount: existing.length, isTruncated: false })
+    if (url === 'https://ai.mongodb.com/v1/embeddings') {
+      calls += 1
+      assert.equal(new Headers(init.headers).get('Authorization'), 'Bearer synthetic-key')
+      assert.deepEqual(JSON.parse(init.body), { model: 'voyage-4-lite', input: [corpus.chunks.at(-1).text], input_type: 'document', output_dimension: 1024, output_dtype: 'float', truncation: false })
+      return Response.json({ model: 'voyage-4-lite', data: [{ index: 0, embedding }] })
+    }
+    if (url.endsWith('/upsert')) {
+      const vector = JSON.parse((await init.body.get('vectors').text()).trim())
+      assert.equal(vector.id, corpus.chunks.at(-1).id)
+      assert.equal(vector.namespace, 'ja')
+      assert.deepEqual(vector.metadata, { ...corpus.chunks.at(-1).metadata, content: corpus.chunks.at(-1).text })
+      return cloudflareResponse({ mutationId: 'test-mutation' })
+    }
+    throw new Error('unexpected request')
+  }
+  await assert.rejects(syncVectorize({ accountId: 'account', apiToken: 'token', indexName, confirmProduction: indexName, corpusFile, voyageApiKey: '', fetchImpl: () => { assert.fail('network must not run') }, logger: silentLogger }), /VOYAGE_API_KEY/u)
+  const result = await syncVectorize({ accountId: 'account', apiToken: 'token', indexName, confirmProduction: indexName, corpusFile, voyageApiKey: 'synthetic-key', fetchImpl, waitForMutations: false, logger: silentLogger })
+  assert.equal(result.upserted, 1)
+  assert.equal(calls, 1)
+})
+
 function createCorpus() {
   const chunks = Array.from({ length: 15 }, (_, index) => ({
     id: managedId(index),

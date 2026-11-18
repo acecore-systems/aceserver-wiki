@@ -30,7 +30,8 @@ const MAX_VECTOR_METADATA_BYTES = 10 * 1024
 const MANAGED_VECTOR_ID_PATTERN = /^v1-[0-9a-f]{48}$/u
 const CORPUS_VERSION_PATTERN = /^[0-9a-f]{20}$/u
 const PRODUCTION_INDEX_NAME = 'aceserver-wiki-search-bge-m3-1024-production-v1'
-const ALLOWED_INDEX_NAMES = new Set([PRODUCTION_INDEX_NAME])
+const VOYAGE_INDEX_NAME = 'aceserver-wiki-search-voyage-4-lite-1024-production-v1'
+const ALLOWED_INDEX_NAMES = new Set([PRODUCTION_INDEX_NAME, VOYAGE_INDEX_NAME])
 
 class CloudflareApiError extends Error {
   constructor(message, status) {
@@ -43,6 +44,7 @@ class CloudflareApiError extends Error {
 export async function syncVectorize({
   accountId = process.env.CLOUDFLARE_ACCOUNT_ID,
   apiToken = process.env.CLOUDFLARE_API_TOKEN,
+  voyageApiKey = process.env.VOYAGE_API_KEY,
   indexName = process.env.VECTORIZE_INDEX_NAME,
   confirmProduction = process.env.VECTORIZE_CONFIRM_PRODUCTION,
   corpusFile = DEFAULT_CORPUS_FILE,
@@ -72,10 +74,13 @@ export async function syncVectorize({
     return result
   }
 
-  if (confirmProduction !== PRODUCTION_INDEX_NAME) {
+  if (confirmProduction !== indexName) {
     throw new Error(
-      `Production sync requires --confirm-production ${PRODUCTION_INDEX_NAME}.`,
+      `Production sync requires --confirm-production ${indexName}.`,
     )
+  }
+  if (indexName === VOYAGE_INDEX_NAME && !voyageApiKey?.trim()) {
+    throw new Error('VOYAGE_API_KEY is required for Voyage sync.')
   }
 
   if (!accountId || !apiToken) {
@@ -124,10 +129,13 @@ export async function syncVectorize({
     }),
   )
 
+  const embed = (chunks) => indexName === VOYAGE_INDEX_NAME
+    ? createVoyageEmbeddings(chunks, { apiKey: voyageApiKey, fetchImpl, requestTimeoutMs })
+    : createEmbeddings(client, chunks)
   const mutationIds = []
   let queryCanary = null
   for (const chunkBatch of batches(chunksToUpsert, EMBEDDING_BATCH_SIZE)) {
-    const embeddings = await createEmbeddings(client, chunkBatch)
+    const embeddings = await embed(chunkBatch)
     queryCanary ??= {
       id: chunkBatch[0].id,
       namespace: chunkBatch[0].namespace,
@@ -166,7 +174,7 @@ export async function syncVectorize({
 
     if (!queryCanary) {
       const canaryChunk = corpus.chunks[0]
-      const [values] = await createEmbeddings(client, [canaryChunk])
+      const [values] = await embed([canaryChunk])
       queryCanary = {
         id: canaryChunk.id,
         namespace: canaryChunk.namespace,
@@ -487,6 +495,9 @@ async function ensureIndex(client, indexName) {
     }
   }
 
+  if (indexName === VOYAGE_INDEX_NAME) {
+    throw new Error('Voyage candidate index must already exist.')
+  }
   const payload = await client.request('/vectorize/v2/indexes', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -668,6 +679,28 @@ async function createEmbeddings(client, chunks) {
     }),
   })
   return extractEmbeddingData(payload?.result, chunks.length)
+}
+
+async function createVoyageEmbeddings(chunks, { apiKey, fetchImpl, requestTimeoutMs }) {
+  let response
+  try {
+    response = await fetchImpl('https://ai.mongodb.com/v1/embeddings', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'voyage-4-lite', input: chunks.map(({ text }) => text), input_type: 'document', output_dimension: 1024, output_dtype: 'float', truncation: false }),
+      redirect: 'error',
+      signal: AbortSignal.timeout(requestTimeoutMs),
+    })
+  } catch { throw new Error('Voyage embeddings request failed.') }
+  if (!response.ok) { await response.body?.cancel().catch(() => {}); throw new Error(`Voyage embeddings returned HTTP ${response.status}.`) }
+  const payload = await readJsonResponse(response)
+  if (payload?.model !== 'voyage-4-lite' || !Array.isArray(payload.data) || payload.data.length !== chunks.length) throw new Error('Voyage returned an invalid embedding response.')
+  const ordered = new Map()
+  for (const row of payload.data) {
+    if (!Number.isInteger(row?.index) || row.index < 0 || row.index >= chunks.length || ordered.has(row.index)) throw new Error('Voyage returned an invalid embedding index.')
+    ordered.set(row.index, row.embedding)
+  }
+  return extractEmbeddingData({data: chunks.map((_, i) => ordered.get(i))}, chunks.length)
 }
 
 async function upsertVectors(client, indexName, vectors) {
