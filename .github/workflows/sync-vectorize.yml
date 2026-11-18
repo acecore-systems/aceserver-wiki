@@ -7,6 +7,11 @@ on:
   schedule:
     - cron: '*/15 * * * *'
   workflow_dispatch:
+    inputs:
+      voyage_probe:
+        description: Voyage合成文書の疎通だけを検証（索引同期なし）
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -16,6 +21,7 @@ jobs:
     name: Reconcile production index with the public Wiki
     if: >-
       github.ref == 'refs/heads/main' &&
+      !(github.event_name == 'workflow_dispatch' && inputs.voyage_probe == true) &&
       (
         github.event_name == 'push' ||
         github.event_name == 'schedule' ||
@@ -181,3 +187,43 @@ jobs:
           --assert-current
           "$BUILT_COMMIT"
           site/poc/astro-sveltia/dist/vector-corpus.json
+
+  probe-voyage-document:
+    name: Verify Voyage document embedding without index changes
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      github.event_name == 'workflow_dispatch' &&
+      inputs.voyage_probe == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: cloudflare-wiki-search-production
+    concurrency:
+      group: vectorize-wiki-search-production
+      cancel-in-progress: false
+    steps:
+      - name: Check out the exact event tooling
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+      - name: Verify the Voyage document embedding
+        shell: bash
+        env:
+          VOYAGE_ENABLED: ${{ vars.WIKI_VOYAGE_SYNC_ENABLED }}
+          VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ "$VOYAGE_ENABLED" != "true" ]]; then
+            echo "::error::WIKI_VOYAGE_SYNC_ENABLED must be true."
+            exit 1
+          fi
+          if [[ -z "${VOYAGE_API_KEY:-}" ]]; then
+            echo "::error::VOYAGE_API_KEY is not configured."
+            exit 1
+          fi
+          node poc/astro-sveltia/scripts/probe-voyage-document.mjs
