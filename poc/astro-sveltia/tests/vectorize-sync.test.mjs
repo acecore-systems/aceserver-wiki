@@ -6,6 +6,7 @@ import { after, test } from 'node:test'
 
 import {
   extractEmbeddingData,
+  probeVoyageDocument,
   syncVectorize,
   validateCorpus,
   validateDeletePlan,
@@ -501,3 +502,22 @@ function cloudflareResponse(result, status = 200) {
 }
 
 const silentLogger = { log() {} }
+
+test('合成文書probeはwriterと同じVoyage契約を使い不正応答を拒否する', async () => {
+  let request
+  const fetchImpl = async (url, init) => {
+    request = { url, body: JSON.parse(init.body), redirect: init.redirect }
+    return Response.json({ model: 'voyage-4-lite', data: [{ index: 0, embedding: Array(1024).fill(0.1) }] })
+  }
+  assert.deepEqual(await probeVoyageDocument({ voyageApiKey: 'synthetic', fetchImpl }), { model: 'voyage-4-lite', dimensions: 1024 })
+  assert.equal(request.url, 'https://ai.mongodb.com/v1/embeddings')
+  assert.equal(request.redirect, 'error')
+  assert.deepEqual(request.body, { model: 'voyage-4-lite', input: ['これは検索用の合成文書です。'], input_type: 'document', output_dimension: 1024, output_dtype: 'float', truncation: false })
+  await assert.rejects(probeVoyageDocument({ voyageApiKey: '', fetchImpl }), /VOYAGE_API_KEY/u)
+  for (const response of [
+    { model: 'wrong', data: [{ index: 0, embedding: Array(1024).fill(0.1) }] },
+    { model: 'voyage-4-lite', data: [{ index: 1, embedding: Array(1024).fill(0.1) }] },
+    { model: 'voyage-4-lite', data: [{ index: 0, embedding: [0.1] }] },
+    { model: 'voyage-4-lite', data: [{ index: 0, embedding: Array(1024).fill(null) }] },
+  ]) await assert.rejects(probeVoyageDocument({ voyageApiKey: 'synthetic', fetchImpl: async () => Response.json(response) }))
+})

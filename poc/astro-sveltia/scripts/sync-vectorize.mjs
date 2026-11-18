@@ -681,6 +681,12 @@ async function createEmbeddings(client, chunks) {
   return extractEmbeddingData(payload?.result, chunks.length)
 }
 
+export async function probeVoyageDocument({ voyageApiKey = process.env.VOYAGE_API_KEY, fetchImpl = globalThis.fetch } = {}) {
+  if (!voyageApiKey?.trim()) throw new Error('VOYAGE_API_KEY is not configured.')
+  await createVoyageEmbeddings([{ text: 'これは検索用の合成文書です。' }], { apiKey: voyageApiKey, fetchImpl, requestTimeoutMs: REQUEST_TIMEOUT_MS })
+  return { model: 'voyage-4-lite', dimensions: 1024 }
+}
+
 async function createVoyageEmbeddings(chunks, { apiKey, fetchImpl, requestTimeoutMs }) {
   let response
   try {
