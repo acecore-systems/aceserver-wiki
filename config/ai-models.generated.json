@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "policy_revision": "2026-11-18.3",
+  "policy_revision": "2026-11-25.1",
   "features": {
     "search.embedding": {
       "profile": "embedding.default",
