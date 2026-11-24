@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { requireVoyageEmbeddingModel } from '../src/search-embedding-policy.ts'
+
 const API_BASE_URL = 'https://api.cloudflare.com/client/v4'
 const DEFAULT_CORPUS_FILE = resolve('dist/vector-corpus.json')
 const EMBEDDING_MODEL = '@cf/baai/bge-m3'
@@ -58,6 +60,7 @@ export async function syncVectorize({
   randomImpl = Math.random,
   logger = console,
 } = {}) {
+  const voyageModel = indexName === VOYAGE_INDEX_NAME ? requireVoyageEmbeddingModel() : null
   const corpus = JSON.parse(await readFile(corpusFile, 'utf8'))
   validateCorpus(corpus)
   validateIndexName(indexName, { required: !dryRun })
@@ -79,7 +82,7 @@ export async function syncVectorize({
       `Production sync requires --confirm-production ${indexName}.`,
     )
   }
-  if (indexName === VOYAGE_INDEX_NAME && !voyageApiKey?.trim()) {
+  if (voyageModel && !voyageApiKey?.trim()) {
     throw new Error('VOYAGE_API_KEY is required for Voyage sync.')
   }
 
@@ -129,8 +132,8 @@ export async function syncVectorize({
     }),
   )
 
-  const embed = (chunks) => indexName === VOYAGE_INDEX_NAME
-    ? createVoyageEmbeddings(chunks, { apiKey: voyageApiKey, fetchImpl, requestTimeoutMs })
+  const embed = (chunks) => voyageModel
+    ? createVoyageEmbeddings(chunks, { model: voyageModel, apiKey: voyageApiKey, fetchImpl, requestTimeoutMs })
     : createEmbeddings(client, chunks)
   const mutationIds = []
   let queryCanary = null
@@ -682,25 +685,26 @@ async function createEmbeddings(client, chunks) {
 }
 
 export async function probeVoyageDocument({ voyageApiKey = process.env.VOYAGE_API_KEY, fetchImpl = globalThis.fetch } = {}) {
+  const model = requireVoyageEmbeddingModel()
   if (!voyageApiKey?.trim()) throw new Error('VOYAGE_API_KEY is not configured.')
-  await createVoyageEmbeddings([{ text: 'これは検索用の合成文書です。' }], { apiKey: voyageApiKey, fetchImpl, requestTimeoutMs: REQUEST_TIMEOUT_MS })
-  return { model: 'voyage-4-lite', dimensions: 1024 }
+  await createVoyageEmbeddings([{ text: 'これは検索用の合成文書です。' }], { model, apiKey: voyageApiKey, fetchImpl, requestTimeoutMs: REQUEST_TIMEOUT_MS })
+  return { model, dimensions: 1024 }
 }
 
-async function createVoyageEmbeddings(chunks, { apiKey, fetchImpl, requestTimeoutMs }) {
+async function createVoyageEmbeddings(chunks, { model, apiKey, fetchImpl, requestTimeoutMs }) {
   let response
   try {
     response = await fetchImpl('https://ai.mongodb.com/v1/embeddings', {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'voyage-4-lite', input: chunks.map(({ text }) => text), input_type: 'document', output_dimension: 1024, output_dtype: 'float', truncation: false }),
+      body: JSON.stringify({ model, input: chunks.map(({ text }) => text), input_type: 'document', output_dimension: 1024, output_dtype: 'float', truncation: false }),
       redirect: 'error',
       signal: AbortSignal.timeout(requestTimeoutMs),
     })
   } catch { throw new Error('Voyage embeddings request failed.') }
   if (!response.ok) { await response.body?.cancel().catch(() => {}); throw new Error(`Voyage embeddings returned HTTP ${response.status}.`) }
   const payload = await readJsonResponse(response)
-  if (payload?.model !== 'voyage-4-lite' || !Array.isArray(payload.data) || payload.data.length !== chunks.length) throw new Error('Voyage returned an invalid embedding response.')
+  if (payload?.model !== model || !Array.isArray(payload.data) || payload.data.length !== chunks.length) throw new Error('Voyage returned an invalid embedding response.')
   const ordered = new Map()
   for (const row of payload.data) {
     if (!Number.isInteger(row?.index) || row.index < 0 || row.index >= chunks.length || ordered.has(row.index)) throw new Error('Voyage returned an invalid embedding index.')

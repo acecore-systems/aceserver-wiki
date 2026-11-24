@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "policy_revision": "2026-11-18.3",
+  "features": {
+    "search.embedding": {
+      "profile": "embedding.default",
+      "provider": "mongodb",
+      "api_model_id": "voyage-4-lite",
+      "execution_mode": "realtime"
+    }
+  }
+}

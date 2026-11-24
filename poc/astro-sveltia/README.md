@@ -279,6 +279,8 @@ production成功とは扱いません。`asv-wiki.acecore.net` は、
 branch previewは`CMS_PUBLICATION_MODE=disabled`とし、GitHub App secretと
 Vectorize bindingを登録しません。
 
+本番のVoyage検索と文書同期・疎通確認は、リポジトリのルートにある `config/ai-models.generated.json` の `search.embedding` を使います。既存索引はVoyage 4 Lite・1,024次元です。配布設定が索引と互換性を満たさない場合は送信前に停止します。モデル変更時は新しいモデルで文書を再埋め込みした索引を作り、共有Workerと呼び出し元を合わせて切り替えます。既存の公開コーパスの形式・IDとBGE-M3索引への同期には従来の契約を使います。
+
 ## 移行状態
 
 - Newtの15記事、6カテゴリ、3ヘッダーリンク、11画像をMarkdownへ移行済み
