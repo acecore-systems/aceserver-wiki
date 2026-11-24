@@ -1,5 +1,6 @@
+import { VOYAGE_EMBEDDING_MODEL } from '../../src/search-embedding-policy.ts'
+
 const SEARCH_EMBEDDING_MODEL = '@cf/baai/bge-m3'
-const VOYAGE_EMBEDDING_MODEL = 'voyage-4-lite'
 const SEARCH_EMBEDDING_DIMENSIONS = 1024
 const SEARCH_LOCALE = 'ja'
 const DEFAULT_MIN_SCORE = 0.4
@@ -78,9 +79,13 @@ export const createSearchHandler =
         )
       }
 
+      const model = env.SEARCH_EMBEDDING_MODEL || SEARCH_EMBEDDING_MODEL
       if (
         env.SEARCH_ENABLED !== 'true' ||
-        !((env.SEARCH_EMBEDDING_MODEL || SEARCH_EMBEDDING_MODEL) === VOYAGE_EMBEDDING_MODEL ? env.VOYAGE_EMBEDDER : env.AI) ||
+        !(
+          (model === VOYAGE_EMBEDDING_MODEL && env.VOYAGE_EMBEDDER) ||
+          (model === SEARCH_EMBEDDING_MODEL && env.AI)
+        ) ||
         !env.SEARCH_INDEX ||
         !env.CMS_DATABASE
       ) {
@@ -209,19 +214,22 @@ export const onRequestPost = createSearchHandler()
 
 async function createQueryEmbedding(env: SemanticSearchEnv, query: string): Promise<number[]> {
   const model = env.SEARCH_EMBEDDING_MODEL || SEARCH_EMBEDDING_MODEL
-  if (model !== VOYAGE_EMBEDDING_MODEL) return createWorkersAiEmbedding(env, query)
+  if (model === SEARCH_EMBEDDING_MODEL) return createWorkersAiEmbedding(env, query)
+  if (model !== VOYAGE_EMBEDDING_MODEL) {
+    throw namedError('VoyageEmbeddingConfigurationError')
+  }
   if (!env.VOYAGE_EMBEDDER || Number(env.SEARCH_EMBEDDING_DIMENSIONS || SEARCH_EMBEDDING_DIMENSIONS) !== SEARCH_EMBEDDING_DIMENSIONS) throw namedError('VoyageEmbeddingConfigurationError')
   let payload: unknown
   try {
     const response = await env.VOYAGE_EMBEDDER.fetch('https://voyage-embeddings.internal/v1/embeddings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: VOYAGE_EMBEDDING_MODEL, input: [query], input_type: 'query', output_dimension: SEARCH_EMBEDDING_DIMENSIONS, output_dtype: 'float', truncation: false }),
+      body: JSON.stringify({ model, input: [query], input_type: 'query', output_dimension: SEARCH_EMBEDDING_DIMENSIONS, output_dtype: 'float', truncation: false }),
     })
     if (!response.ok) throw new Error()
     payload = await response.json()
   } catch { throw namedError('VoyageEmbeddingProviderError') }
-  if (!isJsonObject(payload) || payload.model !== VOYAGE_EMBEDDING_MODEL || !Array.isArray(payload.data) || payload.data.length !== 1 || !isJsonObject(payload.data[0]) || payload.data[0].index !== 0 || !Array.isArray(payload.data[0].embedding)) throw namedError('VoyageEmbeddingContractError')
+  if (!isJsonObject(payload) || payload.model !== model || !Array.isArray(payload.data) || payload.data.length !== 1 || !isJsonObject(payload.data[0]) || payload.data[0].index !== 0 || !Array.isArray(payload.data[0].embedding)) throw namedError('VoyageEmbeddingContractError')
   const embedding = payload.data[0].embedding
   if (embedding.length !== SEARCH_EMBEDDING_DIMENSIONS || !embedding.every((value) => typeof value === 'number' && Number.isFinite(value))) throw namedError('VoyageEmbeddingDimensionsError')
   return embedding as number[]
